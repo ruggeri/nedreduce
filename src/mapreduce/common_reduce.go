@@ -21,7 +21,7 @@ func doReduce(
 	defer reducerInputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
-	outputFile, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE, 0644)
+	outputFile, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatalf("error opening reducer output file: %v\n", err)
 	}

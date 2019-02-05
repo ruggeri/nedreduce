@@ -25,7 +25,7 @@ func NewMapOutputManager(jobName string, mapTask int, numReducers int) MapOutput
 	for reduceTask := 0; reduceTask < numReducers; reduceTask++ {
 		// Open an output file and append it to the list.
 		outputFileName := reduceName(jobName, mapTask, reduceTask)
-		outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE, 0644)
+		outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			log.Fatalf("error opening mapper output file: %v\n", err)
 		}
