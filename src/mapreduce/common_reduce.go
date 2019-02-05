@@ -1,5 +1,12 @@
 package mapreduce
 
+import (
+	"encoding/json"
+	"io"
+	"log"
+	"os"
+)
+
 func doReduce(
 	jobName string, // the name of the whole MapReduce job
 	reduceTask int, // which reduce task this is
@@ -7,41 +14,59 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	//
-	// doReduce manages one reduce task: it should read the intermediate
-	// files for the task, sort the intermediate key/value pairs by key,
-	// call the user-defined reduce function (reduceF) for each key, and
-	// write reduceF's output to disk.
-	//
-	// You'll need to read one intermediate file from each map task;
-	// reduceName(jobName, m, reduceTask) yields the file
-	// name from map task m.
-	//
-	// Your doMap() encoded the key/value pairs in the intermediate
-	// files, so you will need to decode them. If you used JSON, you can
-	// read and decode by creating a decoder and repeatedly calling
-	// .Decode(&kv) on it until it returns an error.
-	//
-	// You may find the first example in the golang sort package
-	// documentation useful.
-	//
-	// reduceF() is the application's reduce function. You should
-	// call it once per distinct key, with a slice of all the values
-	// for that key. reduceF() returns the reduced value for that key.
-	//
-	// You should write the reduce output as JSON encoded KeyValue
-	// objects to the file named outFile. We require you to use JSON
-	// because that is what the merger than combines the output
-	// from all the reduce tasks expects. There is nothing special about
-	// JSON -- it is just the marshalling format we chose to use. Your
-	// output code will look something like this:
-	//
-	// enc := json.NewEncoder(file)
-	// for key := ... {
-	// 	enc.Encode(KeyValue{key, reduceF(...)})
-	// }
-	// file.Close()
-	//
-	// Your code here (Part I).
-	//
+	// TODO: must sort the mapper output files.
+
+	// Open the reducer's input files.
+	reducerInputManager := NewReducerInputManager(jobName, nMap, reduceTask)
+	defer reducerInputManager.Close()
+
+	// Open the reducer's output file. Setup the output encoder.
+	outputFile, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatalf("error opening reducer output file: %v\n", err)
+	}
+	defer outputFile.Close()
+	outputEncoder := json.NewEncoder(outputFile)
+
+	// Iterate the groups one at a time.
+	groupingIterator := NewGroupingIterator(reducerInputManager.inputDecoders)
+	for {
+		groupIterator, err := groupingIterator.Next()
+
+		if err == io.EOF {
+			// No more groups.
+			break
+		} else if err != nil {
+			log.Fatalf("unexpected groupingIterator error: %v\n", err)
+		}
+
+		// TODO: I would rather pass in the iterator to the reducer
+		// function, but for now I will materialize the entire group in
+		// memory.
+		groupKey := groupIterator.GroupKey
+		values := []string{}
+		for {
+			keyValue, err := groupIterator.Next()
+
+			if err == io.EOF {
+				// This group is over!
+				break
+			} else if err != nil {
+				log.Fatalf("unexpected GroupIterator error: %v\n", err)
+			}
+
+			values = append(values, keyValue.Value)
+		}
+
+		// Call the reducer function. TODO: a reducer can typically produce
+		// more than one output row per group if desired.
+		outputValue := reduceF(groupKey, values)
+		outputKeyValue := KeyValue{groupIterator.GroupKey, outputValue}
+
+		// Write out the outputValue.
+		err = outputEncoder.Encode(outputKeyValue)
+		if err != nil {
+			log.Fatalf("reduce output error: %v\n", err)
+		}
+	}
 }
