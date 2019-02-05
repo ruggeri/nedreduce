@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"mapreduce"
 	"os"
+	"strconv"
+	"strings"
 )
 
 //
@@ -14,7 +16,15 @@ import (
 // of key/value pairs.
 //
 func mapF(filename string, contents string) []mapreduce.KeyValue {
-	// Your code here (Part II).
+	words := strings.Fields(contents)
+
+	outputKeyValues := make([]mapreduce.KeyValue, 0, len(words))
+	for _, word := range words {
+		outputKeyValue := mapreduce.KeyValue{word, ""}
+		outputKeyValues = append(outputKeyValues, outputKeyValue)
+	}
+
+	return outputKeyValues
 }
 
 //
@@ -23,7 +33,7 @@ func mapF(filename string, contents string) []mapreduce.KeyValue {
 // any map task.
 //
 func reduceF(key string, values []string) string {
-	// Your code here (Part II).
+	return strconv.Itoa(len(values))
 }
 
 // Can be run in 3 ways:
