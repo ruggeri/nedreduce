@@ -36,7 +36,9 @@ func doMap(
 			log.Fatalf("error reading file: %v\n", err)
 		}
 
-		// Apply the map function (I wish this gave us an iterator...).
+		// Apply the map function.
+		//
+		// TODO: it would be nicer if mapF output using an iterator.
 		keyValues := mapF(inFile, line)
 
 		// Write the map outputs.
