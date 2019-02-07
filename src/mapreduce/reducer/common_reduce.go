@@ -6,28 +6,41 @@ import (
 	"log"
 	"mapreduce/common"
 	"os"
-	"sort"
 )
 
+// A GroupIteratorFunction is how a ReducingFunction is passed the
+// KeyValues that constitute a reduce group.
 type GroupIteratorFunction func() (*common.KeyValue, error)
-type ReducingEmitterFunction func(outputKeyValue common.KeyValue)
-type ReducingFunction func(string, GroupIteratorFunction, ReducingEmitterFunction)
 
-func DoReduce(
+// A ReducingEmitterFunction is how a ReducingFunction outputs
+// KeyValues.
+type ReducingEmitterFunction func(outputKeyValue common.KeyValue)
+
+// A ReducingFunction is the type of function the user supplies to do
+// the reducing.
+type ReducingFunction func(
+	groupKey string,
+	groupIteratorFunction GroupIteratorFunction,
+	reducingEmitterFunction ReducingEmitterFunction,
+)
+
+// ExecuteReducing runs a reduce task.
+func ExecuteReducing(
 	jobName string, // the name of the whole MapReduce job
 	reduceTaskIdx int, // which reduce task this is
-	outFileName string, // write the output here
+	outputFileName string, // write the output here
 	numMappers int, // the number of map tasks that were run ("M" in the paper)
 	reducingFunction ReducingFunction,
 ) {
-	doSort(jobName, numMappers, reduceTaskIdx)
+	// First, we must sort each mapper output file.
+	sortReducerInputFiles(jobName, numMappers, reduceTaskIdx)
 
-	// Open the reducer's input files.
+	// Now, open the reducer's input files.
 	inputManager := NewInputManager(jobName, numMappers, reduceTaskIdx)
 	defer inputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
-	outputFile, err := os.OpenFile(outFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatalf("error opening reducer output file: %v\n", err)
 	}
@@ -46,27 +59,9 @@ func DoReduce(
 			log.Fatalf("unexpected groupingIterator error: %v\n", err)
 		}
 
-		// TODO: I would rather pass in the iterator to the reducer
-		// function, but for now I will materialize the entire group in
-		// memory.
-		groupKey := groupIterator.GroupKey
-		values := []string{}
-		for {
-			keyValue, err := groupIterator.Next()
-
-			if err == io.EOF {
-				// This group is over!
-				break
-			} else if err != nil {
-				log.Fatalf("unexpected GroupIterator error: %v\n", err)
-			}
-
-			values = append(values, keyValue.Value)
-		}
-
 		// Call the reducer function.
 		reducingFunction(
-			groupKey,
+			groupIterator.GroupKey,
 			func() (*common.KeyValue, error) { return groupIterator.Next() },
 			func(outputKeyValue common.KeyValue) {
 				// Write out the outputValue.
@@ -76,53 +71,5 @@ func DoReduce(
 				}
 			},
 		)
-	}
-}
-
-func doSort(jobName string, numMappers int, reduceTaskIdx int) {
-	// TODO: Change this into an external merge sort.
-
-	// Open the reducer's input files.
-	reducerInputManager := NewInputManager(jobName, numMappers, reduceTaskIdx)
-	defer reducerInputManager.Close()
-
-	for mapTaskIdx, inputDecoder := range reducerInputManager.inputDecoders {
-		// Read in all KeyValues for this mapper input. Gross.
-		keyValues := []common.KeyValue{}
-		for {
-			keyValue := &common.KeyValue{}
-			err := inputDecoder.Decode(keyValue)
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				log.Fatalf("unexpected decode error: %v\n", err)
-			}
-
-			keyValues = append(keyValues, *keyValue)
-		}
-
-		// Close the file.
-		reducerInputManager.inputFiles[mapTaskIdx].Close()
-
-		// Now do the sorting.
-		sort.SliceStable(keyValues, func(i, j int) bool {
-			return keyValues[i].Key < keyValues[j].Key
-		})
-
-		// Open a new file for writing. Really I should be creating a new
-		// file and then re-naming.
-		file, err := os.OpenFile(common.IntermediateFileName(jobName, mapTaskIdx, reduceTaskIdx), os.O_TRUNC|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Fatalf("unexpected error re-opening %v\n", err)
-		}
-		defer file.Close()
-
-		encoder := json.NewEncoder(file)
-		for _, keyValue := range keyValues {
-			err := encoder.Encode(keyValue)
-			if err != nil {
-				log.Fatalf("unexpected error encoding KeyValue: %v\n", err)
-			}
-		}
 	}
 }

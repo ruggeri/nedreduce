@@ -73,7 +73,7 @@ func Sequential(jobName string, files []string, nreduce int,
 			}
 		case common.ReducePhase:
 			for i := 0; i < mr.nReduce; i++ {
-				reducer.DoReduce(mr.jobName, i, common.OutputFileName(mr.jobName, i), len(mr.Files), reducingFunction)
+				reducer.ExecuteReducing(mr.jobName, i, common.OutputFileName(mr.jobName, i), len(mr.Files), reducingFunction)
 			}
 		}
 	}, func() {

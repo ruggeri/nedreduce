@@ -67,6 +67,9 @@ func (mergedInputIterator *MergedInputIterator) Next() (*common.KeyValue, error)
 	var leastInputKeyValue *common.KeyValue
 
 	// Scan for the least input with the least key.
+	//
+	// TODO: If there were lots of map tasks, it might be efficient to use
+	// a min heap here.
 	for inputIdx, inputKeyValue := range mergedInputIterator.peekedInputKeyValues {
 		if inputKeyValue == nil {
 			// Skip over exhausted input files.
