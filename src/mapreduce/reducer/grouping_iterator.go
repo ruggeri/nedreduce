@@ -1,15 +1,16 @@
-package mapreduce
+package reducer
 
 import (
 	"encoding/json"
 	"io"
 	"log"
+	"mapreduce/common"
 )
 
 // GroupingIterator is an iterator that yields GroupIterators.
 type GroupingIterator struct {
 	currentGroupKey     *string
-	peekedKeyValue      *KeyValue
+	peekedKeyValue      *common.KeyValue
 	mergedInputIterator MergedInputIterator
 }
 
@@ -36,7 +37,7 @@ func NewGroupingIterator(inputDecoders []*json.Decoder) GroupingIterator {
 // advance is called by GroupIterator. It keeps handing KeyValue to the
 // GroupIterator until either (1) the group ends and a new key is
 // encountered, or (2) the input ends.
-func (iter *GroupingIterator) advance() (*KeyValue, error) {
+func (iter *GroupingIterator) advance() (*common.KeyValue, error) {
 	if iter.peekedKeyValue == nil {
 		// We ran out of KeyValues; the input files must be exhausted. This
 		// is the end of the group, and there are no future groups.

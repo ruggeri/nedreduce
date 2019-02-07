@@ -1,6 +1,9 @@
-package mapreduce
+package reducer
 
-import "io"
+import (
+	"io"
+	"mapreduce/common"
+)
 
 // GroupIterator is an iterator that yields successive KeyValues all in
 // one key group.
@@ -18,7 +21,7 @@ func NewGroupIterator(groupingIterator *GroupingIterator) GroupIterator {
 }
 
 // Next yields the next KeyValue in the group, if any.
-func (groupIterator *GroupIterator) Next() (*KeyValue, error) {
+func (groupIterator *GroupIterator) Next() (*common.KeyValue, error) {
 	keyValue, err := groupIterator.groupingIterator.advance()
 
 	if err == io.EOF {

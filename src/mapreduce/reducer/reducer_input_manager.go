@@ -1,8 +1,9 @@
-package mapreduce
+package reducer
 
 import (
 	"encoding/json"
 	"log"
+	"mapreduce/common"
 	"os"
 )
 
@@ -24,7 +25,7 @@ func NewReducerInputManager(jobName string, numMappers int, reduceTask int) Redu
 	// For each map task...
 	for mapperIdx := 0; mapperIdx < numMappers; mapperIdx++ {
 		// Open an input file and append it to the list.
-		inputFileName := reduceName(jobName, mapperIdx, reduceTask)
+		inputFileName := common.IntermediateFileName(jobName, mapperIdx, reduceTask)
 		inputFile, err := os.Open(inputFileName)
 		if err != nil {
 			log.Fatalf("error opening reducer input file: %v\n", err)

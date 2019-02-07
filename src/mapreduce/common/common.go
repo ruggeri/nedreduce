@@ -1,4 +1,4 @@
-package mapreduce
+package common
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 const debugEnabled = false
 
 // debug() will only print if debugEnabled is true
-func debug(format string, a ...interface{}) (n int, err error) {
+func Debug(format string, a ...interface{}) (n int, err error) {
 	if debugEnabled {
 		n, err = fmt.Printf(format, a...)
 	}
@@ -17,11 +17,11 @@ func debug(format string, a ...interface{}) (n int, err error) {
 }
 
 // jobPhase indicates whether a task is scheduled as a map or reduce task.
-type jobPhase string
+type JobPhase string
 
 const (
-	mapPhase    jobPhase = "mapPhase"
-	reducePhase          = "reducePhase"
+	MapPhase    JobPhase = "mapPhase"
+	ReducePhase          = "reducePhase"
 )
 
 // KeyValue is a type used to hold the key/value pairs passed to the map and
@@ -33,11 +33,11 @@ type KeyValue struct {
 
 // reduceName constructs the name of the intermediate file which map task
 // <mapTask> produces for reduce task <reduceTask>.
-func reduceName(jobName string, mapTask int, reduceTask int) string {
+func IntermediateFileName(jobName string, mapTask int, reduceTask int) string {
 	return "mrtmp." + jobName + "-" + strconv.Itoa(mapTask) + "-" + strconv.Itoa(reduceTask)
 }
 
 // mergeName constructs the name of the output file of reduce task <reduceTask>
-func mergeName(jobName string, reduceTask int) string {
+func OutputFileName(jobName string, reduceTask int) string {
 	return "mrtmp." + jobName + "-res-" + strconv.Itoa(reduceTask)
 }

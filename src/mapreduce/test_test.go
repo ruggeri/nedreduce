@@ -2,6 +2,10 @@ package mapreduce
 
 import (
 	"fmt"
+	"mapreduce/common"
+	"mapreduce/mapper"
+	"mapreduce/master"
+	"mapreduce/reducer"
 	"testing"
 	"time"
 
@@ -23,22 +27,19 @@ const (
 // Check if we have N numbers in output file
 
 // Split in words
-func MapFunc(file string, value string) (res []KeyValue) {
-	debug("Map %v\n", value)
-	words := strings.Fields(value)
+func MappingFunction(inputFileName string, line string, mappingEmitterFunction mapper.MappingEmitterFunction) {
+	common.Debug("Map %v\n", line)
+	words := strings.Fields(line)
 	for _, w := range words {
-		kv := KeyValue{w, ""}
-		res = append(res, kv)
+		kv := common.KeyValue{w, ""}
+		mappingEmitterFunction(kv)
 	}
-	return
 }
 
-// Just return key
-func ReduceFunc(key string, values []string) string {
-	for _, e := range values {
-		debug("Reduce %s %v\n", key, e)
-	}
-	return ""
+func ReducingFunction(groupKey string, groupIteratorfunction reducer.GroupIteratorFunction, reducingEmitterFunction reducer.ReducingEmitterFunction) {
+	// TODO: Why do they want this?
+	kv := common.KeyValue{groupKey, ""}
+	reducingEmitterFunction(kv)
 }
 
 // Checks input file agaist output file: each input number should show up
@@ -129,45 +130,45 @@ func port(suffix string) string {
 	return s
 }
 
-func setup() *Master {
+func setup() *master.Master {
 	files := makeInputs(nMap)
-	master := port("master")
-	mr := Distributed("test", files, nReduce, master)
+	masterPort := port("master")
+	mr := master.Distributed("test", files, nReduce, masterPort)
 	return mr
 }
 
-func cleanup(mr *Master) {
+func cleanup(mr *master.Master) {
 	mr.CleanupFiles()
-	for _, f := range mr.files {
-		removeFile(f)
+	for _, f := range mr.Files {
+		master.RemoveFile(f)
 	}
 }
 
 func TestSequentialSingle(t *testing.T) {
-	mr := Sequential("test", makeInputs(1), 1, MapFunc, ReduceFunc)
+	mr := master.Sequential("test", makeInputs(1), 1, MappingFunction, ReducingFunction)
 	mr.Wait()
-	check(t, mr.files)
-	checkWorker(t, mr.stats)
+	check(t, mr.Files)
+	checkWorker(t, mr.Stats)
 	cleanup(mr)
 }
 
 func TestSequentialMany(t *testing.T) {
-	mr := Sequential("test", makeInputs(5), 3, MapFunc, ReduceFunc)
+	mr := master.Sequential("test", makeInputs(5), 3, MappingFunction, ReducingFunction)
 	mr.Wait()
-	check(t, mr.files)
-	checkWorker(t, mr.stats)
+	check(t, mr.Files)
+	checkWorker(t, mr.Stats)
 	cleanup(mr)
 }
 
 func TestParallelBasic(t *testing.T) {
 	mr := setup()
 	for i := 0; i < 2; i++ {
-		go RunWorker(mr.address, port("worker"+strconv.Itoa(i)),
-			MapFunc, ReduceFunc, -1, nil)
+		go RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
+			MappingFunction, ReducingFunction, -1, nil)
 	}
 	mr.Wait()
-	check(t, mr.files)
-	checkWorker(t, mr.stats)
+	check(t, mr.Files)
+	checkWorker(t, mr.Stats)
 	cleanup(mr)
 }
 
@@ -175,12 +176,12 @@ func TestParallelCheck(t *testing.T) {
 	mr := setup()
 	parallelism := &Parallelism{}
 	for i := 0; i < 2; i++ {
-		go RunWorker(mr.address, port("worker"+strconv.Itoa(i)),
-			MapFunc, ReduceFunc, -1, parallelism)
+		go RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
+			MappingFunction, ReducingFunction, -1, parallelism)
 	}
 	mr.Wait()
-	check(t, mr.files)
-	checkWorker(t, mr.stats)
+	check(t, mr.Files)
+	checkWorker(t, mr.Stats)
 
 	parallelism.mu.Lock()
 	if parallelism.max < 2 {
@@ -194,13 +195,13 @@ func TestParallelCheck(t *testing.T) {
 func TestOneFailure(t *testing.T) {
 	mr := setup()
 	// Start 2 workers that fail after 10 tasks
-	go RunWorker(mr.address, port("worker"+strconv.Itoa(0)),
-		MapFunc, ReduceFunc, 10, nil)
-	go RunWorker(mr.address, port("worker"+strconv.Itoa(1)),
-		MapFunc, ReduceFunc, -1, nil)
+	go RunWorker(mr.Address, port("worker"+strconv.Itoa(0)),
+		MappingFunction, ReducingFunction, 10, nil)
+	go RunWorker(mr.Address, port("worker"+strconv.Itoa(1)),
+		MappingFunction, ReducingFunction, -1, nil)
 	mr.Wait()
-	check(t, mr.files)
-	checkWorker(t, mr.stats)
+	check(t, mr.Files)
+	checkWorker(t, mr.Stats)
 	cleanup(mr)
 }
 
@@ -210,17 +211,17 @@ func TestManyFailures(t *testing.T) {
 	done := false
 	for !done {
 		select {
-		case done = <-mr.doneChannel:
-			check(t, mr.files)
+		case done = <-mr.DoneChannel:
+			check(t, mr.Files)
 			cleanup(mr)
 			break
 		default:
 			// Start 2 workers each sec. The workers fail after 10 tasks
 			w := port("worker" + strconv.Itoa(i))
-			go RunWorker(mr.address, w, MapFunc, ReduceFunc, 10, nil)
+			go RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
 			i++
 			w = port("worker" + strconv.Itoa(i))
-			go RunWorker(mr.address, w, MapFunc, ReduceFunc, 10, nil)
+			go RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
 			i++
 			time.Sleep(1 * time.Second)
 		}

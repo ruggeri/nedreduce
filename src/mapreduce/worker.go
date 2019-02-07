@@ -7,6 +7,9 @@ package mapreduce
 import (
 	"fmt"
 	"log"
+	"mapreduce/common"
+	"mapreduce/mapper"
+	"mapreduce/reducer"
 	"net"
 	"net/rpc"
 	"os"
@@ -26,8 +29,8 @@ type Worker struct {
 	sync.Mutex
 
 	name        string
-	Map         func(string, string) []KeyValue
-	Reduce      func(string, []string) string
+	Map         mapper.MappingFunction
+	Reduce      reducer.ReducingFunction
 	nRPC        int // quit after this many RPCs; protected by mutex
 	nTasks      int // total tasks executed; protected by mutex
 	concurrent  int // number of parallel DoTasks in this worker; mutex
@@ -37,7 +40,7 @@ type Worker struct {
 
 // DoTask is called by the master when a new task is being scheduled on this
 // worker.
-func (wk *Worker) DoTask(arg *DoTaskArgs, _ *struct{}) error {
+func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
 	fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
 		wk.name, arg.Phase, arg.TaskNumber, arg.File, arg.NumOtherPhase)
 
@@ -73,10 +76,10 @@ func (wk *Worker) DoTask(arg *DoTaskArgs, _ *struct{}) error {
 	}
 
 	switch arg.Phase {
-	case mapPhase:
-		doMap(arg.JobName, arg.TaskNumber, arg.File, arg.NumOtherPhase, wk.Map)
-	case reducePhase:
-		doReduce(arg.JobName, arg.TaskNumber, mergeName(arg.JobName, arg.TaskNumber), arg.NumOtherPhase, wk.Reduce)
+	case common.MapPhase:
+		mapper.DoMap(arg.JobName, arg.TaskNumber, arg.File, arg.NumOtherPhase, wk.Map)
+	case common.ReducePhase:
+		reducer.DoReduce(arg.JobName, arg.TaskNumber, common.OutputFileName(arg.JobName, arg.TaskNumber), arg.NumOtherPhase, wk.Reduce)
 	}
 
 	wk.Lock()
@@ -95,8 +98,8 @@ func (wk *Worker) DoTask(arg *DoTaskArgs, _ *struct{}) error {
 
 // Shutdown is called by the master when all work has been completed.
 // We should respond with the number of tasks we have processed.
-func (wk *Worker) Shutdown(_ *struct{}, res *ShutdownReply) error {
-	debug("Shutdown %s\n", wk.name)
+func (wk *Worker) Shutdown(_ *struct{}, res *common.ShutdownReply) error {
+	common.Debug("Shutdown %s\n", wk.name)
 	wk.Lock()
 	defer wk.Unlock()
 	res.Ntasks = wk.nTasks
@@ -106,9 +109,9 @@ func (wk *Worker) Shutdown(_ *struct{}, res *ShutdownReply) error {
 
 // Tell the master we exist and ready to work
 func (wk *Worker) register(master string) {
-	args := new(RegisterArgs)
+	args := new(common.RegisterArgs)
 	args.Worker = wk.name
-	ok := call(master, "Master.Register", args, new(struct{}))
+	ok := common.Call(master, "Master.Register", args, new(struct{}))
 	if ok == false {
 		fmt.Printf("Register: RPC %s register error\n", master)
 	}
@@ -117,11 +120,11 @@ func (wk *Worker) register(master string) {
 // RunWorker sets up a connection with the master, registers its address, and
 // waits for tasks to be scheduled.
 func RunWorker(MasterAddress string, me string,
-	MapFunc func(string, string) []KeyValue,
-	ReduceFunc func(string, []string) string,
+	MapFunc mapper.MappingFunction,
+	ReduceFunc reducer.ReducingFunction,
 	nRPC int, parallelism *Parallelism,
 ) {
-	debug("RunWorker %s\n", me)
+	common.Debug("RunWorker %s\n", me)
 	wk := new(Worker)
 	wk.name = me
 	wk.Map = MapFunc
@@ -157,5 +160,5 @@ func RunWorker(MasterAddress string, me string,
 		}
 	}
 	wk.l.Close()
-	debug("RunWorker %s exit\n", me)
+	common.Debug("RunWorker %s exit\n", me)
 }

@@ -1,8 +1,9 @@
-package mapreduce
+package master
 
 import (
 	"fmt"
 	"log"
+	"mapreduce/common"
 	"net"
 	"net/rpc"
 	"os"
@@ -10,7 +11,7 @@ import (
 
 // Shutdown is an RPC method that shuts down the Master's RPC server.
 func (mr *Master) Shutdown(_, _ *struct{}) error {
-	debug("Shutdown: registration server\n")
+	common.Debug("Shutdown: registration server\n")
 	close(mr.shutdown)
 	mr.l.Close() // causes the Accept to fail
 	return nil
@@ -21,10 +22,10 @@ func (mr *Master) Shutdown(_, _ *struct{}) error {
 func (mr *Master) startRPCServer() {
 	rpcs := rpc.NewServer()
 	rpcs.Register(mr)
-	os.Remove(mr.address) // only needed for "unix"
-	l, e := net.Listen("unix", mr.address)
+	os.Remove(mr.Address) // only needed for "unix"
+	l, e := net.Listen("unix", mr.Address)
 	if e != nil {
-		log.Fatal("RegstrationServer", mr.address, " error: ", e)
+		log.Fatal("RegstrationServer", mr.Address, " error: ", e)
 	}
 	mr.l = l
 
@@ -45,11 +46,11 @@ func (mr *Master) startRPCServer() {
 					conn.Close()
 				}()
 			} else {
-				debug("RegistrationServer: accept error: %v", err)
+				common.Debug("RegistrationServer: accept error: %v", err)
 				break
 			}
 		}
-		debug("RegistrationServer: done\n")
+		common.Debug("RegistrationServer: done\n")
 	}()
 }
 
@@ -57,10 +58,10 @@ func (mr *Master) startRPCServer() {
 // This must be done through an RPC to avoid race conditions between the RPC
 // server thread and the current thread.
 func (mr *Master) stopRPCServer() {
-	var reply ShutdownReply
-	ok := call(mr.address, "Master.Shutdown", new(struct{}), &reply)
+	var reply common.ShutdownReply
+	ok := common.Call(mr.Address, "Master.Shutdown", new(struct{}), &reply)
 	if ok == false {
-		fmt.Printf("Cleanup: RPC %s error\n", mr.address)
+		fmt.Printf("Cleanup: RPC %s error\n", mr.Address)
 	}
-	debug("cleanupRegistration: done\n")
+	common.Debug("cleanupRegistration: done\n")
 }

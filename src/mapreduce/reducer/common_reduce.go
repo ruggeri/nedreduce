@@ -1,28 +1,33 @@
-package mapreduce
+package reducer
 
 import (
 	"encoding/json"
 	"io"
 	"log"
+	"mapreduce/common"
 	"os"
 	"sort"
 )
 
-func doReduce(
+type GroupIteratorFunction func() (*common.KeyValue, error)
+type ReducingEmitterFunction func(outputKeyValue common.KeyValue)
+type ReducingFunction func(string, GroupIteratorFunction, ReducingEmitterFunction)
+
+func DoReduce(
 	jobName string, // the name of the whole MapReduce job
-	reduceTask int, // which reduce task this is
-	outFile string, // write the output here
-	nMap int, // the number of map tasks that were run ("M" in the paper)
-	reduceF func(key string, values []string) string,
+	reduceTaskIdx int, // which reduce task this is
+	outFileName string, // write the output here
+	numMappers int, // the number of map tasks that were run ("M" in the paper)
+	reducingFunction ReducingFunction,
 ) {
-	doSort(jobName, nMap, reduceTask)
+	doSort(jobName, numMappers, reduceTaskIdx)
 
 	// Open the reducer's input files.
-	reducerInputManager := NewReducerInputManager(jobName, nMap, reduceTask)
+	reducerInputManager := NewReducerInputManager(jobName, numMappers, reduceTaskIdx)
 	defer reducerInputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
-	outputFile, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	outputFile, err := os.OpenFile(outFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatalf("error opening reducer output file: %v\n", err)
 	}
@@ -59,16 +64,18 @@ func doReduce(
 			values = append(values, keyValue.Value)
 		}
 
-		// Call the reducer function. TODO: a reducer can typically produce
-		// more than one output row per group if desired.
-		outputValue := reduceF(groupKey, values)
-		outputKeyValue := KeyValue{groupIterator.GroupKey, outputValue}
-
-		// Write out the outputValue.
-		err = outputEncoder.Encode(outputKeyValue)
-		if err != nil {
-			log.Fatalf("reduce output error: %v\n", err)
-		}
+		// Call the reducer function.
+		reducingFunction(
+			groupKey,
+			func() (*common.KeyValue, error) { return groupIterator.Next() },
+			func(outputKeyValue common.KeyValue) {
+				// Write out the outputValue.
+				err = outputEncoder.Encode(outputKeyValue)
+				if err != nil {
+					log.Fatalf("reduce output error: %v\n", err)
+				}
+			},
+		)
 	}
 }
 
@@ -81,9 +88,9 @@ func doSort(jobName string, numMappers int, reduceTaskIdx int) {
 
 	for mapTaskIdx, inputDecoder := range reducerInputManager.inputDecoders {
 		// Read in all KeyValues for this mapper input. Gross.
-		keyValues := []KeyValue{}
+		keyValues := []common.KeyValue{}
 		for {
-			keyValue := &KeyValue{}
+			keyValue := &common.KeyValue{}
 			err := inputDecoder.Decode(keyValue)
 			if err == io.EOF {
 				break
@@ -104,7 +111,7 @@ func doSort(jobName string, numMappers int, reduceTaskIdx int) {
 
 		// Open a new file for writing. Really I should be creating a new
 		// file and then re-naming.
-		file, err := os.OpenFile(reduceName(jobName, mapTaskIdx, reduceTaskIdx), os.O_TRUNC|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(common.IntermediateFileName(jobName, mapTaskIdx, reduceTaskIdx), os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatalf("unexpected error re-opening %v\n", err)
 		}

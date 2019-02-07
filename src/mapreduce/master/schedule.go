@@ -1,8 +1,9 @@
-package mapreduce
+package master
 
 import (
 	"fmt"
 	"log"
+	"mapreduce/common"
 	"sync"
 )
 
@@ -15,38 +16,34 @@ import (
 // suitable for passing to call(). registerChan will yield all
 // existing registered workers (if any) and new ones as they register.
 //
-func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, registerChan chan string) {
-	var ntasks int
-	var nOther int // number of inputs (for reduce) or outputs (for map)
-	switch phase {
-	case mapPhase:
-		ntasks = len(mapFiles)
-		nOther = nReduce
+func schedule(jobName string, mapFiles []string, numReducers int, jobPhase common.JobPhase, registerChan chan string) {
+	numMappers := len(mapFiles)
+
+	switch jobPhase {
+	case common.MapPhase:
+		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numMappers, jobPhase, numReducers)
 
 		runPhase(
 			registerChan,
 			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
-				pushMapWork(wg, workChannel, noMoreWorkChannel, jobName, mapFiles, nReduce)
+				pushMapWork(wg, workChannel, noMoreWorkChannel, jobName, mapFiles, numReducers)
 			},
 		)
-	case reducePhase:
-		ntasks = nReduce
-		nOther = len(mapFiles)
+	case common.ReducePhase:
+		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numReducers, jobPhase, numMappers)
 
 		runPhase(
 			registerChan,
 			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
-				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobName, len(mapFiles), nReduce)
+				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobName, len(mapFiles), numReducers)
 			},
 		)
 	}
-
-	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, nOther)
 }
 
 // WorkChannel is a channel by which a WorkSchedulingFunction pushes
 // work to Workers.
-type WorkChannel chan DoTaskArgs
+type WorkChannel chan common.DoTaskArgs
 
 // NoMoreWorkChannel is a channel by which a WorkSchedulingFunction
 // tells a listener for newly registered Workers that there will be no
@@ -98,10 +95,10 @@ func pushMapWork(
 	mapFiles []string,
 	numReducers int) {
 	for mapTaskIdx := 0; mapTaskIdx < len(mapFiles); mapTaskIdx++ {
-		args := DoTaskArgs{
+		args := common.DoTaskArgs{
 			JobName:       jobName,
 			File:          mapFiles[mapTaskIdx],
-			Phase:         mapPhase,
+			Phase:         common.MapPhase,
 			TaskNumber:    mapTaskIdx,
 			NumOtherPhase: numReducers,
 		}
@@ -125,9 +122,9 @@ func pushReduceWork(
 	numMappers int,
 	numReducers int) {
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
-		args := DoTaskArgs{
+		args := common.DoTaskArgs{
 			JobName:       jobName,
-			Phase:         reducePhase,
+			Phase:         common.ReducePhase,
 			TaskNumber:    reduceTaskIdx,
 			NumOtherPhase: numMappers,
 		}
@@ -150,7 +147,7 @@ func runWorker(
 	for doTaskArgs := range workChannel {
 		// For each piece of work we can claim, we will run it remotely on
 		// the worker.
-		ok := call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
+		ok := common.Call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
 
 		if !ok {
 			log.Fatal("Something went wrong with RPC call to worker.")

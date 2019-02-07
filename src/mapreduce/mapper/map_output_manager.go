@@ -1,9 +1,10 @@
-package mapreduce
+package mapper
 
 import (
 	"encoding/json"
 	"hash/fnv"
 	"log"
+	"mapreduce/common"
 	"os"
 )
 
@@ -14,7 +15,7 @@ type MapOutputManager struct {
 }
 
 // NewMapOutputManager makes a new MapOutputManager.
-func NewMapOutputManager(jobName string, mapTask int, numReducers int) MapOutputManager {
+func NewMapOutputManager(jobName string, mapTaskIdx int, numReducers int) MapOutputManager {
 	// Allocate space for slices.
 	mapOutputManager := MapOutputManager{
 		outputFiles:    make([]os.File, 0, numReducers),
@@ -24,7 +25,7 @@ func NewMapOutputManager(jobName string, mapTask int, numReducers int) MapOutput
 	// For each reduce task...
 	for reduceTask := 0; reduceTask < numReducers; reduceTask++ {
 		// Open an output file and append it to the list.
-		outputFileName := reduceName(jobName, mapTask, reduceTask)
+		outputFileName := common.IntermediateFileName(jobName, mapTaskIdx, reduceTask)
 		outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			log.Fatalf("error opening mapper output file: %v\n", err)
@@ -42,7 +43,7 @@ func NewMapOutputManager(jobName string, mapTask int, numReducers int) MapOutput
 
 // WriteKeyValue calculates which reduce task the KeyValue should be
 // written to, and then writes to the appropriate file.
-func (mapOutputManager *MapOutputManager) WriteKeyValue(keyValue KeyValue) {
+func (mapOutputManager *MapOutputManager) WriteKeyValue(keyValue common.KeyValue) {
 	reducerIdx := ihash(keyValue.Key) % len(mapOutputManager.outputFiles)
 	err := mapOutputManager.outputEncoders[reducerIdx].Encode(keyValue)
 	if err != nil {

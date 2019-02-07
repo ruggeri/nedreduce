@@ -1,4 +1,4 @@
-package mapreduce
+package common
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 type DoTaskArgs struct {
 	JobName    string
 	File       string   // only for map, the input file
-	Phase      jobPhase // are we in mapPhase or reducePhase?
+	Phase      JobPhase // are we in mapPhase or reducePhase?
 	TaskNumber int      // this task's index in the current phase
 
 	// NumOtherPhase is the total number of tasks in other phase; mappers
@@ -48,7 +48,7 @@ type RegisterArgs struct {
 // please use call() to send all RPCs. please don't change this
 // function.
 //
-func call(srv string, rpcname string,
+func Call(srv string, rpcname string,
 	args interface{}, reply interface{}) bool {
 	c, errx := rpc.Dial("unix", srv)
 	if errx != nil {

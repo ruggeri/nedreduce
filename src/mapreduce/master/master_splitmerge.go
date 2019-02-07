@@ -1,10 +1,11 @@
-package mapreduce
+package master
 
 import (
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
+	"mapreduce/common"
 	"os"
 	"sort"
 )
@@ -12,10 +13,10 @@ import (
 // merge combines the results of the many reduce jobs into a single output file
 // XXX use merge sort
 func (mr *Master) merge() {
-	debug("Merge phase")
+	common.Debug("Merge phase")
 	kvs := make(map[string]string)
 	for i := 0; i < mr.nReduce; i++ {
-		p := mergeName(mr.jobName, i)
+		p := common.OutputFileName(mr.jobName, i)
 		fmt.Printf("Merge: read %s\n", p)
 		file, err := os.Open(p)
 		if err != nil {
@@ -23,7 +24,7 @@ func (mr *Master) merge() {
 		}
 		dec := json.NewDecoder(file)
 		for {
-			var kv KeyValue
+			var kv common.KeyValue
 			err = dec.Decode(&kv)
 			if err != nil {
 				break
@@ -51,7 +52,7 @@ func (mr *Master) merge() {
 }
 
 // removeFile is a simple wrapper around os.Remove that logs errors.
-func removeFile(n string) {
+func RemoveFile(n string) {
 	err := os.Remove(n)
 	if err != nil {
 		log.Fatal("CleanupFiles ", err)
@@ -60,13 +61,13 @@ func removeFile(n string) {
 
 // CleanupFiles removes all intermediate files produced by running mapreduce.
 func (mr *Master) CleanupFiles() {
-	for i := range mr.files {
+	for i := range mr.Files {
 		for j := 0; j < mr.nReduce; j++ {
-			removeFile(reduceName(mr.jobName, i, j))
+			RemoveFile(common.IntermediateFileName(mr.jobName, i, j))
 		}
 	}
 	for i := 0; i < mr.nReduce; i++ {
-		removeFile(mergeName(mr.jobName, i))
+		RemoveFile(common.OutputFileName(mr.jobName, i))
 	}
-	removeFile("mrtmp." + mr.jobName)
+	RemoveFile("mrtmp." + mr.jobName)
 }
