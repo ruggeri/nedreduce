@@ -1,6 +1,9 @@
 package mapreduce
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 //
 // schedule() starts and waits for all tasks in the given phase (mapPhase
@@ -16,19 +19,113 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 	var n_other int // number of inputs (for reduce) or outputs (for map)
 	switch phase {
 	case mapPhase:
-		ntasks = len(mapFiles)
-		n_other = nReduce
+		runMapPhase(
+			registerChan,
+			jobName,
+			mapFiles,
+			nReduce,
+		)
 	case reducePhase:
-		ntasks = nReduce
-		n_other = len(mapFiles)
+		runReducePhase(
+			registerChan,
+			jobName,
+			len(mapFiles),
+			nReduce,
+		)
 	}
 
 	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, n_other)
+}
 
-	// All ntasks tasks have to be scheduled on workers. Once all tasks
-	// have completed successfully, schedule() should return.
-	//
-	// Your code here (Part III, Part IV).
-	//
-	fmt.Printf("Schedule: %v done\n", phase)
+func runMapPhase(registerChan chan string, jobName string, mapFiles []string, numReducers int) {
+	wg := &sync.WaitGroup{}
+	workChannel := make(chan DoTaskArgs)
+	allWorkScheduled := make(chan struct{})
+
+	// Someone should be pushing in work to the channel.
+	wg.Add(1)
+	go pushMapWork(wg, workChannel, allWorkScheduled, jobName, mapFiles, numReducers)
+
+	// Run map tasks on available workers.
+	go func() {
+		for {
+			select {
+			case workerRPCAddress := <-registerChan:
+				wg.Add(1)
+				go runWorker(wg, workerRPCAddress, workChannel)
+			case <-allWorkScheduled:
+				break
+			}
+		}
+	}()
+
+	wg.Wait()
+}
+
+func runReducePhase(registerChan chan string, jobName string, numMappers int, numReducers int) {
+	wg := &sync.WaitGroup{}
+	workChannel := make(chan DoTaskArgs)
+	allWorkScheduled := make(chan struct{})
+
+	// Someone should be pushing in work to the channel.
+	wg.Add(1)
+	go pushReduceWork(wg, workChannel, allWorkScheduled, jobName, numMappers, numReducers)
+
+	// Run reduce tasks on available workers.
+	go func() {
+		for {
+			select {
+			case workerRPCAddress := <-registerChan:
+				wg.Add(1)
+				go runWorker(wg, workerRPCAddress, workChannel)
+			case <-allWorkScheduled:
+				break
+			}
+		}
+	}()
+
+	wg.Wait()
+}
+
+func pushMapWork(wg *sync.WaitGroup, workChannel chan DoTaskArgs, allWorkScheduled chan struct{}, jobName string, mapFiles []string, numReducers int) {
+	for mapTaskIdx := 0; mapTaskIdx < len(mapFiles); mapTaskIdx++ {
+		args := DoTaskArgs{
+			JobName:       jobName,
+			File:          mapFiles[mapTaskIdx],
+			Phase:         mapPhase,
+			TaskNumber:    mapTaskIdx,
+			NumOtherPhase: numReducers,
+		}
+
+		workChannel <- args
+	}
+
+	close(workChannel)
+	allWorkScheduled <- struct{}{}
+	wg.Done()
+}
+
+func pushReduceWork(wg *sync.WaitGroup, workChannel chan DoTaskArgs, allWorkScheduled chan struct{}, jobName string, numMappers int, numReducers int) {
+	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
+		args := DoTaskArgs{
+			JobName:       jobName,
+			Phase:         reducePhase,
+			TaskNumber:    reduceTaskIdx,
+			NumOtherPhase: numMappers,
+		}
+
+		workChannel <- args
+	}
+
+	close(workChannel)
+	allWorkScheduled <- struct{}{}
+	wg.Done()
+}
+
+func runWorker(wg *sync.WaitGroup, workerRPCAddress string, workChannel chan DoTaskArgs) {
+	for doTaskArgs := range workChannel {
+		call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
+	}
+
+	wg.Done()
 }
