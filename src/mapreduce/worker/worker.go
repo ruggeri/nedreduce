@@ -1,4 +1,4 @@
-package mapreduce
+package worker
 
 //
 // Please do not modify this file.
@@ -19,9 +19,9 @@ import (
 
 // track whether workers executed in parallel.
 type Parallelism struct {
-	mu  sync.Mutex
+	Mu  sync.Mutex
 	now int32
-	max int32
+	Max int32
 }
 
 // Worker holds the state for a server waiting for DoTask or Shutdown RPCs
@@ -58,15 +58,15 @@ func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
 
 	pause := false
 	if wk.parallelism != nil {
-		wk.parallelism.mu.Lock()
+		wk.parallelism.Mu.Lock()
 		wk.parallelism.now += 1
-		if wk.parallelism.now > wk.parallelism.max {
-			wk.parallelism.max = wk.parallelism.now
+		if wk.parallelism.now > wk.parallelism.Max {
+			wk.parallelism.Max = wk.parallelism.now
 		}
-		if wk.parallelism.max < 2 {
+		if wk.parallelism.Max < 2 {
 			pause = true
 		}
-		wk.parallelism.mu.Unlock()
+		wk.parallelism.Mu.Unlock()
 	}
 
 	if pause {
@@ -87,9 +87,9 @@ func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
 	wk.Unlock()
 
 	if wk.parallelism != nil {
-		wk.parallelism.mu.Lock()
+		wk.parallelism.Mu.Lock()
 		wk.parallelism.now -= 1
-		wk.parallelism.mu.Unlock()
+		wk.parallelism.Mu.Unlock()
 	}
 
 	fmt.Printf("%s: %v task #%d done\n", wk.name, arg.Phase, arg.TaskNumber)

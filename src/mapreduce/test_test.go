@@ -6,6 +6,7 @@ import (
 	"mapreduce/mapper"
 	"mapreduce/master"
 	"mapreduce/reducer"
+	"mapreduce/worker"
 	"testing"
 	"time"
 
@@ -163,7 +164,7 @@ func TestSequentialMany(t *testing.T) {
 func TestParallelBasic(t *testing.T) {
 	mr := setup()
 	for i := 0; i < 2; i++ {
-		go RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
+		go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
 			MappingFunction, ReducingFunction, -1, nil)
 	}
 	mr.Wait()
@@ -174,20 +175,20 @@ func TestParallelBasic(t *testing.T) {
 
 func TestParallelCheck(t *testing.T) {
 	mr := setup()
-	parallelism := &Parallelism{}
+	parallelism := &worker.Parallelism{}
 	for i := 0; i < 2; i++ {
-		go RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
+		go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
 			MappingFunction, ReducingFunction, -1, parallelism)
 	}
 	mr.Wait()
 	check(t, mr.Files)
 	checkWorker(t, mr.Stats)
 
-	parallelism.mu.Lock()
-	if parallelism.max < 2 {
+	parallelism.Mu.Lock()
+	if parallelism.Max < 2 {
 		t.Fatalf("workers did not execute in parallel")
 	}
-	parallelism.mu.Unlock()
+	parallelism.Mu.Unlock()
 
 	cleanup(mr)
 }
@@ -195,9 +196,9 @@ func TestParallelCheck(t *testing.T) {
 func TestOneFailure(t *testing.T) {
 	mr := setup()
 	// Start 2 workers that fail after 10 tasks
-	go RunWorker(mr.Address, port("worker"+strconv.Itoa(0)),
+	go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(0)),
 		MappingFunction, ReducingFunction, 10, nil)
-	go RunWorker(mr.Address, port("worker"+strconv.Itoa(1)),
+	go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(1)),
 		MappingFunction, ReducingFunction, -1, nil)
 	mr.Wait()
 	check(t, mr.Files)
@@ -218,10 +219,10 @@ func TestManyFailures(t *testing.T) {
 		default:
 			// Start 2 workers each sec. The workers fail after 10 tasks
 			w := port("worker" + strconv.Itoa(i))
-			go RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
+			go worker.RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
 			i++
 			w = port("worker" + strconv.Itoa(i))
-			go RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
+			go worker.RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
 			i++
 			time.Sleep(1 * time.Second)
 		}
