@@ -2,6 +2,7 @@ package mapreduce
 
 import (
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -43,8 +44,18 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, nOther)
 }
 
+// WorkChannel is a channel by which a WorkSchedulingFunction pushes
+// work to Workers.
 type WorkChannel chan DoTaskArgs
+
+// NoMoreWorkChannel is a channel by which a WorkSchedulingFunction
+// tells a listener for newly registered Workers that there will be no
+// more work.
 type NoMoreWorkChannel chan struct{}
+
+// WorkSchedulingFunction is a function that will push down work to
+// Workers over the WorkChannel. The WorkSchedulingFunction must call
+// wg.Done() to let the caller know when it is complete.
 type WorkSchedulingFunction func(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
@@ -56,7 +67,7 @@ func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFun
 	workChannel := make(WorkChannel)
 	allWorkScheduled := make(NoMoreWorkChannel)
 
-	// Someone should be pushing in work to the channel.
+	// workSchedulingFunction will push down work on the workChannel.
 	wg.Add(1)
 	go workSchedulingFunction(wg, workChannel, allWorkScheduled)
 
@@ -65,6 +76,7 @@ func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFun
 		for {
 			select {
 			case workerRPCAddress := <-registerChan:
+				// As we learn about new workers, start running work on them.
 				wg.Add(1)
 				go runWorker(wg, workerRPCAddress, workChannel)
 			case <-allWorkScheduled:
@@ -74,6 +86,7 @@ func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFun
 		}
 	}()
 
+	// Wait until all work is scheduled and all workers are done.
 	wg.Wait()
 }
 
@@ -96,8 +109,11 @@ func pushMapWork(
 		workChannel <- args
 	}
 
+	// Close channel so that current workers stop listening for more work.
 	close(workChannel)
+	// Send so that listener for new workers can stop listening.
 	noMoreWorkChannel <- struct{}{}
+	// Let caller know we're done.
 	wg.Done()
 }
 
@@ -119,8 +135,11 @@ func pushReduceWork(
 		workChannel <- args
 	}
 
+	// Close channel so that current workers stop listening for more work.
 	close(workChannel)
+	// Send so that listener for new workers can stop listening.
 	noMoreWorkChannel <- struct{}{}
+	// Let caller know we're done.
 	wg.Done()
 }
 
@@ -129,7 +148,13 @@ func runWorker(
 	workerRPCAddress string,
 	workChannel WorkChannel) {
 	for doTaskArgs := range workChannel {
-		call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
+		// For each piece of work we can claim, we will run it remotely on
+		// the worker.
+		ok := call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
+
+		if !ok {
+			log.Fatal("Something went wrong with RPC call to worker.")
+		}
 	}
 
 	wg.Done()
