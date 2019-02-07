@@ -16,35 +16,49 @@ import (
 //
 func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, registerChan chan string) {
 	var ntasks int
-	var n_other int // number of inputs (for reduce) or outputs (for map)
+	var nOther int // number of inputs (for reduce) or outputs (for map)
 	switch phase {
 	case mapPhase:
-		runMapPhase(
+		ntasks = len(mapFiles)
+		nOther = nReduce
+
+		runPhase(
 			registerChan,
-			jobName,
-			mapFiles,
-			nReduce,
+			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
+				pushMapWork(wg, workChannel, noMoreWorkChannel, jobName, mapFiles, nReduce)
+			},
 		)
 	case reducePhase:
-		runReducePhase(
+		ntasks = nReduce
+		nOther = len(mapFiles)
+
+		runPhase(
 			registerChan,
-			jobName,
-			len(mapFiles),
-			nReduce,
+			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
+				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobName, len(mapFiles), nReduce)
+			},
 		)
 	}
 
-	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, n_other)
+	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, nOther)
 }
 
-func runMapPhase(registerChan chan string, jobName string, mapFiles []string, numReducers int) {
+type WorkChannel chan DoTaskArgs
+type NoMoreWorkChannel chan struct{}
+type WorkSchedulingFunction func(
+	wg *sync.WaitGroup,
+	workChannel WorkChannel,
+	noMoreWorkChannel NoMoreWorkChannel,
+)
+
+func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFunction) {
 	wg := &sync.WaitGroup{}
-	workChannel := make(chan DoTaskArgs)
-	allWorkScheduled := make(chan struct{})
+	workChannel := make(WorkChannel)
+	allWorkScheduled := make(NoMoreWorkChannel)
 
 	// Someone should be pushing in work to the channel.
 	wg.Add(1)
-	go pushMapWork(wg, workChannel, allWorkScheduled, jobName, mapFiles, numReducers)
+	go workSchedulingFunction(wg, workChannel, allWorkScheduled)
 
 	// Run map tasks on available workers.
 	go func() {
@@ -54,6 +68,7 @@ func runMapPhase(registerChan chan string, jobName string, mapFiles []string, nu
 				wg.Add(1)
 				go runWorker(wg, workerRPCAddress, workChannel)
 			case <-allWorkScheduled:
+				// Stop listening for workers if there won't be any more work.
 				break
 			}
 		}
@@ -62,32 +77,13 @@ func runMapPhase(registerChan chan string, jobName string, mapFiles []string, nu
 	wg.Wait()
 }
 
-func runReducePhase(registerChan chan string, jobName string, numMappers int, numReducers int) {
-	wg := &sync.WaitGroup{}
-	workChannel := make(chan DoTaskArgs)
-	allWorkScheduled := make(chan struct{})
-
-	// Someone should be pushing in work to the channel.
-	wg.Add(1)
-	go pushReduceWork(wg, workChannel, allWorkScheduled, jobName, numMappers, numReducers)
-
-	// Run reduce tasks on available workers.
-	go func() {
-		for {
-			select {
-			case workerRPCAddress := <-registerChan:
-				wg.Add(1)
-				go runWorker(wg, workerRPCAddress, workChannel)
-			case <-allWorkScheduled:
-				break
-			}
-		}
-	}()
-
-	wg.Wait()
-}
-
-func pushMapWork(wg *sync.WaitGroup, workChannel chan DoTaskArgs, allWorkScheduled chan struct{}, jobName string, mapFiles []string, numReducers int) {
+func pushMapWork(
+	wg *sync.WaitGroup,
+	workChannel WorkChannel,
+	noMoreWorkChannel NoMoreWorkChannel,
+	jobName string,
+	mapFiles []string,
+	numReducers int) {
 	for mapTaskIdx := 0; mapTaskIdx < len(mapFiles); mapTaskIdx++ {
 		args := DoTaskArgs{
 			JobName:       jobName,
@@ -101,11 +97,17 @@ func pushMapWork(wg *sync.WaitGroup, workChannel chan DoTaskArgs, allWorkSchedul
 	}
 
 	close(workChannel)
-	allWorkScheduled <- struct{}{}
+	noMoreWorkChannel <- struct{}{}
 	wg.Done()
 }
 
-func pushReduceWork(wg *sync.WaitGroup, workChannel chan DoTaskArgs, allWorkScheduled chan struct{}, jobName string, numMappers int, numReducers int) {
+func pushReduceWork(
+	wg *sync.WaitGroup,
+	workChannel WorkChannel,
+	noMoreWorkChannel NoMoreWorkChannel,
+	jobName string,
+	numMappers int,
+	numReducers int) {
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		args := DoTaskArgs{
 			JobName:       jobName,
@@ -118,11 +120,14 @@ func pushReduceWork(wg *sync.WaitGroup, workChannel chan DoTaskArgs, allWorkSche
 	}
 
 	close(workChannel)
-	allWorkScheduled <- struct{}{}
+	noMoreWorkChannel <- struct{}{}
 	wg.Done()
 }
 
-func runWorker(wg *sync.WaitGroup, workerRPCAddress string, workChannel chan DoTaskArgs) {
+func runWorker(
+	wg *sync.WaitGroup,
+	workerRPCAddress string,
+	workChannel WorkChannel) {
 	for doTaskArgs := range workChannel {
 		call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
 	}
