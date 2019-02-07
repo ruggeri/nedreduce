@@ -8,16 +8,16 @@ import (
 	"os"
 )
 
-// A MapOutputManager manages the many output files of a single map task.
-type MapOutputManager struct {
+// A OutputManager manages the many output files of a single map task.
+type OutputManager struct {
 	outputFiles    []os.File
 	outputEncoders []*json.Encoder
 }
 
-// NewMapOutputManager makes a new MapOutputManager.
-func NewMapOutputManager(jobName string, mapTaskIdx int, numReducers int) MapOutputManager {
+// NewOutputManager makes a new OutputManager.
+func NewOutputManager(jobName string, mapTaskIdx int, numReducers int) OutputManager {
 	// Allocate space for slices.
-	mapOutputManager := MapOutputManager{
+	outputManager := OutputManager{
 		outputFiles:    make([]os.File, 0, numReducers),
 		outputEncoders: make([]*json.Encoder, 0, numReducers),
 	}
@@ -30,30 +30,30 @@ func NewMapOutputManager(jobName string, mapTaskIdx int, numReducers int) MapOut
 		if err != nil {
 			log.Fatalf("error opening mapper output file: %v\n", err)
 		}
-		mapOutputManager.outputFiles = append(mapOutputManager.outputFiles, *outputFile)
+		outputManager.outputFiles = append(outputManager.outputFiles, *outputFile)
 
 		// Then prepare a JSON encoder so we can write KeyValues in a nice
 		// format.
 		outputEncoder := json.NewEncoder(outputFile)
-		mapOutputManager.outputEncoders = append(mapOutputManager.outputEncoders, outputEncoder)
+		outputManager.outputEncoders = append(outputManager.outputEncoders, outputEncoder)
 	}
 
-	return mapOutputManager
+	return outputManager
 }
 
 // WriteKeyValue calculates which reduce task the KeyValue should be
 // written to, and then writes to the appropriate file.
-func (mapOutputManager *MapOutputManager) WriteKeyValue(keyValue common.KeyValue) {
-	reducerIdx := ihash(keyValue.Key) % len(mapOutputManager.outputFiles)
-	err := mapOutputManager.outputEncoders[reducerIdx].Encode(keyValue)
+func (outputManager *OutputManager) WriteKeyValue(keyValue common.KeyValue) {
+	reducerIdx := ihash(keyValue.Key) % len(outputManager.outputFiles)
+	err := outputManager.outputEncoders[reducerIdx].Encode(keyValue)
 	if err != nil {
 		log.Fatalf("unexpected map output error: %v\n", err)
 	}
 }
 
 // Close iterates the map task output files and closes each.
-func (mapOutputManager *MapOutputManager) Close() {
-	for _, outputFile := range mapOutputManager.outputFiles {
+func (outputManager *OutputManager) Close() {
+	for _, outputFile := range outputManager.outputFiles {
 		outputFile.Close()
 	}
 }

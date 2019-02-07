@@ -33,8 +33,8 @@ func ExecuteMapping(
 	inputReader := bufio.NewReader(inputFile)
 
 	// Open files for map output.
-	mapOutputManager := NewMapOutputManager(jobName, mapTaskIdx, numReducers)
-	defer mapOutputManager.Close()
+	outputManager := NewOutputManager(jobName, mapTaskIdx, numReducers)
+	defer outputManager.Close()
 
 	for {
 		// Read a line from the map input file.
@@ -48,7 +48,7 @@ func ExecuteMapping(
 		// Apply the mapping function.
 		mappingFunction(inputFileName, line, func(outputKeyValue common.KeyValue) {
 			// Write the map outputs.
-			mapOutputManager.WriteKeyValue(outputKeyValue)
+			outputManager.WriteKeyValue(outputKeyValue)
 		})
 	}
 }
