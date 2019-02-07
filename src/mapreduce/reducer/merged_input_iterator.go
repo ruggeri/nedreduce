@@ -7,11 +7,11 @@ import (
 	"mapreduce/common"
 )
 
-// MergedInputIterator merges many sorted files. It peeks only one value
-// ahead in the decoders.
+// A MergedInputIterator merges many sorted files. It peeks only one
+// value ahead in each of the decoders.
 type MergedInputIterator struct {
-	inputDecoders      []*json.Decoder
-	nextInputKeyValues []*common.KeyValue
+	inputDecoders        []*json.Decoder
+	peekedInputKeyValues []*common.KeyValue
 }
 
 // NewMergedInputIterator builds the MergedInputIterator and peeks each
@@ -19,42 +19,44 @@ type MergedInputIterator struct {
 func NewMergedInputIterator(inputDecoders []*json.Decoder) MergedInputIterator {
 	numReducers := len(inputDecoders)
 	iterator := MergedInputIterator{
-		inputDecoders:      inputDecoders,
-		nextInputKeyValues: make([]*common.KeyValue, numReducers),
+		inputDecoders:        inputDecoders,
+		peekedInputKeyValues: make([]*common.KeyValue, numReducers),
 	}
 
 	for idx := 0; idx < numReducers; idx++ {
-		iterator.pull(idx)
+		iterator.pullNextPeekedValue(idx)
 	}
 
 	return iterator
 }
 
-// pull pulls the next KeyValue from the specified decoder.
-func (mergedInputIterator *MergedInputIterator) pull(idx int) {
-	inputDecoder := mergedInputIterator.inputDecoders[idx]
+// pullNextPeekedValue pulls the next KeyValue from the specified
+// decoder and sets it in peekedInputKeyValues.
+func (mergedInputIterator *MergedInputIterator) pullNextPeekedValue(inputDecoderIdx int) {
+	inputDecoder := mergedInputIterator.inputDecoders[inputDecoderIdx]
 
 	if inputDecoder == nil {
 		// We have previously exhausted this decoder.
 		return
 	}
 
-	// Try to decode a KeyValue
+	// Try to decode a KeyValue.
 	inputKeyValue := &common.KeyValue{}
 	err := inputDecoder.Decode(inputKeyValue)
 
-	// If there was an error, the log and die.
+	// If there was an error, then log and die.
 	if err != nil && err != io.EOF {
 		log.Fatalf("error decoding reducer input: %v\n", err)
 	}
 
 	if err == io.EOF {
-		// If we have hit the end of this file, then mark it as exhausted
-		mergedInputIterator.inputDecoders[idx] = nil
-		mergedInputIterator.nextInputKeyValues[idx] = nil
+		// If we have hit the end of this file, then mark this decoder as
+		// exhausted.
+		mergedInputIterator.inputDecoders[inputDecoderIdx] = nil
+		mergedInputIterator.peekedInputKeyValues[inputDecoderIdx] = nil
 	} else {
 		// Otherwise, update the peeked value.
-		mergedInputIterator.nextInputKeyValues[idx] = inputKeyValue
+		mergedInputIterator.peekedInputKeyValues[inputDecoderIdx] = inputKeyValue
 	}
 }
 
@@ -65,7 +67,7 @@ func (mergedInputIterator *MergedInputIterator) Next() (*common.KeyValue, error)
 	var leastInputKeyValue *common.KeyValue
 
 	// Scan for the least input with the least key.
-	for inputIdx, inputKeyValue := range mergedInputIterator.nextInputKeyValues {
+	for inputIdx, inputKeyValue := range mergedInputIterator.peekedInputKeyValues {
 		if inputKeyValue == nil {
 			// Skip over exhausted input files.
 			continue
@@ -87,7 +89,7 @@ func (mergedInputIterator *MergedInputIterator) Next() (*common.KeyValue, error)
 	}
 
 	// Else, we're going to have to pull a new peeked value for next time.
-	mergedInputIterator.pull(leastInputKeyValueIdx)
+	mergedInputIterator.pullNextPeekedValue(leastInputKeyValueIdx)
 
 	return leastInputKeyValue, nil
 }
