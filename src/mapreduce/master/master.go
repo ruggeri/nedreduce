@@ -69,7 +69,7 @@ func Sequential(jobName string, files []string, nreduce int,
 		switch phase {
 		case common.MapPhase:
 			for i, f := range mr.Files {
-				mapper.DoMap(mr.jobName, i, f, mr.nReduce, mappingFunction)
+				mapper.ExecuteMapping(mr.jobName, i, f, mr.nReduce, mappingFunction)
 			}
 		case common.ReducePhase:
 			for i := 0; i < mr.nReduce; i++ {

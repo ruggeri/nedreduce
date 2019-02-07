@@ -77,7 +77,7 @@ func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
 
 	switch arg.Phase {
 	case common.MapPhase:
-		mapper.DoMap(arg.JobName, arg.TaskNumber, arg.File, arg.NumOtherPhase, wk.Map)
+		mapper.ExecuteMapping(arg.JobName, arg.TaskNumber, arg.File, arg.NumOtherPhase, wk.Map)
 	case common.ReducePhase:
 		reducer.DoReduce(arg.JobName, arg.TaskNumber, common.OutputFileName(arg.JobName, arg.TaskNumber), arg.NumOtherPhase, wk.Reduce)
 	}

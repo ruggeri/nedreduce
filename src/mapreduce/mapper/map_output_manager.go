@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// MapOutputManager manages the many output files of a single map task.
+// A MapOutputManager manages the many output files of a single map task.
 type MapOutputManager struct {
 	outputFiles    []os.File
 	outputEncoders []*json.Encoder
@@ -23,9 +23,9 @@ func NewMapOutputManager(jobName string, mapTaskIdx int, numReducers int) MapOut
 	}
 
 	// For each reduce task...
-	for reduceTask := 0; reduceTask < numReducers; reduceTask++ {
-		// Open an output file and append it to the list.
-		outputFileName := common.IntermediateFileName(jobName, mapTaskIdx, reduceTask)
+	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
+		// Open a mapper output file and append it to the list.
+		outputFileName := common.IntermediateFileName(jobName, mapTaskIdx, reduceTaskIdx)
 		outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			log.Fatalf("error opening mapper output file: %v\n", err)

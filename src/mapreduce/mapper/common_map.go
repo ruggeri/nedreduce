@@ -8,17 +8,23 @@ import (
 	"os"
 )
 
+// MappingEmitterFunction is used by a MappingFunction to emit
+// KeyValues.
 type MappingEmitterFunction func(outputKeyValue common.KeyValue)
+
+// A MappingFunction is the type of mapping function supplied by the
+// user.
 type MappingFunction func(filename string, line string, mappingEmitterFunction MappingEmitterFunction)
 
-func DoMap(
+// ExecuteMapping runs a map task.
+func ExecuteMapping(
 	jobName string, // the name of the MapReduce job
 	mapTaskIdx int, // which map task this is
 	inputFileName string,
 	numReducers int, // the number of reduce task that will be run ("R" in the paper)
 	mappingFunction MappingFunction,
 ) {
-	// Output map input file for reading.
+	// Open the map input file for reading.
 	inputFile, err := os.Open(inputFileName)
 	if err != nil {
 		log.Fatalf("error opening mapper input file: %v\n", err)
@@ -35,12 +41,11 @@ func DoMap(
 		line, err := inputReader.ReadString('\n')
 		if err == io.EOF {
 			break
-		}
-		if err != nil {
+		} else if err != nil {
 			log.Fatalf("error reading file: %v\n", err)
 		}
 
-		// Apply the map function.
+		// Apply the mapping function.
 		mappingFunction(inputFileName, line, func(outputKeyValue common.KeyValue) {
 			// Write the map outputs.
 			mapOutputManager.WriteKeyValue(outputKeyValue)
