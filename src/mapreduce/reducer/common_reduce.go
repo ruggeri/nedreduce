@@ -23,8 +23,8 @@ func DoReduce(
 	doSort(jobName, numMappers, reduceTaskIdx)
 
 	// Open the reducer's input files.
-	reducerInputManager := NewReducerInputManager(jobName, numMappers, reduceTaskIdx)
-	defer reducerInputManager.Close()
+	inputManager := NewInputManager(jobName, numMappers, reduceTaskIdx)
+	defer inputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
 	outputFile, err := os.OpenFile(outFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
@@ -35,7 +35,7 @@ func DoReduce(
 	outputEncoder := json.NewEncoder(outputFile)
 
 	// Iterate the groups one at a time.
-	groupingIterator := NewGroupingIterator(reducerInputManager.inputDecoders)
+	groupingIterator := NewGroupingIterator(inputManager.inputDecoders)
 	for {
 		groupIterator, err := groupingIterator.Next()
 
@@ -83,7 +83,7 @@ func doSort(jobName string, numMappers int, reduceTaskIdx int) {
 	// TODO: Change this into an external merge sort.
 
 	// Open the reducer's input files.
-	reducerInputManager := NewReducerInputManager(jobName, numMappers, reduceTaskIdx)
+	reducerInputManager := NewInputManager(jobName, numMappers, reduceTaskIdx)
 	defer reducerInputManager.Close()
 
 	for mapTaskIdx, inputDecoder := range reducerInputManager.inputDecoders {
