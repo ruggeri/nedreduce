@@ -2,11 +2,12 @@ package reducer
 
 import (
 	"io"
+	"log"
 	"mapreduce/common"
 )
 
-// GroupIterator is an iterator that yields successive KeyValues all in
-// one key group.
+// A GroupIterator is an iterator that yields successive KeyValues all
+// in one key group.
 type GroupIterator struct {
 	GroupKey         string
 	groupingIterator *GroupingIterator
@@ -22,11 +23,13 @@ func NewGroupIterator(groupingIterator *GroupingIterator) GroupIterator {
 
 // Next yields the next KeyValue in the group, if any.
 func (groupIterator *GroupIterator) Next() (*common.KeyValue, error) {
-	keyValue, err := groupIterator.groupingIterator.advance()
+	keyValue, err := groupIterator.groupingIterator.advanceUnderlyingIterator()
 
 	if err == io.EOF {
 		// Group ended (either by new key or by end of input files).
 		return nil, io.EOF
+	} else if err != nil {
+		log.Fatalf("unexpected error in GroupIterator: %v\n", err)
 	}
 
 	return keyValue, nil
