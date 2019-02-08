@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"mapreduce/common"
+	"mapreduce/job"
 	mr_rpc "mapreduce/rpc"
 	"sync"
 )
@@ -16,7 +17,7 @@ type WorkerRegistrationChannel chan string
 // MapPhase or the ReducePhase. It calls _runDistributedPhase, simply
 // varying the function which pushes map work.
 func runDistributedPhase(
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 	jobPhase common.JobPhase,
 	registerChan chan string,
 ) {
@@ -106,7 +107,7 @@ func pushMapWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
 	noMoreWorkChannel NoMoreWorkChannel,
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 ) {
 	jobName := jobConfiguration.JobName
 	numMappers := jobConfiguration.NumMappers()
@@ -140,7 +141,7 @@ func pushReduceWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
 	noMoreWorkChannel NoMoreWorkChannel,
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 ) {
 	jobName := jobConfiguration.JobName
 	numMappers := jobConfiguration.NumMappers()

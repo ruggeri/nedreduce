@@ -3,6 +3,7 @@ package mapreduce
 import (
 	"fmt"
 	"mapreduce/common"
+	"mapreduce/job"
 	"mapreduce/mapper"
 	"mapreduce/master"
 	"mapreduce/reducer"
@@ -134,55 +135,81 @@ func port(suffix string) string {
 func setup() *master.Master {
 	files := makeInputs(nMap)
 	masterPort := port("master")
-	mr := master.Distributed("test", files, nReduce, masterPort)
-	return mr
+
+	configuration := job.NewConfiguration(
+		"test",
+		files,
+		nReduce,
+		MappingFunction,
+		ReducingFunction,
+	)
+
+	master := master.RunDistributedJob(configuration, masterPort)
+	return master
 }
 
-func cleanup(mr *master.Master) {
-	mr.CleanupFiles()
-	for _, f := range mr.Files {
-		master.RemoveFile(f)
+func cleanup(master *master.Master) {
+	master.JobConfiguration.CleanupFiles()
+
+	for _, f := range master.JobConfiguration.MapperInputFileNames {
+		common.RemoveFile(f)
 	}
 }
 
 func TestSequentialSingle(t *testing.T) {
-	mr := master.Sequential("test", makeInputs(1), 1, MappingFunction, ReducingFunction)
-	mr.Wait()
-	check(t, mr.Files)
-	checkWorker(t, mr.Stats)
-	cleanup(mr)
+	configuration := job.NewConfiguration(
+		"test",
+		makeInputs(1),
+		1,
+		MappingFunction,
+		ReducingFunction,
+	)
+
+	master := master.RunSequentialJob(configuration)
+	master.Wait()
+	check(t, master.JobConfiguration.MapperInputFileNames)
+	checkWorker(t, master.Stats)
+	cleanup(master)
 }
 
 func TestSequentialMany(t *testing.T) {
-	mr := master.Sequential("test", makeInputs(5), 3, MappingFunction, ReducingFunction)
-	mr.Wait()
-	check(t, mr.Files)
-	checkWorker(t, mr.Stats)
-	cleanup(mr)
+	configuration := job.NewConfiguration(
+		"test",
+		makeInputs(5),
+		3,
+		MappingFunction,
+		ReducingFunction,
+	)
+
+	master := master.RunSequentialJob(configuration)
+	master.Wait()
+	check(t, master.JobConfiguration.MapperInputFileNames)
+	checkWorker(t, master.Stats)
+	cleanup(master)
 }
 
 func TestParallelBasic(t *testing.T) {
-	mr := setup()
+	master := setup()
 	for i := 0; i < 2; i++ {
-		go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
+		go worker.RunWorker(master.Address, port("worker"+strconv.Itoa(i)),
 			MappingFunction, ReducingFunction, -1, nil)
 	}
-	mr.Wait()
-	check(t, mr.Files)
-	checkWorker(t, mr.Stats)
-	cleanup(mr)
+	master.Wait()
+	check(t, master.JobConfiguration.MapperInputFileNames)
+	checkWorker(t, master.Stats)
+	cleanup(master)
 }
 
 func TestParallelCheck(t *testing.T) {
-	mr := setup()
+	master := setup()
 	parallelism := &worker.Parallelism{}
 	for i := 0; i < 2; i++ {
-		go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(i)),
+		go worker.RunWorker(master.Address, port("worker"+strconv.Itoa(i)),
 			MappingFunction, ReducingFunction, -1, parallelism)
 	}
-	mr.Wait()
-	check(t, mr.Files)
-	checkWorker(t, mr.Stats)
+	master.Wait()
+	check(t, master.JobConfiguration.MapperInputFileNames)
+	checkWorker(t, master.Stats)
 
 	parallelism.Mu.Lock()
 	if parallelism.Max < 2 {
@@ -190,39 +217,39 @@ func TestParallelCheck(t *testing.T) {
 	}
 	parallelism.Mu.Unlock()
 
-	cleanup(mr)
+	cleanup(master)
 }
 
 func TestOneFailure(t *testing.T) {
-	mr := setup()
+	master := setup()
 	// Start 2 workers that fail after 10 tasks
-	go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(0)),
+	go worker.RunWorker(master.Address, port("worker"+strconv.Itoa(0)),
 		MappingFunction, ReducingFunction, 10, nil)
-	go worker.RunWorker(mr.Address, port("worker"+strconv.Itoa(1)),
+	go worker.RunWorker(master.Address, port("worker"+strconv.Itoa(1)),
 		MappingFunction, ReducingFunction, -1, nil)
-	mr.Wait()
-	check(t, mr.Files)
-	checkWorker(t, mr.Stats)
-	cleanup(mr)
+	master.Wait()
+	check(t, master.JobConfiguration.MapperInputFileNames)
+	checkWorker(t, master.Stats)
+	cleanup(master)
 }
 
 func TestManyFailures(t *testing.T) {
-	mr := setup()
+	master := setup()
 	i := 0
 	done := false
 	for !done {
 		select {
-		case done = <-mr.DoneChannel:
-			check(t, mr.Files)
-			cleanup(mr)
+		case done = <-master.DoneChannel:
+			check(t, master.JobConfiguration.MapperInputFileNames)
+			cleanup(master)
 			break
 		default:
 			// Start 2 workers each sec. The workers fail after 10 tasks
 			w := port("worker" + strconv.Itoa(i))
-			go worker.RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
+			go worker.RunWorker(master.Address, w, MappingFunction, ReducingFunction, 10, nil)
 			i++
 			w = port("worker" + strconv.Itoa(i))
-			go worker.RunWorker(mr.Address, w, MappingFunction, ReducingFunction, 10, nil)
+			go worker.RunWorker(master.Address, w, MappingFunction, ReducingFunction, 10, nil)
 			i++
 			time.Sleep(1 * time.Second)
 		}

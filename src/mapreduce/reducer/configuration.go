@@ -7,3 +7,18 @@ type Configuration struct {
 	ReduceTaskIdx    int
 	ReducingFunction ReducingFunction
 }
+
+// NewConfiguration makes a reducer.Configuration object.
+func NewConfiguration(
+	jobName string,
+	NumMappers int,
+	reduceTaskIdx int,
+	reducingFunction ReducingFunction,
+) Configuration {
+	return Configuration{
+		JobName:          jobName,
+		NumMappers:       NumMappers,
+		ReduceTaskIdx:    reduceTaskIdx,
+		ReducingFunction: reducingFunction,
+	}
+}

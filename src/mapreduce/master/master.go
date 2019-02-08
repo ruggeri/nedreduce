@@ -7,6 +7,7 @@ package master
 import (
 	"fmt"
 	"mapreduce/common"
+	"mapreduce/job"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
 	mr_rpc "mapreduce/rpc"
@@ -24,18 +25,16 @@ type Master struct {
 	// protected by the mutex
 	newWorkerConditionVariable *sync.Cond // signals when Register() adds to workers[]
 	workers                    []string   // each worker's UNIX-domain socket name -- its RPC address
-
-	jobConfiguration JobConfiguration
-
-	shutdown           chan struct{}
-	connectionListener net.Listener
-	Stats              []int
+	JobConfiguration           job.Configuration
+	shutdown                   chan struct{}
+	connectionListener         net.Listener
+	Stats                      []int
 }
 
 // newMaster initializes a new Map/Reduce Master
 func newMaster(
 	masterAddress string,
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 ) (master *Master) {
 	master = new(Master)
 	master.Address = masterAddress
@@ -43,14 +42,14 @@ func newMaster(
 	master.newWorkerConditionVariable = sync.NewCond(master)
 	master.DoneChannel = make(chan bool)
 
-	master.jobConfiguration = jobConfiguration
+	master.JobConfiguration = jobConfiguration
 	return
 }
 
 // RunSequentialJob runs map and reduce tasks sequentially, waiting for
 // each task to complete before running the next.
 func RunSequentialJob(
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 ) (master *Master) {
 	master = newMaster("master", jobConfiguration)
 
@@ -89,7 +88,7 @@ func RunSequentialJob(
 // RunDistributedJob schedules map and reduce tasks on workers that
 // register with the master over RPC.
 func RunDistributedJob(
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 	masterAddress string,
 ) (master *Master) {
 	// First construct the Master and start running an RPC server which
@@ -133,7 +132,7 @@ func (master *Master) Wait() {
 // runJob executes a mapreduce job on the given number of mappers and
 // reducers.
 func (master *Master) runJob(
-	jobConfiguration JobConfiguration,
+	jobConfiguration job.Configuration,
 	runPhase func(phase common.JobPhase),
 	collectStatsAndCleanup func(),
 ) {
