@@ -90,8 +90,8 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 	case common.ReducePhase:
 		reducerConfiguration := reducer.NewConfiguration(
 			arg.JobName,
-			arg.TaskIdx,
 			arg.NumTasksInOtherPhase,
+			arg.TaskIdx,
 			wk.Reduce,
 		)
 
