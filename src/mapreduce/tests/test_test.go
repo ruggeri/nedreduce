@@ -28,7 +28,7 @@ const (
 // Check if we have N numbers in output file
 
 // Split in words
-func WordSplittingMappingFunction(
+func wordSplittingMappingFunction(
 	inputFileName string,
 	line string,
 	mappingEmitterFunction EmitterFunction,
@@ -41,7 +41,7 @@ func WordSplittingMappingFunction(
 	}
 }
 
-func WordCountingReducingFunction(
+func wordCountingReducingFunction(
 	groupKey string,
 	groupIteratorfunction GroupIteratorFunction,
 	reducingEmitterFunction EmitterFunction,
@@ -155,8 +155,8 @@ func setup() *master.Master {
 		"test",
 		files,
 		nReduce,
-		WordSplittingMappingFunction,
-		WordCountingReducingFunction,
+		wordSplittingMappingFunction,
+		wordCountingReducingFunction,
 	)
 
 	master := master.RunDistributedJob(&configuration, masterPort)
@@ -176,8 +176,8 @@ func TestSequentialSingle(t *testing.T) {
 		"test",
 		makeInputs(1),
 		1,
-		WordSplittingMappingFunction,
-		WordCountingReducingFunction,
+		wordSplittingMappingFunction,
+		wordCountingReducingFunction,
 	)
 
 	master := master.RunSequentialJob(&configuration)
@@ -192,8 +192,8 @@ func TestSequentialMany(t *testing.T) {
 		"test",
 		makeInputs(5),
 		3,
-		WordSplittingMappingFunction,
-		WordCountingReducingFunction,
+		wordSplittingMappingFunction,
+		wordCountingReducingFunction,
 	)
 
 	master := master.RunSequentialJob(&configuration)
@@ -209,8 +209,8 @@ func TestParallelBasic(t *testing.T) {
 		go worker.RunWorker(
 			master.Address,
 			port("worker"+strconv.Itoa(i)),
-			WordSplittingMappingFunction,
-			WordCountingReducingFunction,
+			wordSplittingMappingFunction,
+			wordCountingReducingFunction,
 			-1,
 			nil,
 		)
@@ -228,8 +228,8 @@ func TestParallelCheck(t *testing.T) {
 		go worker.RunWorker(
 			master.Address,
 			port("worker"+strconv.Itoa(i)),
-			WordSplittingMappingFunction,
-			WordCountingReducingFunction,
+			wordSplittingMappingFunction,
+			wordCountingReducingFunction,
 			-1,
 			parallelism,
 		)
@@ -253,15 +253,16 @@ func TestOneFailure(t *testing.T) {
 	go worker.RunWorker(
 		master.Address,
 		port("worker"+strconv.Itoa(0)),
-		WordSplittingMappingFunction,
-		WordCountingReducingFunction, 10,
+		wordSplittingMappingFunction,
+		wordCountingReducingFunction,
+		10,
 		nil,
 	)
 	go worker.RunWorker(
 		master.Address,
 		port("worker"+strconv.Itoa(1)),
-		WordSplittingMappingFunction,
-		WordCountingReducingFunction,
+		wordSplittingMappingFunction,
+		wordCountingReducingFunction,
 		-1,
 		nil,
 	)
@@ -287,8 +288,8 @@ func TestManyFailures(t *testing.T) {
 			go worker.RunWorker(
 				master.Address,
 				w,
-				WordSplittingMappingFunction,
-				WordCountingReducingFunction,
+				wordSplittingMappingFunction,
+				wordCountingReducingFunction,
 				10,
 				nil,
 			)
@@ -297,8 +298,8 @@ func TestManyFailures(t *testing.T) {
 			go worker.RunWorker(
 				master.Address,
 				w,
-				WordSplittingMappingFunction,
-				WordCountingReducingFunction,
+				wordSplittingMappingFunction,
+				wordCountingReducingFunction,
 				10,
 				nil,
 			)
