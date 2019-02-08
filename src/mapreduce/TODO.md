@@ -1,7 +1,21 @@
 ## TODO
 
-* Rename common to util.
-* Fix DoTaskArgs to be less gross.
-  * Also allow specification of the Mapping and Reducing functions.
-  * The Workers presumably shouldn't have to know that in advance?
-* Review master package more thoroughly, and Worker for the first time.
+**High**
+
+* Rename `common` to `util`.
+* Review, refactor, and document the `mapreduce/master` and
+  `mapreduce/worker` packages.
+
+**Medium**
+
+* `rpc.DoTaskArgs` is kinda gross, since it is reused for both map and
+  reduce tasks.
+  * Also, I feel like `Worker`s should be told the `MappingFunction` and
+    `ReducingFunction` via the RPC. Else they are hard-coded at `Worker`
+    initialization.
+
+**Low**
+
+* `reducer.MergedInputIterator` might be faster with a heap. Meh.
+* `reducer.sortReducerInputFile` would ideally do an external merge
+  sort, but that is way too much effort.
