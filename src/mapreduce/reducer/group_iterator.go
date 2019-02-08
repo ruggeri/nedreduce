@@ -25,14 +25,24 @@ func NewGroupIterator(
 
 // Next yields the next KeyValue in the group, if any.
 func (groupIterator *GroupIterator) Next() (*KeyValue, error) {
-	// TODO: It's dangerous to call Next after receiving io.EOF (since
-	// this will affect the groupingIterator). I should prolly make that a
-	// no-op...
+	if groupIterator.groupingIterator == nil {
+		// As discussed below, groupingIterator is set to nil when the group
+		// has been exhuasted.
+
+		return nil, io.EOF
+	}
+
 	keyValue, err :=
 		groupIterator.groupingIterator.advanceUnderlyingIterator()
 
 	if err == io.EOF {
 		// Group ended (either by new key or by end of input files).
+
+		// I nil out the groupingIterator so that future calls to Next will
+		// know *not* to advance the `groupingIterator`, and can instead
+		// return `io.EOF` again.
+		groupIterator.groupingIterator = nil
+
 		return nil, io.EOF
 	} else if err != nil {
 		log.Fatalf("unexpected error in GroupIterator: %v\n", err)
