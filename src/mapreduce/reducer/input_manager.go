@@ -29,17 +29,23 @@ func NewInputManager(configuration Configuration) InputManager {
 	// For each map task...
 	for mapTaskIdx := 0; mapTaskIdx < numMappers; mapTaskIdx++ {
 		// Open an input file and append it to the list.
-		inputFileName := common.IntermediateFileName(jobName, mapTaskIdx, reduceTaskIdx)
+		inputFileName := common.IntermediateFileName(
+			jobName, mapTaskIdx, reduceTaskIdx,
+		)
 		inputFile, err := os.Open(inputFileName)
 		if err != nil {
 			log.Fatalf("error opening reducer input file: %v\n", err)
 		}
-		inputManager.inputFiles = append(inputManager.inputFiles, *inputFile)
+		inputManager.inputFiles = append(
+			inputManager.inputFiles, *inputFile,
+		)
 
 		// Then prepare a JSON decoder so we can read KeyValues in a nice
 		// format.
 		inputDecoder := json.NewDecoder(inputFile)
-		inputManager.inputDecoders = append(inputManager.inputDecoders, inputDecoder)
+		inputManager.inputDecoders = append(
+			inputManager.inputDecoders, inputDecoder,
+		)
 	}
 
 	return inputManager

@@ -16,7 +16,9 @@ type MergedInputIterator struct {
 
 // NewMergedInputIterator builds the MergedInputIterator and peeks each
 // decoder.
-func NewMergedInputIterator(inputDecoders []*json.Decoder) MergedInputIterator {
+func NewMergedInputIterator(
+	inputDecoders []*json.Decoder,
+) MergedInputIterator {
 	numReducers := len(inputDecoders)
 	iterator := MergedInputIterator{
 		inputDecoders:        inputDecoders,
@@ -32,7 +34,9 @@ func NewMergedInputIterator(inputDecoders []*json.Decoder) MergedInputIterator {
 
 // pullNextPeekedValue pulls the next KeyValue from the specified
 // decoder and sets it in peekedInputKeyValues.
-func (mergedInputIterator *MergedInputIterator) pullNextPeekedValue(inputDecoderIdx int) {
+func (mergedInputIterator *MergedInputIterator) pullNextPeekedValue(
+	inputDecoderIdx int,
+) {
 	inputDecoder := mergedInputIterator.inputDecoders[inputDecoderIdx]
 
 	if inputDecoder == nil {

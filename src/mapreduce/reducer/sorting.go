@@ -34,9 +34,9 @@ func sortReducerInputFile(
 	jobName := configuration.JobName
 	reduceTaskIdx := configuration.ReduceTaskIdx
 
-	// TODO: Change this into an external merge sort.
-
 	// Read in all KeyValues for this mapper input. Gross.
+	//
+	// TODO: Change this into an external merge sort.
 	keyValues := []common.KeyValue{}
 	for {
 		keyValue := &common.KeyValue{}
@@ -58,12 +58,14 @@ func sortReducerInputFile(
 		return keyValues[i].Key < keyValues[j].Key
 	})
 
-	// Open a new file for writing. Really I should be creating a new
-	// file and then re-naming.
+	// Open a new file for writing. Really I should be creating a new file
+	// and then re-naming.
 	inputFileName := common.IntermediateFileName(
 		jobName, mapTaskIdx, reduceTaskIdx,
 	)
-	inputWritingFile, err := os.OpenFile(inputFileName, os.O_TRUNC|os.O_WRONLY, 0644)
+	inputWritingFile, err := os.OpenFile(
+		inputFileName, os.O_TRUNC|os.O_WRONLY, 0644,
+	)
 	if err != nil {
 		log.Fatalf("unexpected error re-opening %v\n", err)
 	}

@@ -41,7 +41,9 @@ func (configuration *Configuration) NumMappers() int {
 
 // MapperConfiguration creates a mapper.Configuration object for the
 // specified mapTaskIdx.
-func (configuration *Configuration) MapperConfiguration(mapTaskIdx int) mapper.Configuration {
+func (configuration *Configuration) MapperConfiguration(
+	mapTaskIdx int,
+) mapper.Configuration {
 	return mapper.NewConfiguration(
 		configuration.JobName,
 		mapTaskIdx,
@@ -53,7 +55,9 @@ func (configuration *Configuration) MapperConfiguration(mapTaskIdx int) mapper.C
 
 // ReducerConfiguration creates a reducer.Configuration object for the
 // specified reduceTaskIdx.
-func (configuration *Configuration) ReducerConfiguration(reduceTaskIdx int) reducer.Configuration {
+func (configuration *Configuration) ReducerConfiguration(
+	reduceTaskIdx int,
+) reducer.Configuration {
 	return reducer.NewConfiguration(
 		configuration.JobName,
 		configuration.NumMappers(),
@@ -72,7 +76,9 @@ func (configuration *Configuration) CleanupFiles() {
 	// Clean up mapper output files.
 	for mapTaskIdx := range mapperInputFileNames {
 		for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
-			fileName := common.IntermediateFileName(jobName, mapTaskIdx, reduceTaskIdx)
+			fileName := common.IntermediateFileName(
+				jobName, mapTaskIdx, reduceTaskIdx,
+			)
 			common.RemoveFile(fileName)
 		}
 	}

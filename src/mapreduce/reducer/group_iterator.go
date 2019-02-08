@@ -14,7 +14,9 @@ type GroupIterator struct {
 }
 
 // NewGroupIterator builds a GroupIterator...
-func NewGroupIterator(groupingIterator *GroupingIterator) GroupIterator {
+func NewGroupIterator(
+	groupingIterator *GroupingIterator,
+) GroupIterator {
 	return GroupIterator{
 		GroupKey:         *groupingIterator.currentGroupKey,
 		groupingIterator: groupingIterator,
@@ -23,7 +25,8 @@ func NewGroupIterator(groupingIterator *GroupingIterator) GroupIterator {
 
 // Next yields the next KeyValue in the group, if any.
 func (groupIterator *GroupIterator) Next() (*common.KeyValue, error) {
-	keyValue, err := groupIterator.groupingIterator.advanceUnderlyingIterator()
+	keyValue, err :=
+		groupIterator.groupingIterator.advanceUnderlyingIterator()
 
 	if err == io.EOF {
 		// Group ended (either by new key or by end of input files).

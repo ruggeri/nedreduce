@@ -29,17 +29,25 @@ func NewOutputManager(configuration Configuration) OutputManager {
 	// For each reduce task...
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		// Open a mapper output file and append it to the list.
-		outputFileName := common.IntermediateFileName(jobName, mapTaskIdx, reduceTaskIdx)
-		outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		outputFileName := common.IntermediateFileName(
+			jobName, mapTaskIdx, reduceTaskIdx,
+		)
+		outputFile, err := os.OpenFile(
+			outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644,
+		)
 		if err != nil {
 			log.Fatalf("error opening mapper output file: %v\n", err)
 		}
-		outputManager.outputFiles = append(outputManager.outputFiles, *outputFile)
+		outputManager.outputFiles = append(
+			outputManager.outputFiles, *outputFile,
+		)
 
 		// Then prepare a JSON encoder so we can write KeyValues in a nice
 		// format.
 		outputEncoder := json.NewEncoder(outputFile)
-		outputManager.outputEncoders = append(outputManager.outputEncoders, outputEncoder)
+		outputManager.outputEncoders = append(
+			outputManager.outputEncoders, outputEncoder,
+		)
 	}
 
 	return outputManager

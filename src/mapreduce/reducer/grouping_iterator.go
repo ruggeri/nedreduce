@@ -15,7 +15,9 @@ type GroupingIterator struct {
 }
 
 // NewGroupingIterator gets ready to produce the next GroupIterator.
-func NewGroupingIterator(inputDecoders []*json.Decoder) GroupingIterator {
+func NewGroupingIterator(
+	inputDecoders []*json.Decoder,
+) GroupingIterator {
 	iter := GroupingIterator{
 		currentGroupKey:     nil,
 		mergedInputIterator: NewMergedInputIterator(inputDecoders),
@@ -24,7 +26,9 @@ func NewGroupingIterator(inputDecoders []*json.Decoder) GroupingIterator {
 	// Peek the first KeyValue.
 	peekedKeyValue, err := iter.mergedInputIterator.Next()
 	if err != nil {
-		log.Fatalf("expected at least one KeyValue but got error: %v\n", err)
+		log.Fatalf(
+			"expected at least one KeyValue but got error: %v\n", err,
+		)
 	}
 
 	// Get ready to handle the next group.

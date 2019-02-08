@@ -14,7 +14,11 @@ type MappingEmitterFunction func(outputKeyValue common.KeyValue)
 
 // A MappingFunction is the type of mapping function supplied by the
 // user.
-type MappingFunction func(filename string, line string, mappingEmitterFunction MappingEmitterFunction)
+type MappingFunction func(
+	filename string,
+	line string,
+	mappingEmitterFunction MappingEmitterFunction,
+)
 
 // ExecuteMapping runs a map task.
 func ExecuteMapping(configuration Configuration) {
@@ -36,7 +40,9 @@ func ExecuteMapping(configuration Configuration) {
 	outputManager := NewOutputManager(configuration)
 	defer outputManager.Close()
 
-	common.Debug("mapTaskIdx %v: Beginning mapping.\n", configuration.MapTaskIdx)
+	common.Debug(
+		"mapTaskIdx %v: Beginning mapping.\n", configuration.MapTaskIdx,
+	)
 	for {
 		// Read a line from the map input file.
 		line, err := inputReader.ReadString('\n')
@@ -57,5 +63,7 @@ func ExecuteMapping(configuration Configuration) {
 		)
 	}
 
-	common.Debug("mapTaskIdx %v: Completed map task.\n", configuration.MapTaskIdx)
+	common.Debug(
+		"mapTaskIdx %v: Completed map task.\n", configuration.MapTaskIdx,
+	)
 }

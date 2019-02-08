@@ -19,7 +19,9 @@ func MergeReducerOutputFiles(jobName string, numReducers int) {
 	kvs := make(map[string]string)
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		// Open reduce task output file. Setup decoder.
-		reduceTaskOutputFileName := ReducerOutputFileName(jobName, reduceTaskIdx)
+		reduceTaskOutputFileName := ReducerOutputFileName(
+			jobName, reduceTaskIdx,
+		)
 		fmt.Printf("Merge: read %s\n", reduceTaskOutputFileName)
 		reduceTaskOutputFile, err := os.Open(reduceTaskOutputFileName)
 		if err != nil {
