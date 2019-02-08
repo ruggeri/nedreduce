@@ -49,7 +49,7 @@ func (mr *Master) startRPCServer() {
 	os.Remove(mr.Address) // only needed for "unix"
 	connectionListener, e := net.Listen("unix", mr.Address)
 	if e != nil {
-		log.Fatal("RegstrationServer", mr.Address, " error: ", e)
+		log.Fatal("RegstrationServer ", mr.Address, " error: ", e)
 	}
 	mr.connectionListener = connectionListener
 

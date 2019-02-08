@@ -95,7 +95,7 @@ func RunDistributedJob(
 ) (master *Master) {
 	// First construct the Master and start running an RPC server which
 	// can listen for connections.
-	master = newMaster("master", jobConfiguration)
+	master = newMaster(masterAddress, jobConfiguration)
 	master.startRPCServer()
 
 	go master.runJob(

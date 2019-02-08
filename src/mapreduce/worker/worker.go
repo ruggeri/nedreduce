@@ -127,9 +127,9 @@ func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.ShutdownReply) error {
 func (wk *Worker) register(master string) {
 	args := new(mr_rpc.RegisterArgs)
 	args.WorkerRPCAdress = wk.name
-	ok := mr_rpc.Call(master, "Master.Register", args, new(struct{}))
+	ok := mr_rpc.Call(master, "Master.RegisterWorker", args, new(struct{}))
 	if ok == false {
-		fmt.Printf("Register: RPC %s register error\n", master)
+		fmt.Printf("RegisterWorker: RPC %s register error\n", master)
 	}
 }
 
