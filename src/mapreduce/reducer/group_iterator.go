@@ -50,3 +50,16 @@ func (groupIterator *GroupIterator) Next() (*KeyValue, error) {
 
 	return keyValue, nil
 }
+
+// Close is used to exhaust the GroupIterator. This is needed because we
+// must advance the `GroupingIterator`s underlying iterator. We need to
+// skip enough `KeyValues to get to the next group.
+func (groupIterator *GroupIterator) Close() {
+	for {
+		_, err := groupIterator.Next()
+
+		if err == io.EOF {
+			break
+		}
+	}
+}

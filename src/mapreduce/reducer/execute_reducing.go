@@ -74,8 +74,10 @@ func ExecuteReducing(configuration *Configuration) {
 			},
 		)
 
-		// TODO: I should probably make sure the group has been exhausted
-		// (else GroupingIterator will not have fulling advanced).
+		// You're supposed to call `Close` when done with a `GroupIterator`.
+		// This matters in case the ReducingFunction hasn't fully iterated
+		// the `KeyValue`s in the group.
+		groupIterator.Close()
 	}
 
 	common.Debug(
