@@ -6,11 +6,11 @@ package master
 
 import (
 	"fmt"
-	"mapreduce/util"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
 	mr_rpc "mapreduce/rpc"
 	. "mapreduce/types"
+	"mapreduce/util"
 	"net"
 	"sync"
 )
@@ -58,16 +58,16 @@ func RunSequentialJob(
 	go master.runJob(
 		jobConfiguration,
 		// This function executes each of the two phases.
-		func(jobPhase util.JobPhase) {
+		func(jobPhase JobPhase) {
 			switch jobPhase {
-			case util.MapPhase:
+			case MapPhase:
 				util.Debug("Beginning mapping phase\n")
 				// Run each map task one-by-one.
 				for mapTaskIdx := 0; mapTaskIdx < jobConfiguration.NumMappers(); mapTaskIdx++ {
 					mapperConfiguration := mapper.ConfigurationFromJobConfiguration(jobConfiguration, mapTaskIdx)
 					mapper.ExecuteMapping(&mapperConfiguration)
 				}
-			case util.ReducePhase:
+			case ReducePhase:
 				// Run each reduce task one-by-one.
 				util.Debug("Beginning reducing phase\n")
 				for reduceTaskIdx := 0; reduceTaskIdx < jobConfiguration.NumReducers; reduceTaskIdx++ {
@@ -99,7 +99,7 @@ func RunDistributedJob(
 	go master.runJob(
 		jobConfiguration,
 		// This function is used to execute each job phase.
-		func(jobPhase util.JobPhase) {
+		func(jobPhase JobPhase) {
 			// Start running someone to listen for workers to register with
 			// the master. As workers register, we will add them to our pool
 			// of available workers.
@@ -133,13 +133,13 @@ func (master *Master) Wait() {
 // reducers.
 func (master *Master) runJob(
 	jobConfiguration *JobConfiguration,
-	runPhase func(phase util.JobPhase),
+	runPhase func(phase JobPhase),
 	collectStatsAndCleanup func(),
 ) {
 	fmt.Printf("%s: Starting Map/Reduce task %s\n", master.Address, jobConfiguration.JobName)
 
-	runPhase(util.MapPhase)
-	runPhase(util.ReducePhase)
+	runPhase(MapPhase)
+	runPhase(ReducePhase)
 	collectStatsAndCleanup()
 	util.MergeReducerOutputFiles(jobConfiguration.JobName, jobConfiguration.NumReducers)
 

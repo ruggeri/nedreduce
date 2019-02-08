@@ -7,11 +7,11 @@ package worker
 import (
 	"fmt"
 	"log"
-	"mapreduce/util"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
 	mr_rpc "mapreduce/rpc"
 	. "mapreduce/types"
+	"mapreduce/util"
 	"net"
 	"net/rpc"
 	"os"
@@ -78,7 +78,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 	}
 
 	switch arg.JobPhase {
-	case util.MapPhase:
+	case MapPhase:
 		mapperConfiguration := mapper.NewConfiguration(
 			arg.JobName,
 			arg.TaskIdx,
@@ -88,7 +88,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 		)
 
 		mapper.ExecuteMapping(&mapperConfiguration)
-	case util.ReducePhase:
+	case ReducePhase:
 		reducerConfiguration := reducer.NewConfiguration(
 			arg.JobName,
 			arg.NumTasksInOtherPhase,
