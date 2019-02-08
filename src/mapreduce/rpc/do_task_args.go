@@ -1,12 +1,12 @@
 package rpc
 
-import "mapreduce/common"
+import "mapreduce/util"
 
 // DoTaskArgs holds the arguments that are passed to a Worker when a job
 // is scheduled for it.
 type DoTaskArgs struct {
 	JobName  string
-	JobPhase common.JobPhase
+	JobPhase util.JobPhase
 	// MapInputFileName will only be set if we are in the MapPhase.
 	MapInputFileName string
 	TaskIdx          int

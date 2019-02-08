@@ -3,7 +3,7 @@ package master
 import (
 	"fmt"
 	"log"
-	"mapreduce/common"
+	"mapreduce/util"
 	mr_rpc "mapreduce/rpc"
 	"net"
 	"net/rpc"
@@ -15,7 +15,7 @@ import (
 func (mr *Master) RegisterWorker(args *mr_rpc.RegisterArgs, _ *struct{}) error {
 	mr.Lock()
 	defer mr.Unlock()
-	common.Debug("RegisterWorker: worker %s\n", args.WorkerRPCAdress)
+	util.Debug("RegisterWorker: worker %s\n", args.WorkerRPCAdress)
 	mr.workers = append(mr.workers, args.WorkerRPCAdress)
 
 	// tell forwardWorkerRegistrations() that there's a new workers[]
@@ -27,7 +27,7 @@ func (mr *Master) RegisterWorker(args *mr_rpc.RegisterArgs, _ *struct{}) error {
 
 // Shutdown is an RPC method that shuts down the Master's RPC server.
 func (mr *Master) Shutdown(_, _ *struct{}) error {
-	common.Debug("Shutdown: registration server\n")
+	util.Debug("Shutdown: registration server\n")
 	// TODO: In theory shuts down the listener. But see my comment
 	// below...
 	close(mr.shutdown)
@@ -79,11 +79,11 @@ func (mr *Master) startRPCServer() {
 					rpcServer.ServeConn(conn)
 				}()
 			} else {
-				common.Debug("RegistrationServer: accept error: %v", err)
+				util.Debug("RegistrationServer: accept error: %v", err)
 				break
 			}
 		}
-		common.Debug("RegistrationServer: done\n")
+		util.Debug("RegistrationServer: done\n")
 	}()
 }
 
@@ -96,5 +96,5 @@ func (mr *Master) stopRPCServer() {
 	if ok == false {
 		fmt.Printf("Cleanup: RPC %s error\n", mr.Address)
 	}
-	common.Debug("cleanupRegistration: done\n")
+	util.Debug("cleanupRegistration: done\n")
 }

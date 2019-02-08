@@ -3,7 +3,7 @@ package reducer
 import (
 	"encoding/json"
 	"log"
-	"mapreduce/common"
+	"mapreduce/util"
 	"os"
 )
 
@@ -29,7 +29,7 @@ func NewInputManager(configuration *Configuration) InputManager {
 	// For each map task...
 	for mapTaskIdx := 0; mapTaskIdx < numMappers; mapTaskIdx++ {
 		// Open an input file and append it to the list.
-		inputFileName := common.IntermediateFileName(
+		inputFileName := util.IntermediateFileName(
 			jobName, mapTaskIdx, reduceTaskIdx,
 		)
 		inputFile, err := os.Open(inputFileName)

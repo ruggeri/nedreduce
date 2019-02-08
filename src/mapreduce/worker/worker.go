@@ -7,7 +7,7 @@ package worker
 import (
 	"fmt"
 	"log"
-	"mapreduce/common"
+	"mapreduce/util"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
 	mr_rpc "mapreduce/rpc"
@@ -78,7 +78,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 	}
 
 	switch arg.JobPhase {
-	case common.MapPhase:
+	case util.MapPhase:
 		mapperConfiguration := mapper.NewConfiguration(
 			arg.JobName,
 			arg.TaskIdx,
@@ -88,7 +88,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 		)
 
 		mapper.ExecuteMapping(&mapperConfiguration)
-	case common.ReducePhase:
+	case util.ReducePhase:
 		reducerConfiguration := reducer.NewConfiguration(
 			arg.JobName,
 			arg.NumTasksInOtherPhase,
@@ -116,7 +116,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 // Shutdown is called by the master when all work has been completed.
 // We should respond with the number of tasks we have processed.
 func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.ShutdownReply) error {
-	common.Debug("Shutdown %s\n", wk.name)
+	util.Debug("Shutdown %s\n", wk.name)
 	wk.Lock()
 	defer wk.Unlock()
 	res.NumTasksProcessed = wk.nTasks
@@ -141,7 +141,7 @@ func RunWorker(MasterAddress string, me string,
 	ReduceFunc ReducingFunction,
 	nRPC int, parallelism *Parallelism,
 ) {
-	common.Debug("RunWorker %s\n", me)
+	util.Debug("RunWorker %s\n", me)
 	wk := new(Worker)
 	wk.name = me
 	wk.Map = MapFunc
@@ -177,5 +177,5 @@ func RunWorker(MasterAddress string, me string,
 		}
 	}
 	wk.l.Close()
-	common.Debug("RunWorker %s exit\n", me)
+	util.Debug("RunWorker %s exit\n", me)
 }

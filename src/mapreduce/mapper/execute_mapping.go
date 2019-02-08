@@ -4,14 +4,14 @@ import (
 	"bufio"
 	"io"
 	"log"
-	"mapreduce/common"
 	. "mapreduce/types"
+	"mapreduce/util"
 	"os"
 )
 
 // ExecuteMapping runs a map task.
 func ExecuteMapping(configuration *Configuration) {
-	common.Debug(
+	util.Debug(
 		"mapTaskIdx %v: Beginning map task with config: %v.\n",
 		configuration.MapTaskIdx,
 		configuration,
@@ -29,7 +29,7 @@ func ExecuteMapping(configuration *Configuration) {
 	outputManager := NewOutputManager(configuration)
 	defer outputManager.Close()
 
-	common.Debug(
+	util.Debug(
 		"mapTaskIdx %v: Beginning mapping.\n", configuration.MapTaskIdx,
 	)
 	for {
@@ -52,7 +52,7 @@ func ExecuteMapping(configuration *Configuration) {
 		)
 	}
 
-	common.Debug(
+	util.Debug(
 		"mapTaskIdx %v: Completed map task.\n", configuration.MapTaskIdx,
 	)
 }

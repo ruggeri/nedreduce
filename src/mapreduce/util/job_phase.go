@@ -1,4 +1,4 @@
-package common
+package util
 
 // JobPhase is an enum for either MapPhase or ReducerPhase.
 type JobPhase string

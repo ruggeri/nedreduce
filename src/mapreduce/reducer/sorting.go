@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"mapreduce/common"
+	"mapreduce/util"
 	. "mapreduce/types"
 	"os"
 	"sort"
@@ -61,7 +61,7 @@ func sortReducerInputFile(
 
 	// Open a new file for writing. Really I should be creating a new file
 	// and then re-naming.
-	inputFileName := common.IntermediateFileName(
+	inputFileName := util.IntermediateFileName(
 		jobName, mapTaskIdx, reduceTaskIdx,
 	)
 	inputWritingFile, err := os.OpenFile(

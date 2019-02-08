@@ -4,26 +4,26 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"mapreduce/common"
 	. "mapreduce/types"
+	"mapreduce/util"
 	"os"
 )
 
 // ExecuteReducing runs a reduce task.
 func ExecuteReducing(configuration *Configuration) {
-	common.Debug(
+	util.Debug(
 		"reduceTaskIdx %v: Beginning reduce task with config: %v.\n",
 		configuration.ReduceTaskIdx,
 		configuration,
 	)
 
 	// First, we must sort each mapper output file.
-	common.Debug(
+	util.Debug(
 		"reduceTaskIdx %v: Beginning sorting.\n",
 		configuration.ReduceTaskIdx,
 	)
 	sortReducerInputFiles(configuration)
-	common.Debug(
+	util.Debug(
 		"reduceTaskIdx %v: Finished sorting.\n",
 		configuration.ReduceTaskIdx,
 	)
@@ -33,7 +33,7 @@ func ExecuteReducing(configuration *Configuration) {
 	defer inputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
-	outputFileName := common.ReducerOutputFileName(
+	outputFileName := util.ReducerOutputFileName(
 		configuration.JobName, configuration.ReduceTaskIdx,
 	)
 	outputFile, err := os.OpenFile(
@@ -45,7 +45,7 @@ func ExecuteReducing(configuration *Configuration) {
 	defer outputFile.Close()
 	outputEncoder := json.NewEncoder(outputFile)
 
-	common.Debug(
+	util.Debug(
 		"reduceTaskIdx %v: Beginning reducing.\n",
 		configuration.ReduceTaskIdx,
 	)
@@ -80,7 +80,7 @@ func ExecuteReducing(configuration *Configuration) {
 		groupIterator.Close()
 	}
 
-	common.Debug(
+	util.Debug(
 		"reduceTaskIdx %v: Completed reduce task.\n",
 		configuration.ReduceTaskIdx,
 	)

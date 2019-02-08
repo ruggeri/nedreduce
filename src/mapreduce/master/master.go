@@ -6,7 +6,7 @@ package master
 
 import (
 	"fmt"
-	"mapreduce/common"
+	"mapreduce/util"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
 	mr_rpc "mapreduce/rpc"
@@ -58,18 +58,18 @@ func RunSequentialJob(
 	go master.runJob(
 		jobConfiguration,
 		// This function executes each of the two phases.
-		func(jobPhase common.JobPhase) {
+		func(jobPhase util.JobPhase) {
 			switch jobPhase {
-			case common.MapPhase:
-				common.Debug("Beginning mapping phase\n")
+			case util.MapPhase:
+				util.Debug("Beginning mapping phase\n")
 				// Run each map task one-by-one.
 				for mapTaskIdx := 0; mapTaskIdx < jobConfiguration.NumMappers(); mapTaskIdx++ {
 					mapperConfiguration := mapper.ConfigurationFromJobConfiguration(jobConfiguration, mapTaskIdx)
 					mapper.ExecuteMapping(&mapperConfiguration)
 				}
-			case common.ReducePhase:
+			case util.ReducePhase:
 				// Run each reduce task one-by-one.
-				common.Debug("Beginning reducing phase\n")
+				util.Debug("Beginning reducing phase\n")
 				for reduceTaskIdx := 0; reduceTaskIdx < jobConfiguration.NumReducers; reduceTaskIdx++ {
 					reducerConfiguration := reducer.ConfigurationFromJobConfiguration(jobConfiguration, reduceTaskIdx)
 					reducer.ExecuteReducing(&reducerConfiguration)
@@ -99,7 +99,7 @@ func RunDistributedJob(
 	go master.runJob(
 		jobConfiguration,
 		// This function is used to execute each job phase.
-		func(jobPhase common.JobPhase) {
+		func(jobPhase util.JobPhase) {
 			// Start running someone to listen for workers to register with
 			// the master. As workers register, we will add them to our pool
 			// of available workers.
@@ -133,15 +133,15 @@ func (master *Master) Wait() {
 // reducers.
 func (master *Master) runJob(
 	jobConfiguration *JobConfiguration,
-	runPhase func(phase common.JobPhase),
+	runPhase func(phase util.JobPhase),
 	collectStatsAndCleanup func(),
 ) {
 	fmt.Printf("%s: Starting Map/Reduce task %s\n", master.Address, jobConfiguration.JobName)
 
-	runPhase(common.MapPhase)
-	runPhase(common.ReducePhase)
+	runPhase(util.MapPhase)
+	runPhase(util.ReducePhase)
 	collectStatsAndCleanup()
-	common.MergeReducerOutputFiles(jobConfiguration.JobName, jobConfiguration.NumReducers)
+	util.MergeReducerOutputFiles(jobConfiguration.JobName, jobConfiguration.NumReducers)
 
 	fmt.Printf("%s: Map/Reduce task completed\n", master.Address)
 
@@ -180,7 +180,7 @@ func (master *Master) killWorkers() []int {
 
 	numTasksProcessed := make([]int, 0, len(master.workers))
 	for _, w := range master.workers {
-		common.Debug("Master: shutdown worker %s\n", w)
+		util.Debug("Master: shutdown worker %s\n", w)
 		var reply mr_rpc.ShutdownReply
 		ok := mr_rpc.Call(w, "Worker.Shutdown", new(struct{}), &reply)
 		if ok == false {

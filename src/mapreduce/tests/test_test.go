@@ -3,7 +3,7 @@ package mapreduce
 import (
 	"fmt"
 	"io"
-	"mapreduce/common"
+	"mapreduce/util"
 	"mapreduce/master"
 	. "mapreduce/types"
 	"mapreduce/worker"
@@ -33,7 +33,7 @@ func wordSplittingMappingFunction(
 	line string,
 	mappingEmitterFunction EmitterFunction,
 ) {
-	// common.Debug("Map %v\n", line)
+	// util.Debug("Map %v\n", line)
 	words := strings.Fields(line)
 	for _, w := range words {
 		kv := KeyValue{Key: w, Value: ""}
@@ -164,10 +164,10 @@ func setup() *master.Master {
 }
 
 func cleanup(master *master.Master) {
-	common.CleanupFiles(master.JobConfiguration)
+	util.CleanupFiles(master.JobConfiguration)
 
 	for _, f := range master.JobConfiguration.MapperInputFileNames {
-		common.RemoveFile(f)
+		util.RemoveFile(f)
 	}
 }
 

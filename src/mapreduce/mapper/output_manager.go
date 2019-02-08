@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"hash/fnv"
 	"log"
-	"mapreduce/common"
+	"mapreduce/util"
 	. "mapreduce/types"
 	"os"
 )
@@ -30,7 +30,7 @@ func NewOutputManager(configuration *Configuration) OutputManager {
 	// For each reduce task...
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		// Open a mapper output file and append it to the list.
-		outputFileName := common.IntermediateFileName(
+		outputFileName := util.IntermediateFileName(
 			jobName, mapTaskIdx, reduceTaskIdx,
 		)
 		outputFile, err := os.OpenFile(

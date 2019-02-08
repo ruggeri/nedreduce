@@ -2,7 +2,6 @@
 
 **High**
 
-* Rename `common` to `util`.
 * Review, refactor, and document the `mapreduce/master` and
   `mapreduce/worker` packages.
 

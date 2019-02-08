@@ -28,10 +28,10 @@ both emit `KeyValue`s, a struct also defined in `mapreduce/types`.
 All the following subpackages are internal and the user doesn't need
 them.
 
-### mapreduce/common
+### mapreduce/util
 
-The `mapreduce/common` package contains utility functions used elsewhere
-in the codebase. It would probably be better named "util."
+The `mapreduce/util` package contains utility functions used elsewhere
+in the codebase.
 
 ### mapreduce/mapper
 

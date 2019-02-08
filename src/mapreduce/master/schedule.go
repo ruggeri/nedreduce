@@ -3,7 +3,7 @@ package master
 import (
 	"fmt"
 	"log"
-	"mapreduce/common"
+	"mapreduce/util"
 	mr_rpc "mapreduce/rpc"
 	. "mapreduce/types"
 	"sync"
@@ -18,14 +18,14 @@ type WorkerRegistrationChannel chan string
 // varying the function which pushes map work.
 func runDistributedPhase(
 	jobConfiguration *JobConfiguration,
-	jobPhase common.JobPhase,
+	jobPhase util.JobPhase,
 	registerChan chan string,
 ) {
 	numMappers := jobConfiguration.NumMappers()
 	numReducers := jobConfiguration.NumReducers
 
 	switch jobPhase {
-	case common.MapPhase:
+	case util.MapPhase:
 		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numMappers, jobPhase, numReducers)
 
 		_runDistributedPhase(
@@ -34,7 +34,7 @@ func runDistributedPhase(
 				pushMapWork(wg, workChannel, noMoreWorkChannel, jobConfiguration)
 			},
 		)
-	case common.ReducePhase:
+	case util.ReducePhase:
 		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numReducers, jobPhase, numMappers)
 
 		_runDistributedPhase(
@@ -117,7 +117,7 @@ func pushMapWork(
 		mapInputFileName := jobConfiguration.MapperInputFileNames[mapTaskIdx]
 		args := mr_rpc.DoTaskArgs{
 			JobName:              jobName,
-			JobPhase:             common.MapPhase,
+			JobPhase:             util.MapPhase,
 			MapInputFileName:     mapInputFileName,
 			TaskIdx:              mapTaskIdx,
 			NumTasksInOtherPhase: numReducers,
@@ -150,7 +150,7 @@ func pushReduceWork(
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		args := mr_rpc.DoTaskArgs{
 			JobName:              jobName,
-			JobPhase:             common.ReducePhase,
+			JobPhase:             util.ReducePhase,
 			TaskIdx:              reduceTaskIdx,
 			NumTasksInOtherPhase: numMappers,
 		}
