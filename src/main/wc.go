@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mapreduce"
+	mr_commands "mapreduce/commands"
+	mr_types "mapreduce/types"
 	"os"
 	"strconv"
 	"strings"
@@ -18,18 +19,17 @@ import (
 // and look only at the contents argument. The return value is a slice
 // of key/value pairs.
 //
-func wordExtractionMappingFunction(
+func wordSplittingMappingFunction(
 	filename string,
 	line string,
-	emitterFunction mapreduce.EmitterFunction,
+	emitterFunction mr_types.EmitterFunction,
 ) {
 	words := strings.FieldsFunc(line, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
 
-	outputKeyValues := make([]mapreduce.KeyValue, 0, len(words))
 	for _, word := range words {
-		outputKeyValue := mapreduce.KeyValue{word, ""}
+		outputKeyValue := mr_types.KeyValue{word, ""}
 		emitterFunction(outputKeyValue)
 	}
 }
@@ -41,13 +41,13 @@ func wordExtractionMappingFunction(
 //
 func wordCountingReducingFunction(
 	groupKey string,
-	groupIteratorFunction mapreduce.GroupIteratorFunction,
-	emitterFunction mapreduce.EmitterFunction,
+	groupIteratorFunction mr_types.GroupIteratorFunction,
+	emitterFunction mr_types.EmitterFunction,
 ) {
 	wordCount := 0
 
 	for {
-		keyValue, err := groupIteratorFunction()
+		_, err := groupIteratorFunction()
 
 		if err == io.EOF {
 			break
@@ -58,7 +58,7 @@ func wordCountingReducingFunction(
 		wordCount++
 	}
 
-	keyValue := mapreduce.KeyValue{
+	keyValue := mr_types.KeyValue{
 		Key:   groupKey,
 		Value: strconv.Itoa(wordCount),
 	}
@@ -74,14 +74,26 @@ func main() {
 	if len(os.Args) < 4 {
 		fmt.Printf("%s: see usage comments in file\n", os.Args[0])
 	} else if os.Args[1] == "master" {
-		var mr *mapreduce.Master
+		jobConfiguration := mr_types.NewJobConfiguration(
+			"wcseq",
+			os.Args[3:],
+			3,
+			wordSplittingMappingFunction,
+			wordCountingReducingFunction,
+		)
+
 		if os.Args[2] == "sequential" {
-			mr = mapreduce.Sequential("wcseq", os.Args[3:], 3, mapF, reduceF)
+			mr_commands.RunSequentialJob(&jobConfiguration)
 		} else {
-			mr = mapreduce.Distributed("wcseq", os.Args[3:], 3, os.Args[2])
+			mr_commands.RunDistributedJob(&jobConfiguration, os.Args[2])
 		}
-		mr.Wait()
 	} else {
-		mapreduce.RunWorker(os.Args[2], os.Args[3], mapF, reduceF, 100, nil)
+		mr_commands.RunWorker(
+			os.Args[2],
+			os.Args[3],
+			wordSplittingMappingFunction,
+			wordCountingReducingFunction,
+			100,
+		)
 	}
 }
