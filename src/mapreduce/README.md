@@ -105,8 +105,8 @@ and `rcp.Call` functions.
 
 ### mapreduce/master
 
-**TODO**
+**TODO(HIGH)**
 
 ### mapreduce/worker
 
-**TODO**
+**TODO(HIGH)**

@@ -72,7 +72,7 @@ func (mergedInputIterator *MergedInputIterator) Next() (*KeyValue, error) {
 
 	// Scan for the least input with the least key.
 	//
-	// TODO: If there were lots of map tasks, it might be efficient to use
+	// TODO(LOW): If there were lots of map tasks, it might be efficient to use
 	// a min heap here.
 	for inputIdx, inputKeyValue := range mergedInputIterator.peekedInputKeyValues {
 		if inputKeyValue == nil {

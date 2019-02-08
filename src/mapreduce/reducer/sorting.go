@@ -37,7 +37,7 @@ func sortReducerInputFile(
 
 	// Read in all KeyValues for this mapper input. Gross.
 	//
-	// TODO: Change this into an external merge sort.
+	// TODO(LOW): Change this into an external merge sort.
 	keyValues := []KeyValue{}
 	for {
 		keyValue := &KeyValue{}
