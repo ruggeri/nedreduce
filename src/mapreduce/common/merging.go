@@ -13,11 +13,16 @@ import (
 // MergeReducerOutputFiles combines the results of the many reduce jobs
 // into a single output file. Presently a `Master` runs this function at
 // the end of a job, but it is typical for real-world MR jobs not to do
-// that. I feel like this function is unnecessary: if you wanted to
-// concatenate all partitions you could just write another MR job with a
-// single reducer...
+// that. Producing many output files is a feature, not a bug.
 //
-// TODO: use merge sort. This is bogus.
+// Anyway, I feel like this function is unnecessary: if you wanted to
+// concatenate all partitions you could just write another MR job with a
+// single reducer... That would be the right thing to do if reducer
+// output files lived on separate machines and weren't otherwise
+// remotely accessible.
+//
+// Anyway, I leave this here as a concession to the way the tests are
+// currently run.
 func MergeReducerOutputFiles(jobName string, numReducers int) {
 	Debug("Reducer output merge phase beginning...")
 
