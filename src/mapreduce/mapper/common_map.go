@@ -17,15 +17,9 @@ type MappingEmitterFunction func(outputKeyValue common.KeyValue)
 type MappingFunction func(filename string, line string, mappingEmitterFunction MappingEmitterFunction)
 
 // ExecuteMapping runs a map task.
-func ExecuteMapping(
-	jobName string, // the name of the MapReduce job
-	mapTaskIdx int, // which map task this is
-	inputFileName string,
-	numReducers int, // the number of reduce task that will be run ("R" in the paper)
-	mappingFunction MappingFunction,
-) {
+func ExecuteMapping(configuration Configuration) {
 	// Open the map input file for reading.
-	inputFile, err := os.Open(inputFileName)
+	inputFile, err := os.Open(configuration.MapperInputFileName)
 	if err != nil {
 		log.Fatalf("error opening mapper input file: %v\n", err)
 	}
@@ -33,7 +27,7 @@ func ExecuteMapping(
 	inputReader := bufio.NewReader(inputFile)
 
 	// Open files for map output.
-	outputManager := NewOutputManager(jobName, mapTaskIdx, numReducers)
+	outputManager := NewOutputManager(configuration)
 	defer outputManager.Close()
 
 	for {
@@ -46,9 +40,13 @@ func ExecuteMapping(
 		}
 
 		// Apply the mapping function.
-		mappingFunction(inputFileName, line, func(outputKeyValue common.KeyValue) {
-			// Write the map outputs.
-			outputManager.WriteKeyValue(outputKeyValue)
-		})
+		configuration.MappingFunction(
+			configuration.MapperInputFileName,
+			line,
+			func(outputKeyValue common.KeyValue) {
+				// Write the map outputs.
+				outputManager.WriteKeyValue(outputKeyValue)
+			},
+		)
 	}
 }

@@ -15,7 +15,11 @@ type OutputManager struct {
 }
 
 // NewOutputManager makes a new OutputManager.
-func NewOutputManager(jobName string, mapTaskIdx int, numReducers int) OutputManager {
+func NewOutputManager(configuration Configuration) OutputManager {
+	jobName := configuration.JobName
+	mapTaskIdx := configuration.MapTaskIdx
+	numReducers := configuration.NumReducers
+
 	// Allocate space for slices.
 	outputManager := OutputManager{
 		outputFiles:    make([]os.File, 0, numReducers),

@@ -9,17 +9,16 @@ import (
 	"sort"
 )
 
-func sortReducerInputFiles(jobName string, numMappers int, reduceTaskIdx int) {
+func sortReducerInputFiles(configuration Configuration) {
 	// Open the reducer's input files.
-	reducerInputManager := NewInputManager(jobName, numMappers, reduceTaskIdx)
+	reducerInputManager := NewInputManager(configuration)
 	defer reducerInputManager.Close()
 
 	for mapTaskIdx, inputDecoder := range reducerInputManager.inputDecoders {
 		// Sort each file.
 		sortReducerInputFile(
-			jobName,
+			configuration,
 			mapTaskIdx,
-			reduceTaskIdx,
 			reducerInputManager.inputFiles[mapTaskIdx],
 			inputDecoder,
 		)
@@ -27,11 +26,14 @@ func sortReducerInputFiles(jobName string, numMappers int, reduceTaskIdx int) {
 }
 
 func sortReducerInputFile(
-	jobName string,
+	configuration Configuration,
 	mapTaskIdx int,
-	reduceTaskIdx int,
 	inputReadingFile os.File,
-	inputDecoder *json.Decoder) {
+	inputDecoder *json.Decoder,
+) {
+	jobName := configuration.JobName
+	reduceTaskIdx := configuration.ReduceTaskIdx
+
 	// TODO: Change this into an external merge sort.
 
 	// Read in all KeyValues for this mapper input. Gross.

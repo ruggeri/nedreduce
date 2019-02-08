@@ -25,21 +25,18 @@ type ReducingFunction func(
 )
 
 // ExecuteReducing runs a reduce task.
-func ExecuteReducing(
-	jobName string, // the name of the whole MapReduce job
-	reduceTaskIdx int, // which reduce task this is
-	numMappers int, // the number of map tasks that were run ("M" in the paper)
-	reducingFunction ReducingFunction,
-) {
+func ExecuteReducing(configuration Configuration) {
 	// First, we must sort each mapper output file.
-	sortReducerInputFiles(jobName, numMappers, reduceTaskIdx)
+	sortReducerInputFiles(configuration)
 
 	// Now, open the reducer's input files.
-	inputManager := NewInputManager(jobName, numMappers, reduceTaskIdx)
+	inputManager := NewInputManager(configuration)
 	defer inputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
-	outputFileName := common.ReducerOutputFileName(jobName, reduceTaskIdx)
+	outputFileName := common.ReducerOutputFileName(
+		configuration.JobName, configuration.ReduceTaskIdx,
+	)
 	outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatalf("error opening reducer output file: %v\n", err)
@@ -60,7 +57,7 @@ func ExecuteReducing(
 		}
 
 		// Call the reducer function.
-		reducingFunction(
+		configuration.ReducingFunction(
 			groupIterator.GroupKey,
 			func() (*common.KeyValue, error) { return groupIterator.Next() },
 			func(outputKeyValue common.KeyValue) {

@@ -16,12 +16,12 @@ type WorkerRegistrationChannel chan string
 // MapPhase or the ReducePhase. It calls _runDistributedPhase, simply
 // varying the function which pushes map work.
 func runDistributedPhase(
-	jobName string,
-	mapperInputFiles []string,
-	numReducers int,
+	jobConfiguration JobConfiguration,
 	jobPhase common.JobPhase,
-	registerChan chan string) {
-	numMappers := len(mapperInputFiles)
+	registerChan chan string,
+) {
+	numMappers := jobConfiguration.NumMappers()
+	numReducers := jobConfiguration.NumReducers
 
 	switch jobPhase {
 	case common.MapPhase:
@@ -30,7 +30,7 @@ func runDistributedPhase(
 		_runDistributedPhase(
 			registerChan,
 			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
-				pushMapWork(wg, workChannel, noMoreWorkChannel, jobName, mapperInputFiles, numReducers)
+				pushMapWork(wg, workChannel, noMoreWorkChannel, jobConfiguration)
 			},
 		)
 	case common.ReducePhase:
@@ -39,7 +39,7 @@ func runDistributedPhase(
 		_runDistributedPhase(
 			registerChan,
 			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
-				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobName, numMappers, numReducers)
+				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobConfiguration)
 			},
 		)
 	}
@@ -106,14 +106,18 @@ func pushMapWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
 	noMoreWorkChannel NoMoreWorkChannel,
-	jobName string,
-	mapFiles []string,
-	numReducers int) {
-	for mapTaskIdx := 0; mapTaskIdx < len(mapFiles); mapTaskIdx++ {
+	jobConfiguration JobConfiguration,
+) {
+	jobName := jobConfiguration.JobName
+	numMappers := jobConfiguration.NumMappers()
+	numReducers := jobConfiguration.NumReducers
+
+	for mapTaskIdx := 0; mapTaskIdx < numMappers; mapTaskIdx++ {
+		mapInputFileName := jobConfiguration.MapperInputFileNames[mapTaskIdx]
 		args := mr_rpc.DoTaskArgs{
 			JobName:              jobName,
 			JobPhase:             common.MapPhase,
-			MapInputFileName:     mapFiles[mapTaskIdx],
+			MapInputFileName:     mapInputFileName,
 			TaskIdx:              mapTaskIdx,
 			NumTasksInOtherPhase: numReducers,
 		}
@@ -136,9 +140,12 @@ func pushReduceWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
 	noMoreWorkChannel NoMoreWorkChannel,
-	jobName string,
-	numMappers int,
-	numReducers int) {
+	jobConfiguration JobConfiguration,
+) {
+	jobName := jobConfiguration.JobName
+	numMappers := jobConfiguration.NumMappers()
+	numReducers := jobConfiguration.NumReducers
+
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		args := mr_rpc.DoTaskArgs{
 			JobName:              jobName,
@@ -164,7 +171,8 @@ func pushReduceWork(
 func runWorker(
 	wg *sync.WaitGroup,
 	workerRPCAddress string,
-	workChannel WorkChannel) {
+	workChannel WorkChannel,
+) {
 	for doTaskArgs := range workChannel {
 		// For each piece of work we can claim, we will run it remotely on
 		// the worker.
