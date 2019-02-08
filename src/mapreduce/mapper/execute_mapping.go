@@ -5,19 +5,8 @@ import (
 	"io"
 	"log"
 	"mapreduce/common"
+	. "mapreduce/types"
 	"os"
-)
-
-// MappingEmitterFunction is used by a MappingFunction to emit
-// KeyValues.
-type MappingEmitterFunction func(outputKeyValue common.KeyValue)
-
-// A MappingFunction is the type of mapping function supplied by the
-// user.
-type MappingFunction func(
-	filename string,
-	line string,
-	mappingEmitterFunction MappingEmitterFunction,
 )
 
 // ExecuteMapping runs a map task.
@@ -56,7 +45,7 @@ func ExecuteMapping(configuration Configuration) {
 		configuration.MappingFunction(
 			configuration.MapperInputFileName,
 			line,
-			func(outputKeyValue common.KeyValue) {
+			func(outputKeyValue KeyValue) {
 				// Write the map outputs.
 				outputManager.WriteKeyValue(outputKeyValue)
 			},

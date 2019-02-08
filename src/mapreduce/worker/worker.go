@@ -11,6 +11,7 @@ import (
 	"mapreduce/mapper"
 	"mapreduce/reducer"
 	mr_rpc "mapreduce/rpc"
+	. "mapreduce/types"
 	"net"
 	"net/rpc"
 	"os"
@@ -30,8 +31,8 @@ type Worker struct {
 	sync.Mutex
 
 	name        string
-	Map         mapper.MappingFunction
-	Reduce      reducer.ReducingFunction
+	Map         MappingFunction
+	Reduce      ReducingFunction
 	nRPC        int // quit after this many RPCs; protected by mutex
 	nTasks      int // total tasks executed; protected by mutex
 	concurrent  int // number of parallel DoTasks in this worker; mutex
@@ -136,8 +137,8 @@ func (wk *Worker) register(master string) {
 // RunWorker sets up a connection with the master, registers its address, and
 // waits for tasks to be scheduled.
 func RunWorker(MasterAddress string, me string,
-	MapFunc mapper.MappingFunction,
-	ReduceFunc reducer.ReducingFunction,
+	MapFunc MappingFunction,
+	ReduceFunc ReducingFunction,
 	nRPC int, parallelism *Parallelism,
 ) {
 	common.Debug("RunWorker %s\n", me)

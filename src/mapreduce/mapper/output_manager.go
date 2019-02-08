@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"log"
 	"mapreduce/common"
+	. "mapreduce/types"
 	"os"
 )
 
@@ -55,7 +56,7 @@ func NewOutputManager(configuration Configuration) OutputManager {
 
 // WriteKeyValue calculates which reduce task the KeyValue should be
 // written to, and then writes to the appropriate file.
-func (outputManager *OutputManager) WriteKeyValue(keyValue common.KeyValue) {
+func (outputManager *OutputManager) WriteKeyValue(keyValue KeyValue) {
 	reducerIdx := ihash(keyValue.Key) % len(outputManager.outputFiles)
 	err := outputManager.outputEncoders[reducerIdx].Encode(keyValue)
 	if err != nil {

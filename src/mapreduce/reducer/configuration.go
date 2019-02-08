@@ -1,5 +1,7 @@
 package reducer
 
+import . "mapreduce/types"
+
 // A Configuration describes the settings for this reduce task.
 type Configuration struct {
 	JobName          string

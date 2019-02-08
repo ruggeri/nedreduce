@@ -5,23 +5,8 @@ import (
 	"io"
 	"log"
 	"mapreduce/common"
+	. "mapreduce/types"
 	"os"
-)
-
-// A GroupIteratorFunction is how a ReducingFunction is passed the
-// KeyValues that constitute a reduce group.
-type GroupIteratorFunction func() (*common.KeyValue, error)
-
-// A ReducingEmitterFunction is how a ReducingFunction outputs
-// KeyValues.
-type ReducingEmitterFunction func(outputKeyValue common.KeyValue)
-
-// A ReducingFunction is the type of function the user supplies to do
-// the reducing.
-type ReducingFunction func(
-	groupKey string,
-	groupIteratorFunction GroupIteratorFunction,
-	reducingEmitterFunction ReducingEmitterFunction,
 )
 
 // ExecuteReducing runs a reduce task.
@@ -79,8 +64,8 @@ func ExecuteReducing(configuration Configuration) {
 		// Call the reducer function.
 		configuration.ReducingFunction(
 			groupIterator.GroupKey,
-			func() (*common.KeyValue, error) { return groupIterator.Next() },
-			func(outputKeyValue common.KeyValue) {
+			func() (*KeyValue, error) { return groupIterator.Next() },
+			func(outputKeyValue KeyValue) {
 				// Write out the outputValue.
 				err = outputEncoder.Encode(outputKeyValue)
 				if err != nil {

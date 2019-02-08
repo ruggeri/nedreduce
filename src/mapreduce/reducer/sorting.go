@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"mapreduce/common"
+	. "mapreduce/types"
 	"os"
 	"sort"
 )
@@ -37,9 +38,9 @@ func sortReducerInputFile(
 	// Read in all KeyValues for this mapper input. Gross.
 	//
 	// TODO: Change this into an external merge sort.
-	keyValues := []common.KeyValue{}
+	keyValues := []KeyValue{}
 	for {
-		keyValue := &common.KeyValue{}
+		keyValue := &KeyValue{}
 		err := inputDecoder.Decode(keyValue)
 		if err == io.EOF {
 			break

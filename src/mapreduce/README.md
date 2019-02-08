@@ -9,6 +9,8 @@ the original work was done by someone else (rtm).
   * The Workers presumably shouldn't have to know that in advance?
 * Review master package more thoroughly, and Worker for the first time.
 
+* JobConfiguration
+
 ## Old Notes (from before refactor)
 
 **common_map.go**

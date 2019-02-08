@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	. "mapreduce/types"
 	"os"
 	"sort"
 )

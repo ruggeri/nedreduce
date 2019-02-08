@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"mapreduce/common"
+	. "mapreduce/types"
 )
 
 // A MergedInputIterator merges many sorted files. It peeks only one
 // value ahead in each of the decoders.
 type MergedInputIterator struct {
 	inputDecoders        []*json.Decoder
-	peekedInputKeyValues []*common.KeyValue
+	peekedInputKeyValues []*KeyValue
 }
 
 // NewMergedInputIterator builds the MergedInputIterator and peeks each
@@ -22,7 +22,7 @@ func NewMergedInputIterator(
 	numReducers := len(inputDecoders)
 	iterator := MergedInputIterator{
 		inputDecoders:        inputDecoders,
-		peekedInputKeyValues: make([]*common.KeyValue, numReducers),
+		peekedInputKeyValues: make([]*KeyValue, numReducers),
 	}
 
 	for idx := 0; idx < numReducers; idx++ {
@@ -45,7 +45,7 @@ func (mergedInputIterator *MergedInputIterator) pullNextPeekedValue(
 	}
 
 	// Try to decode a KeyValue.
-	inputKeyValue := &common.KeyValue{}
+	inputKeyValue := &KeyValue{}
 	err := inputDecoder.Decode(inputKeyValue)
 
 	// If there was an error, then log and die.
@@ -66,9 +66,9 @@ func (mergedInputIterator *MergedInputIterator) pullNextPeekedValue(
 
 // Next picks the smallest value amongst the peeked values, and replaces
 // it with a newly peeked value.
-func (mergedInputIterator *MergedInputIterator) Next() (*common.KeyValue, error) {
+func (mergedInputIterator *MergedInputIterator) Next() (*KeyValue, error) {
 	leastInputKeyValueIdx := -1
-	var leastInputKeyValue *common.KeyValue
+	var leastInputKeyValue *KeyValue
 
 	// Scan for the least input with the least key.
 	//

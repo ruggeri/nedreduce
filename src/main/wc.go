@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"mapreduce"
 	"os"
 	"strconv"
@@ -16,18 +18,20 @@ import (
 // and look only at the contents argument. The return value is a slice
 // of key/value pairs.
 //
-func mapF(filename string, contents string) []mapreduce.KeyValue {
-	words := strings.FieldsFunc(contents, func(r rune) bool {
+func wordExtractionMappingFunction(
+	filename string,
+	line string,
+	emitterFunction mapreduce.EmitterFunction,
+) {
+	words := strings.FieldsFunc(line, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
 
 	outputKeyValues := make([]mapreduce.KeyValue, 0, len(words))
 	for _, word := range words {
 		outputKeyValue := mapreduce.KeyValue{word, ""}
-		outputKeyValues = append(outputKeyValues, outputKeyValue)
+		emitterFunction(outputKeyValue)
 	}
-
-	return outputKeyValues
 }
 
 //
@@ -35,8 +39,31 @@ func mapF(filename string, contents string) []mapreduce.KeyValue {
 // map tasks, with a list of all the values created for that key by
 // any map task.
 //
-func reduceF(key string, values []string) string {
-	return strconv.Itoa(len(values))
+func wordCountingReducingFunction(
+	groupKey string,
+	groupIteratorFunction mapreduce.GroupIteratorFunction,
+	emitterFunction mapreduce.EmitterFunction,
+) {
+	wordCount := 0
+
+	for {
+		keyValue, err := groupIteratorFunction()
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatalf("Unexpected error from group iterator")
+		}
+
+		wordCount++
+	}
+
+	keyValue := mapreduce.KeyValue{
+		Key:   groupKey,
+		Value: strconv.Itoa(wordCount),
+	}
+
+	emitterFunction(keyValue)
 }
 
 // Can be run in 3 ways:

@@ -4,6 +4,7 @@ import (
 	"mapreduce/common"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
+	. "mapreduce/types"
 )
 
 // A Configuration describes the settings for this job.
@@ -12,8 +13,8 @@ type Configuration struct {
 	MapperInputFileNames []string
 	NumReducers          int
 
-	MappingFunction  mapper.MappingFunction
-	ReducingFunction reducer.ReducingFunction
+	MappingFunction  MappingFunction
+	ReducingFunction ReducingFunction
 }
 
 // NewConfiguration creates a Configuration.
@@ -21,8 +22,8 @@ func NewConfiguration(
 	jobName string,
 	mapperInputFileNames []string,
 	numReducers int,
-	mappingFunction mapper.MappingFunction,
-	reducingFunction reducer.ReducingFunction,
+	mappingFunction MappingFunction,
+	reducingFunction ReducingFunction,
 ) Configuration {
 	return Configuration{
 		JobName:              jobName,
