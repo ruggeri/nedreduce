@@ -61,6 +61,7 @@ func RunSequentialJob(
 		func(jobPhase common.JobPhase) {
 			switch jobPhase {
 			case common.MapPhase:
+				common.Debug("Beginning mapping phase\n")
 				// Run each map task one-by-one.
 				for mapTaskIdx := 0; mapTaskIdx < jobConfiguration.NumMappers(); mapTaskIdx++ {
 					mapper.ExecuteMapping(
@@ -69,6 +70,7 @@ func RunSequentialJob(
 				}
 			case common.ReducePhase:
 				// Run each reduce task one-by-one.
+				common.Debug("Beginning reducing phase\n")
 				for reduceTaskIdx := 0; reduceTaskIdx < jobConfiguration.NumReducers; reduceTaskIdx++ {
 					reducer.ExecuteReducing(
 						jobConfiguration.ReducerConfiguration(reduceTaskIdx),

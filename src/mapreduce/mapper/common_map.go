@@ -18,6 +18,12 @@ type MappingFunction func(filename string, line string, mappingEmitterFunction M
 
 // ExecuteMapping runs a map task.
 func ExecuteMapping(configuration Configuration) {
+	common.Debug(
+		"mapTaskIdx %v: Beginning map task with config: %v.\n",
+		configuration.MapTaskIdx,
+		configuration,
+	)
+
 	// Open the map input file for reading.
 	inputFile, err := os.Open(configuration.MapperInputFileName)
 	if err != nil {
@@ -30,6 +36,7 @@ func ExecuteMapping(configuration Configuration) {
 	outputManager := NewOutputManager(configuration)
 	defer outputManager.Close()
 
+	common.Debug("mapTaskIdx %v: Beginning mapping.\n", configuration.MapTaskIdx)
 	for {
 		// Read a line from the map input file.
 		line, err := inputReader.ReadString('\n')
@@ -49,4 +56,6 @@ func ExecuteMapping(configuration Configuration) {
 			},
 		)
 	}
+
+	common.Debug("mapTaskIdx %v: Completed map task.\n", configuration.MapTaskIdx)
 }

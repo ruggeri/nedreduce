@@ -2,6 +2,7 @@ package mapreduce
 
 import (
 	"fmt"
+	"io"
 	"mapreduce/common"
 	"mapreduce/job"
 	"mapreduce/mapper"
@@ -30,18 +31,30 @@ const (
 
 // Split in words
 func MappingFunction(inputFileName string, line string, mappingEmitterFunction mapper.MappingEmitterFunction) {
-	common.Debug("Map %v\n", line)
+	// common.Debug("Map %v\n", line)
 	words := strings.Fields(line)
 	for _, w := range words {
-		kv := common.KeyValue{w, ""}
+		kv := common.KeyValue{Key: w, Value: ""}
 		mappingEmitterFunction(kv)
 	}
 }
 
-func ReducingFunction(groupKey string, groupIteratorfunction reducer.GroupIteratorFunction, reducingEmitterFunction reducer.ReducingEmitterFunction) {
-	// TODO: Why do they want this?
-	kv := common.KeyValue{groupKey, ""}
-	reducingEmitterFunction(kv)
+func ReducingFunction(
+	groupKey string,
+	groupIteratorfunction reducer.GroupIteratorFunction,
+	reducingEmitterFunction reducer.ReducingEmitterFunction,
+) {
+	for {
+		kv, err := groupIteratorfunction()
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatalf("unexpected reducing error: %v\n", err)
+		}
+
+		reducingEmitterFunction(*kv)
+	}
 }
 
 // Checks input file agaist output file: each input number should show up
