@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"mapreduce/common"
+	mr_rpc "mapreduce/rpc"
 	"sync"
 )
 
@@ -43,7 +44,7 @@ func schedule(jobName string, mapFiles []string, numReducers int, jobPhase commo
 
 // WorkChannel is a channel by which a WorkSchedulingFunction pushes
 // work to Workers.
-type WorkChannel chan common.DoTaskArgs
+type WorkChannel chan mr_rpc.DoTaskArgs
 
 // NoMoreWorkChannel is a channel by which a WorkSchedulingFunction
 // tells a listener for newly registered Workers that there will be no
@@ -95,12 +96,12 @@ func pushMapWork(
 	mapFiles []string,
 	numReducers int) {
 	for mapTaskIdx := 0; mapTaskIdx < len(mapFiles); mapTaskIdx++ {
-		args := common.DoTaskArgs{
-			JobName:       jobName,
-			File:          mapFiles[mapTaskIdx],
-			Phase:         common.MapPhase,
-			TaskNumber:    mapTaskIdx,
-			NumOtherPhase: numReducers,
+		args := mr_rpc.DoTaskArgs{
+			JobName:              jobName,
+			JobPhase:             common.MapPhase,
+			MapInputFileName:     mapFiles[mapTaskIdx],
+			TaskIdx:              mapTaskIdx,
+			NumTasksInOtherPhase: numReducers,
 		}
 
 		workChannel <- args
@@ -122,11 +123,11 @@ func pushReduceWork(
 	numMappers int,
 	numReducers int) {
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
-		args := common.DoTaskArgs{
-			JobName:       jobName,
-			Phase:         common.ReducePhase,
-			TaskNumber:    reduceTaskIdx,
-			NumOtherPhase: numMappers,
+		args := mr_rpc.DoTaskArgs{
+			JobName:              jobName,
+			JobPhase:             common.ReducePhase,
+			TaskIdx:              reduceTaskIdx,
+			NumTasksInOtherPhase: numMappers,
 		}
 
 		workChannel <- args
@@ -147,7 +148,7 @@ func runWorker(
 	for doTaskArgs := range workChannel {
 		// For each piece of work we can claim, we will run it remotely on
 		// the worker.
-		ok := common.Call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
+		ok := mr_rpc.Call(workerRPCAddress, "Worker.DoTask", doTaskArgs, nil)
 
 		if !ok {
 			log.Fatal("Something went wrong with RPC call to worker.")

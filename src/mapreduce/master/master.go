@@ -9,6 +9,7 @@ import (
 	"mapreduce/common"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
+	mr_rpc "mapreduce/rpc"
 	"net"
 	"sync"
 )
@@ -36,11 +37,11 @@ type Master struct {
 
 // Register is an RPC method that is called by workers after they have started
 // up to report that they are ready to receive tasks.
-func (mr *Master) Register(args *common.RegisterArgs, _ *struct{}) error {
+func (mr *Master) Register(args *mr_rpc.RegisterArgs, _ *struct{}) error {
 	mr.Lock()
 	defer mr.Unlock()
-	common.Debug("Register: worker %s\n", args.Worker)
-	mr.workers = append(mr.workers, args.Worker)
+	common.Debug("Register: worker %s\n", args.WorkerRPCAdress)
+	mr.workers = append(mr.workers, args.WorkerRPCAdress)
 
 	// tell forwardRegistrations() that there's a new workers[] entry.
 	mr.newCond.Broadcast()
@@ -167,12 +168,12 @@ func (mr *Master) killWorkers() []int {
 	ntasks := make([]int, 0, len(mr.workers))
 	for _, w := range mr.workers {
 		common.Debug("Master: shutdown worker %s\n", w)
-		var reply common.ShutdownReply
-		ok := common.Call(w, "Worker.Shutdown", new(struct{}), &reply)
+		var reply mr_rpc.ShutdownReply
+		ok := mr_rpc.Call(w, "Worker.Shutdown", new(struct{}), &reply)
 		if ok == false {
 			fmt.Printf("Master: RPC %s shutdown error\n", w)
 		} else {
-			ntasks = append(ntasks, reply.Ntasks)
+			ntasks = append(ntasks, reply.NumTasksProcessed)
 		}
 	}
 	return ntasks

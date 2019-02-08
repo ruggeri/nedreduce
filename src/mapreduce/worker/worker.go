@@ -10,6 +10,7 @@ import (
 	"mapreduce/common"
 	"mapreduce/mapper"
 	"mapreduce/reducer"
+	mr_rpc "mapreduce/rpc"
 	"net"
 	"net/rpc"
 	"os"
@@ -40,9 +41,9 @@ type Worker struct {
 
 // DoTask is called by the master when a new task is being scheduled on this
 // worker.
-func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
+func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 	fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
-		wk.name, arg.Phase, arg.TaskNumber, arg.File, arg.NumOtherPhase)
+		wk.name, arg.JobPhase, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase)
 
 	wk.Lock()
 	wk.nTasks += 1
@@ -75,11 +76,11 @@ func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
 		time.Sleep(time.Second)
 	}
 
-	switch arg.Phase {
+	switch arg.JobPhase {
 	case common.MapPhase:
-		mapper.ExecuteMapping(arg.JobName, arg.TaskNumber, arg.File, arg.NumOtherPhase, wk.Map)
+		mapper.ExecuteMapping(arg.JobName, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase, wk.Map)
 	case common.ReducePhase:
-		reducer.ExecuteReducing(arg.JobName, arg.TaskNumber, common.OutputFileName(arg.JobName, arg.TaskNumber), arg.NumOtherPhase, wk.Reduce)
+		reducer.ExecuteReducing(arg.JobName, arg.TaskIdx, common.OutputFileName(arg.JobName, arg.TaskIdx), arg.NumTasksInOtherPhase, wk.Reduce)
 	}
 
 	wk.Lock()
@@ -92,26 +93,26 @@ func (wk *Worker) DoTask(arg *common.DoTaskArgs, _ *struct{}) error {
 		wk.parallelism.Mu.Unlock()
 	}
 
-	fmt.Printf("%s: %v task #%d done\n", wk.name, arg.Phase, arg.TaskNumber)
+	fmt.Printf("%s: %v task #%d done\n", wk.name, arg.JobPhase, arg.TaskIdx)
 	return nil
 }
 
 // Shutdown is called by the master when all work has been completed.
 // We should respond with the number of tasks we have processed.
-func (wk *Worker) Shutdown(_ *struct{}, res *common.ShutdownReply) error {
+func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.ShutdownReply) error {
 	common.Debug("Shutdown %s\n", wk.name)
 	wk.Lock()
 	defer wk.Unlock()
-	res.Ntasks = wk.nTasks
+	res.NumTasksProcessed = wk.nTasks
 	wk.nRPC = 1
 	return nil
 }
 
 // Tell the master we exist and ready to work
 func (wk *Worker) register(master string) {
-	args := new(common.RegisterArgs)
-	args.Worker = wk.name
-	ok := common.Call(master, "Master.Register", args, new(struct{}))
+	args := new(mr_rpc.RegisterArgs)
+	args.WorkerRPCAdress = wk.name
+	ok := mr_rpc.Call(master, "Master.Register", args, new(struct{}))
 	if ok == false {
 		fmt.Printf("Register: RPC %s register error\n", master)
 	}

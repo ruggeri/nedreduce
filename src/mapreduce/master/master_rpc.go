@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"mapreduce/common"
+	mr_rpc "mapreduce/rpc"
 	"net"
 	"net/rpc"
 	"os"
@@ -58,8 +59,8 @@ func (mr *Master) startRPCServer() {
 // This must be done through an RPC to avoid race conditions between the RPC
 // server thread and the current thread.
 func (mr *Master) stopRPCServer() {
-	var reply common.ShutdownReply
-	ok := common.Call(mr.Address, "Master.Shutdown", new(struct{}), &reply)
+	var reply mr_rpc.ShutdownReply
+	ok := mr_rpc.Call(mr.Address, "Master.Shutdown", new(struct{}), &reply)
 	if ok == false {
 		fmt.Printf("Cleanup: RPC %s error\n", mr.Address)
 	}
