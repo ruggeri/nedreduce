@@ -22,159 +22,191 @@ type Master struct {
 	DoneChannel chan bool
 
 	// protected by the mutex
-	newCond *sync.Cond // signals when Register() adds to workers[]
-	workers []string   // each worker's UNIX-domain socket name -- its RPC address
+	newWorkerConditionVariable *sync.Cond // signals when Register() adds to workers[]
+	workers                    []string   // each worker's UNIX-domain socket name -- its RPC address
 
 	// Per-task information
-	jobName string   // Name of currently executing job
-	Files   []string // Input files
-	nReduce int      // Number of reduce partitions
+	jobName              string   // Name of currently executing job
+	MapperInputFileNames []string // Input files
+	numReducers          int      // Number of reduce partitions
 
-	shutdown chan struct{}
-	l        net.Listener
-	Stats    []int
-}
-
-// Register is an RPC method that is called by workers after they have started
-// up to report that they are ready to receive tasks.
-func (mr *Master) Register(args *mr_rpc.RegisterArgs, _ *struct{}) error {
-	mr.Lock()
-	defer mr.Unlock()
-	common.Debug("Register: worker %s\n", args.WorkerRPCAdress)
-	mr.workers = append(mr.workers, args.WorkerRPCAdress)
-
-	// tell forwardRegistrations() that there's a new workers[] entry.
-	mr.newCond.Broadcast()
-
-	return nil
+	shutdown           chan struct{}
+	connectionListener net.Listener
+	Stats              []int
 }
 
 // newMaster initializes a new Map/Reduce Master
-func newMaster(master string) (mr *Master) {
-	mr = new(Master)
-	mr.Address = master
-	mr.shutdown = make(chan struct{})
-	mr.newCond = sync.NewCond(mr)
-	mr.DoneChannel = make(chan bool)
+func newMaster(
+	masterAddress string,
+	jobName string,
+	mapperInputFileNames []string,
+	numReducers int,
+) (master *Master) {
+	master = new(Master)
+	master.Address = masterAddress
+	master.shutdown = make(chan struct{})
+	master.newWorkerConditionVariable = sync.NewCond(master)
+	master.DoneChannel = make(chan bool)
+
+	master.jobName = jobName
+	master.MapperInputFileNames = mapperInputFileNames
+	master.numReducers = numReducers
 	return
 }
 
-// Sequential runs map and reduce tasks sequentially, waiting for each task to
-// complete before running the next.
-func Sequential(jobName string, files []string, nreduce int,
+// RunSequentialJob runs map and reduce tasks sequentially, waiting for
+// each task to complete before running the next.
+func RunSequentialJob(
+	jobName string,
+	mapperInputFileNames []string,
+	numReducers int,
 	mappingFunction mapper.MappingFunction,
 	reducingFunction reducer.ReducingFunction,
-) (mr *Master) {
-	mr = newMaster("master")
-	go mr.run(jobName, files, nreduce, func(phase common.JobPhase) {
-		switch phase {
-		case common.MapPhase:
-			for i, f := range mr.Files {
-				mapper.ExecuteMapping(mr.jobName, i, f, mr.nReduce, mappingFunction)
+) (master *Master) {
+	master = newMaster("master", jobName, mapperInputFileNames, numReducers)
+
+	// Master's coordination/execution of the MapReduce job will run in a
+	// background thread.
+	go master.runJob(
+		jobName,
+		mapperInputFileNames,
+		numReducers,
+		// This function executes each of the two phases.
+		func(jobPhase common.JobPhase) {
+			switch jobPhase {
+			case common.MapPhase:
+				// Run each map task one-by-one.
+				for mapTaskIdx, mapperInputFileName := range master.MapperInputFileNames {
+					mapper.ExecuteMapping(jobName, mapTaskIdx, mapperInputFileName, numReducers, mappingFunction)
+				}
+			case common.ReducePhase:
+				// Run each reduce task one-by-one.
+				numMappers := len(mapperInputFileNames)
+				for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
+					reducer.ExecuteReducing(jobName, reduceTaskIdx, numMappers, reducingFunction)
+				}
 			}
-		case common.ReducePhase:
-			for i := 0; i < mr.nReduce; i++ {
-				reducer.ExecuteReducing(mr.jobName, i, common.OutputFileName(mr.jobName, i), len(mr.Files), reducingFunction)
-			}
-		}
-	}, func() {
-		mr.Stats = []int{len(files) + nreduce}
-	})
+		},
+		// This function collects stats when both phases are complete.
+		func() {
+			master.Stats = []int{len(mapperInputFileNames) + numReducers}
+		},
+	)
+
 	return
 }
 
-// helper function that sends information about all existing
-// and newly registered workers to channel ch. schedule()
-// reads ch to learn about workers.
-func (mr *Master) forwardRegistrations(ch chan string) {
-	i := 0
-	for {
-		mr.Lock()
-		if len(mr.workers) > i {
-			// there's a worker that we haven't told schedule() about.
-			w := mr.workers[i]
-			go func() { ch <- w }() // send without holding the lock.
-			i = i + 1
-		} else {
-			// wait for Register() to add an entry to workers[]
-			// in response to an RPC from a new worker.
-			mr.newCond.Wait()
-		}
-		mr.Unlock()
-	}
-}
+// RunDistributedJob schedules map and reduce tasks on workers that
+// register with the master over RPC.
+func RunDistributedJob(
+	jobName string,
+	mapperInputFileNames []string,
+	numReducers int,
+	masterAddress string,
+) (master *Master) {
+	// First construct the Master and start running an RPC server which
+	// can listen for connections.
+	master = newMaster("master", jobName, mapperInputFileNames, numReducers)
+	master.startRPCServer()
 
-// Distributed schedules map and reduce tasks on workers that register with the
-// master over RPC.
-func Distributed(jobName string, files []string, nreduce int, master string) (mr *Master) {
-	mr = newMaster(master)
-	mr.startRPCServer()
-	go mr.run(jobName, files, nreduce,
-		func(phase common.JobPhase) {
-			ch := make(chan string)
-			go mr.forwardRegistrations(ch)
-			schedule(mr.jobName, mr.Files, mr.nReduce, phase, ch)
+	go master.runJob(
+		jobName,
+		mapperInputFileNames,
+		numReducers,
+		// This function is used to execute each job phase.
+		func(jobPhase common.JobPhase) {
+			// Start running someone to listen for workers to register with
+			// the master. As workers register, we will add them to our pool
+			// of available workers.
+			workerRegistrationChannel := make(WorkerRegistrationChannel)
+			go master.forwardWorkerRegistrations(workerRegistrationChannel)
+
+			runDistributedPhase(
+				jobName,
+				mapperInputFileNames,
+				numReducers,
+				jobPhase,
+				workerRegistrationChannel,
+			)
 		},
+		// This function is run after all work is complete. The workers are
+		// told to shut down, and we collect up all their stats. Last, we
+		// stop running the RPC server.
 		func() {
-			mr.Stats = mr.killWorkers()
-			mr.stopRPCServer()
+			master.Stats = master.killWorkers()
+			master.stopRPCServer()
 		})
 	return
 }
 
-// run executes a mapreduce job on the given number of mappers and reducers.
-//
-// First, it divides up the input file among the given number of mappers, and
-// schedules each task on workers as they become available. Each map task bins
-// its output in a number of bins equal to the given number of reduce tasks.
-// Once all the mappers have finished, workers are assigned reduce tasks.
-//
-// When all tasks have been completed, the reducer outputs are merged,
-// statistics are collected, and the master is shut down.
-//
-// Note that this implementation assumes a shared file system.
-func (mr *Master) run(jobName string, files []string, nreduce int,
-	schedule func(phase common.JobPhase),
-	finish func(),
-) {
-	mr.jobName = jobName
-	mr.Files = files
-	mr.nReduce = nreduce
-
-	fmt.Printf("%s: Starting Map/Reduce task %s\n", mr.Address, mr.jobName)
-
-	schedule(common.MapPhase)
-	schedule(common.ReducePhase)
-	finish()
-	mr.merge()
-
-	fmt.Printf("%s: Map/Reduce task completed\n", mr.Address)
-
-	mr.DoneChannel <- true
+// Wait blocks until the currently scheduled work has completed. This
+// happens when all tasks have been scheduled and completed, the final
+// output have been computed, and all workers have been shut down.
+func (master *Master) Wait() {
+	<-master.DoneChannel
 }
 
-// Wait blocks until the currently scheduled work has completed.
-// This happens when all tasks have scheduled and completed, the final output
-// have been computed, and all workers have been shut down.
-func (mr *Master) Wait() {
-	<-mr.DoneChannel
+// runJob executes a mapreduce job on the given number of mappers and
+// reducers.
+func (master *Master) runJob(
+	jobName string,
+	mapperInputFileNames []string,
+	numReducers int,
+	runPhase func(phase common.JobPhase),
+	collectStatsAndCleanup func(),
+) {
+	fmt.Printf("%s: Starting Map/Reduce task %s\n", master.Address, master.jobName)
+
+	runPhase(common.MapPhase)
+	runPhase(common.ReducePhase)
+	collectStatsAndCleanup()
+	common.MergeReducerOutputFiles(jobName, numReducers)
+
+	fmt.Printf("%s: Map/Reduce task completed\n", master.Address)
+
+	master.DoneChannel <- true
+}
+
+// forwardWorkerRegistrations sends all registered workers to the phase,
+// and then forwards more workers as they connect.
+func (master *Master) forwardWorkerRegistrations(
+	workerRegistrationChannel WorkerRegistrationChannel,
+) {
+	i := 0
+	for {
+		// We lock to synchronize access to the slice of workers.
+		master.Lock()
+		if len(master.workers) > i {
+			// there's a worker that we haven't told schedule() about.
+			w := master.workers[i]
+			go func() { workerRegistrationChannel <- w }() // send without holding the lock.
+			i = i + 1
+		} else {
+			// wait for RegisterWorker to add an entry to workers[] in
+			// response to a registration RPC from a new worker.
+			master.newWorkerConditionVariable.Wait()
+		}
+		master.Unlock()
+	}
 }
 
 // killWorkers cleans up all workers by sending each one a Shutdown RPC.
-// It also collects and returns the number of tasks each worker has performed.
-func (mr *Master) killWorkers() []int {
-	mr.Lock()
-	defer mr.Unlock()
-	ntasks := make([]int, 0, len(mr.workers))
-	for _, w := range mr.workers {
+// It also collects and returns the number of tasks each worker has
+// performed.
+func (master *Master) killWorkers() []int {
+	master.Lock()
+	defer master.Unlock()
+
+	numTasksProcessed := make([]int, 0, len(master.workers))
+	for _, w := range master.workers {
 		common.Debug("Master: shutdown worker %s\n", w)
 		var reply mr_rpc.ShutdownReply
 		ok := mr_rpc.Call(w, "Worker.Shutdown", new(struct{}), &reply)
 		if ok == false {
 			fmt.Printf("Master: RPC %s shutdown error\n", w)
 		} else {
-			ntasks = append(ntasks, reply.NumTasksProcessed)
+			numTasksProcessed = append(numTasksProcessed, reply.NumTasksProcessed)
 		}
 	}
-	return ntasks
+	return numTasksProcessed
 }

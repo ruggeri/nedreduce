@@ -8,50 +8,53 @@ import (
 	"sync"
 )
 
-//
-// schedule() starts and waits for all tasks in the given phase (mapPhase
-// or reducePhase). the mapFiles argument holds the names of the files that
-// are the inputs to the map phase, one per map task. nReduce is the
-// number of reduce tasks. the registerChan argument yields a stream
-// of registered workers; each item is the worker's RPC address,
-// suitable for passing to call(). registerChan will yield all
-// existing registered workers (if any) and new ones as they register.
-//
-func schedule(jobName string, mapFiles []string, numReducers int, jobPhase common.JobPhase, registerChan chan string) {
-	numMappers := len(mapFiles)
+// A WorkerRegistrationChannel is a channel on which the master can push
+// the addresses of workers as they register in real time.
+type WorkerRegistrationChannel chan string
+
+// runDistributedPhase is a generic function which works for either the
+// MapPhase or the ReducePhase. It calls _runDistributedPhase, simply
+// varying the function which pushes map work.
+func runDistributedPhase(
+	jobName string,
+	mapperInputFiles []string,
+	numReducers int,
+	jobPhase common.JobPhase,
+	registerChan chan string) {
+	numMappers := len(mapperInputFiles)
 
 	switch jobPhase {
 	case common.MapPhase:
 		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numMappers, jobPhase, numReducers)
 
-		runPhase(
+		_runDistributedPhase(
 			registerChan,
 			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
-				pushMapWork(wg, workChannel, noMoreWorkChannel, jobName, mapFiles, numReducers)
+				pushMapWork(wg, workChannel, noMoreWorkChannel, jobName, mapperInputFiles, numReducers)
 			},
 		)
 	case common.ReducePhase:
 		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numReducers, jobPhase, numMappers)
 
-		runPhase(
+		_runDistributedPhase(
 			registerChan,
 			func(wg *sync.WaitGroup, workChannel WorkChannel, noMoreWorkChannel NoMoreWorkChannel) {
-				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobName, len(mapFiles), numReducers)
+				pushReduceWork(wg, workChannel, noMoreWorkChannel, jobName, numMappers, numReducers)
 			},
 		)
 	}
 }
 
-// WorkChannel is a channel by which a WorkSchedulingFunction pushes
+// A WorkChannel is a channel by which a WorkSchedulingFunction pushes
 // work to Workers.
 type WorkChannel chan mr_rpc.DoTaskArgs
 
-// NoMoreWorkChannel is a channel by which a WorkSchedulingFunction
+// A NoMoreWorkChannel is a channel by which a WorkSchedulingFunction
 // tells a listener for newly registered Workers that there will be no
 // more work.
 type NoMoreWorkChannel chan struct{}
 
-// WorkSchedulingFunction is a function that will push down work to
+// A WorkSchedulingFunction is a function that will push down work to
 // Workers over the WorkChannel. The WorkSchedulingFunction must call
 // wg.Done() to let the caller know when it is complete.
 type WorkSchedulingFunction func(
@@ -60,7 +63,14 @@ type WorkSchedulingFunction func(
 	noMoreWorkChannel NoMoreWorkChannel,
 )
 
-func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFunction) {
+// _runDistributedPhase is where the magic happens. It is here where we
+// fork a goroutine to learn about available workers. Each time we learn
+// about a new worker, we use it by forking another goroutine to call
+// runWorker.
+func _runDistributedPhase(
+	workerRegistrationChannel WorkerRegistrationChannel,
+	workSchedulingFunction WorkSchedulingFunction,
+) {
 	wg := &sync.WaitGroup{}
 	workChannel := make(WorkChannel)
 	allWorkScheduled := make(NoMoreWorkChannel)
@@ -69,17 +79,19 @@ func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFun
 	wg.Add(1)
 	go workSchedulingFunction(wg, workChannel, allWorkScheduled)
 
-	// Run map tasks on available workers.
+	// Listens for available workers and starts using them until no more
+	// work remains.
 	go func() {
 		for {
 			select {
-			case workerRPCAddress := <-registerChan:
+			case <-allWorkScheduled:
+				// Stop listening for new workers if there won't be any more
+				// work.
+				break
+			case workerRPCAddress := <-workerRegistrationChannel:
 				// As we learn about new workers, start running work on them.
 				wg.Add(1)
 				go runWorker(wg, workerRPCAddress, workChannel)
-			case <-allWorkScheduled:
-				// Stop listening for workers if there won't be any more work.
-				break
 			}
 		}
 	}()
@@ -88,6 +100,8 @@ func runPhase(registerChan chan string, workSchedulingFunction WorkSchedulingFun
 	wg.Wait()
 }
 
+// pushMapWork just keeps pushing down mapper work on workChannel until
+// there are no more map tasks.
 func pushMapWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
@@ -109,12 +123,15 @@ func pushMapWork(
 
 	// Close channel so that current workers stop listening for more work.
 	close(workChannel)
-	// Send so that listener for new workers can stop listening.
+	// Send so that listener for new workers can stop listening (since
+	// there's no more work).
 	noMoreWorkChannel <- struct{}{}
-	// Let caller know we're done.
+	// Let caller know we're done scheduling work.
 	wg.Done()
 }
 
+// pushReduceWork just keeps pushing down reducer work on workChannel
+// until there are no more reduce tasks.
 func pushReduceWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
@@ -135,12 +152,15 @@ func pushReduceWork(
 
 	// Close channel so that current workers stop listening for more work.
 	close(workChannel)
-	// Send so that listener for new workers can stop listening.
+	// Send so that listener for new workers can stop listening (since
+	// there's no more work).
 	noMoreWorkChannel <- struct{}{}
-	// Let caller know we're done.
+	// Let caller know we're done scheduling work.
 	wg.Done()
 }
 
+// runWorker keeps pulling down work from workChannel and instructs the
+// remote worker to execute the task.
 func runWorker(
 	wg *sync.WaitGroup,
 	workerRPCAddress string,
@@ -155,5 +175,6 @@ func runWorker(
 		}
 	}
 
+	// Let the caller know this worker has completed all its alloted work.
 	wg.Done()
 }

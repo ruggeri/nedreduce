@@ -28,7 +28,6 @@ type ReducingFunction func(
 func ExecuteReducing(
 	jobName string, // the name of the whole MapReduce job
 	reduceTaskIdx int, // which reduce task this is
-	outputFileName string, // write the output here
 	numMappers int, // the number of map tasks that were run ("M" in the paper)
 	reducingFunction ReducingFunction,
 ) {
@@ -40,6 +39,7 @@ func ExecuteReducing(
 	defer inputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
+	outputFileName := common.ReducerOutputFileName(jobName, reduceTaskIdx)
 	outputFile, err := os.OpenFile(outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatalf("error opening reducer output file: %v\n", err)

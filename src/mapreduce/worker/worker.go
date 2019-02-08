@@ -78,9 +78,20 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 
 	switch arg.JobPhase {
 	case common.MapPhase:
-		mapper.ExecuteMapping(arg.JobName, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase, wk.Map)
+		mapper.ExecuteMapping(
+			arg.JobName,
+			arg.TaskIdx,
+			arg.MapInputFileName,
+			arg.NumTasksInOtherPhase,
+			wk.Map,
+		)
 	case common.ReducePhase:
-		reducer.ExecuteReducing(arg.JobName, arg.TaskIdx, common.OutputFileName(arg.JobName, arg.TaskIdx), arg.NumTasksInOtherPhase, wk.Reduce)
+		reducer.ExecuteReducing(
+			arg.JobName,
+			arg.TaskIdx,
+			arg.NumTasksInOtherPhase,
+			wk.Reduce,
+		)
 	}
 
 	wk.Lock()
