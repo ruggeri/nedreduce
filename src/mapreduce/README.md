@@ -1,72 +1,112 @@
+## Attribution
+
 This code comes from MIT 6.824. I have heavily adapted most of this
 mapreduce code (refactoring it to a structure I like better), but all
 the original work was done by someone else (rtm).
 
-## TODO
+## Code Organization and Overview
 
-* Fix DoTaskArgs to be less gross.
-  * Also allow specification of the Mapping and Reducing functions.
-  * The Workers presumably shouldn't have to know that in advance?
-* Review master package more thoroughly, and Worker for the first time.
+The general architecture is as follows.
 
-## Old Notes (from before refactor)
+### mapreduce/commands and mapreduce/types
 
-**common_map.go**
+The `mapreduce/commands` package contains methods like
+`RunSequentialJob`, `RunDistributedJob`, `RunWorker` which `mapreduce`
+users call to use the library.
 
-Has doMap function which performs mapping.
+The `mapreduce/types` package contains some types that will be useful
+for the user. The first is `JobConfiguration`: this is how the user
+specifies the input files, how many reducers to use, the mapping and
+reducing functions to run.
 
-**common_reduce.go**
+The `mapreduce/types` package also contains typedefs for
+`MappingFunction` and `ReducingFunction`. When the user runs a job, they
+must provide mapping and reducing functions with the appropriate
+function type signatures. `MappingFunction`s and `ReducingFunction`s
+both emit `KeyValue`s, a struct also defined in `mapreduce/types`.
 
-Has doReduce function which performs reducing.
+All the following subpackages are internal and the user doesn't need
+them.
 
-**master_splitmerge.go**
+### mapreduce/common
 
-Has a merge function that "concatenates" all parts by building a
-complete map of key->value pairs, then writes these out in sorted order.
+The `mapreduce/common` package contains utility functions used elsewhere
+in the codebase. It would probably be better named "util."
 
-**master.go**
+### mapreduce/mapper
 
-Master is the object that runs the master. It has a *Register* method
-for workers to say they are registering (this just adds worker to a
-list). Also has a method to *killWorkers* (collecting their statuses).
+The `mapreduce/mapper` package contains all the code required for
+performing mapping. Its most important method is `ExecuteMapping`. To
+partition the output `KeyValue`s, a helper `OutputManager` was written.
+The `OutputManager` takes care of opening output files, setting up JSON
+encoders, and calculating which reducer should be sent each output
+`KeyValue`.
 
-*Sequential* just runs every mapper sequentially, then every reducer.
-It's 'schedule' function is trivial.
+I wrote a `mapper.Configuration` struct to contain the parameters for a
+map task. It tracks `JobConfiguration` fairly closely, but also contains
+a `MapTaskIdx`.
 
-Let's look at *Distributed*. Distributed basically calls the *schedule*
-method in `schedule.go`, but it also listens for workers to register,
-and will forward the registration one-by-one to `schedule` via a
-channel.
+### mapreduce/reducer
 
-**schedule.go**
+The `mapreduce/reducer` package contains all the code required for
+performing reducing. It is similarish to the `mapreducer/mapper`
+package. There is a `reducer.Configuration` object, an `ExecuteReducing`
+function. There is a `reducer.InputManager` that mirrors the
+`mapper.OutputManager` class.
 
-So let's check out `schedule.go`. It is empty and waiting for you to
-write it! Basically, it will feed you workers that you can do RPC to.
-The point of the RPC calls is to start Map and Reduce.
+There are some differences from the mapper code though.
 
-Presumably, at the end of all Reducers finishing work we call *Wait*?.
+First, there is code to sort the input files (`sortReducerInputFile`). I
+do not love this code because it is one of the few places I load an
+entire file's worth of data into memory. But it would be
+super-super-overkill to write an external merge sort for this toy
+mapreduce implementation.
 
-**master_rpc.go**
+Reducers need to iterate groups of `KeyValue`s which all have the same
+key (for instance, all the reducer inputs for the word "the"). A group's
+`KeyValue`s may live across the different input files (the word "the"
+may be output by multiple reduce tasks). If all input files were
+concatenated before sorting, then forming groups would be easy: scan
+`KeyValue`s until you hit one with a new key (read "the" rows until you
+hit a row for the word "tiny").
 
-This has the RPC methods that you can call for the Master.
+I don't want to merge the reducer input files into one big file which is
+then sorted. I sort each reducer input file, and then I pull keys
+one-by-one in ascending order using my `MergedInputIterator`. The
+`MergedInputIterator` can do this by peeking only one row ahead in each
+reducer input file.
 
-`startRPCServer` starts a server and registers the master. It starts
-listening for people to connect. It will then register these folks with
-the RPC server. (this keeps happening until the server is shutdown.)
+Now that `MergedInputIterator` is giving a stream of `KeyValue` by
+ascending `Key`, I wrote a `GroupingIterator` which iterates over groups
+of `KeyValue`. I don't want to load the entire group into memory at
+once, though. I want to pass the user's `ReducingFunction` an iterator
+over each member of the group. So `GroupingIterator` returns a series of
+`GroupIterator`s. The idea is that the user's reducer can typically
+iterate the group without ever storing all the `KeyValue`s of the group
+in memory at once.
 
-`Shutdown` just stops connecting people and stops listening for people.
+### mapreduce/rpc
 
-Somewhat weirdly, `stopRPCServer` tells the master to shutdown via RPC.
-That prolly helps ensure that no one else is running an RPC call while
-you shutdown.
+The `mapreduce/rpc` package contains argument and reply types to be used
+when making or responding to RPC requests. There are three kinds of RPC
+request:
 
-Question: who shuts down the RPC server you started? I think no one
-explicitly does; it is part of the finalizer?
+* `Worker`s `Register` with the `Master`. This lets the `Master` know
+  they can assign work to the `Worker`.
+* A `Master` can tell a `Worker` to `DoTask`. A task is either a mapping
+  task or a reducing task. The same `Worker` may be told to do multiple
+  tasks.
+* Both `Master`s and `Worker`s can be told to `Shutdown`.
 
-`startRPCServer` starts a goroutine for each worker connecting, and then
-just gives the worker connection over to the RPC server for
-communication.
+Code in the `mapreduce/master` and `mapreduce/worker` packages use the
+`Call` function defined in `mapreduce/rpc` to invoke these RPC calls.
+This function is nothing more than a wrapper around Golang's `rpc.Dial`
+and `rcp.Call` functions.
 
-**common_rpc.go**
+### mapreduce/master
 
-Just names some argument types.
+**TODO**
+
+### mapreduce/worker
+
+**TODO**

@@ -73,6 +73,9 @@ func ExecuteReducing(configuration *Configuration) {
 				}
 			},
 		)
+
+		// TODO: I should probably make sure the group has been exhausted
+		// (else GroupingIterator will not have fulling advanced).
 	}
 
 	common.Debug(

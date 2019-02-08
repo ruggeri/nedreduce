@@ -11,7 +11,11 @@ import (
 )
 
 // MergeReducerOutputFiles combines the results of the many reduce jobs
-// into a single output file.
+// into a single output file. Presently a `Master` runs this function at
+// the end of a job, but it is typical for real-world MR jobs not to do
+// that. I feel like this function is unnecessary: if you wanted to
+// concatenate all partitions you could just write another MR job with a
+// single reducer...
 //
 // TODO: use merge sort. This is bogus.
 func MergeReducerOutputFiles(jobName string, numReducers int) {

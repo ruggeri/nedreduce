@@ -25,6 +25,9 @@ func NewGroupIterator(
 
 // Next yields the next KeyValue in the group, if any.
 func (groupIterator *GroupIterator) Next() (*KeyValue, error) {
+	// TODO: It's dangerous to call Next after receiving io.EOF (since
+	// this will affect the groupingIterator). I should prolly make that a
+	// no-op...
 	keyValue, err :=
 		groupIterator.groupingIterator.advanceUnderlyingIterator()
 

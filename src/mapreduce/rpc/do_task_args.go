@@ -17,4 +17,9 @@ type DoTaskArgs struct {
 	//
 	// TODO: I personally consider this gross and lazy.
 	NumTasksInOtherPhase int
+
+	// TODO: Right now Workers have Mapping and ReducingFunctions
+	// "hard-coded" when they are instantiated. I think a more realistic
+	// implementation would have the `Master` tell a Worker what functions
+	// it will using for this job.
 }
