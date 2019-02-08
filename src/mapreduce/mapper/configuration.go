@@ -1,6 +1,8 @@
 package mapper
 
-import . "mapreduce/types"
+import (
+	. "mapreduce/types"
+)
 
 // A Configuration describes the settings for this map task.
 type Configuration struct {
@@ -9,6 +11,21 @@ type Configuration struct {
 	MapperInputFileName string
 	NumReducers         int
 	MappingFunction     MappingFunction
+}
+
+// ConfigurationFromJobConfiguration makes a mapper.Configuration object
+// from a JobConfiguration.
+func ConfigurationFromJobConfiguration(
+	jobConfiguration *JobConfiguration,
+	mapTaskIdx int,
+) Configuration {
+	return NewConfiguration(
+		jobConfiguration.JobName,
+		mapTaskIdx,
+		jobConfiguration.MapperInputFileNames[mapTaskIdx],
+		jobConfiguration.NumReducers,
+		jobConfiguration.MappingFunction,
+	)
 }
 
 // NewConfiguration makes a mapper.Configuration object.

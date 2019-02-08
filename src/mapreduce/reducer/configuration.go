@@ -1,6 +1,8 @@
 package reducer
 
-import . "mapreduce/types"
+import (
+	. "mapreduce/types"
+)
 
 // A Configuration describes the settings for this reduce task.
 type Configuration struct {
@@ -10,16 +12,30 @@ type Configuration struct {
 	ReducingFunction ReducingFunction
 }
 
+// ConfigurationFromJobConfiguration makes a reducer.Configuration
+// object from a JobConfiguration.
+func ConfigurationFromJobConfiguration(
+	jobConfiguration *JobConfiguration,
+	reduceTaskIdx int,
+) Configuration {
+	return NewConfiguration(
+		jobConfiguration.JobName,
+		jobConfiguration.NumMappers(),
+		reduceTaskIdx,
+		jobConfiguration.ReducingFunction,
+	)
+}
+
 // NewConfiguration makes a reducer.Configuration object.
 func NewConfiguration(
 	jobName string,
-	NumMappers int,
+	numMappers int,
 	reduceTaskIdx int,
 	reducingFunction ReducingFunction,
 ) Configuration {
 	return Configuration{
 		JobName:          jobName,
-		NumMappers:       NumMappers,
+		NumMappers:       numMappers,
 		ReduceTaskIdx:    reduceTaskIdx,
 		ReducingFunction: reducingFunction,
 	}

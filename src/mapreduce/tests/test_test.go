@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"mapreduce/common"
-	"mapreduce/job"
 	"mapreduce/master"
 	. "mapreduce/types"
 	"mapreduce/worker"
@@ -152,7 +151,7 @@ func setup() *master.Master {
 	files := makeInputs(nMap)
 	masterPort := port("master")
 
-	configuration := job.NewConfiguration(
+	configuration := NewJobConfiguration(
 		"test",
 		files,
 		nReduce,
@@ -160,12 +159,12 @@ func setup() *master.Master {
 		WordCountingReducingFunction,
 	)
 
-	master := master.RunDistributedJob(configuration, masterPort)
+	master := master.RunDistributedJob(&configuration, masterPort)
 	return master
 }
 
 func cleanup(master *master.Master) {
-	master.JobConfiguration.CleanupFiles()
+	common.CleanupFiles(master.JobConfiguration)
 
 	for _, f := range master.JobConfiguration.MapperInputFileNames {
 		common.RemoveFile(f)
@@ -173,7 +172,7 @@ func cleanup(master *master.Master) {
 }
 
 func TestSequentialSingle(t *testing.T) {
-	configuration := job.NewConfiguration(
+	configuration := NewJobConfiguration(
 		"test",
 		makeInputs(1),
 		1,
@@ -181,7 +180,7 @@ func TestSequentialSingle(t *testing.T) {
 		WordCountingReducingFunction,
 	)
 
-	master := master.RunSequentialJob(configuration)
+	master := master.RunSequentialJob(&configuration)
 	master.Wait()
 	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
@@ -189,7 +188,7 @@ func TestSequentialSingle(t *testing.T) {
 }
 
 func TestSequentialMany(t *testing.T) {
-	configuration := job.NewConfiguration(
+	configuration := NewJobConfiguration(
 		"test",
 		makeInputs(5),
 		3,
@@ -197,7 +196,7 @@ func TestSequentialMany(t *testing.T) {
 		WordCountingReducingFunction,
 	)
 
-	master := master.RunSequentialJob(configuration)
+	master := master.RunSequentialJob(&configuration)
 	master.Wait()
 	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)

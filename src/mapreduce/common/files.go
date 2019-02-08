@@ -2,6 +2,7 @@ package common
 
 import (
 	"log"
+	. "mapreduce/types"
 	"os"
 	"strconv"
 )
@@ -33,4 +34,31 @@ func RemoveFile(n string) {
 	if err != nil {
 		log.Fatal("CleanupFiles ", err)
 	}
+}
+
+// CleanupFiles removes all intermediate files produced by running
+// mapreduce.
+func CleanupFiles(configuration *JobConfiguration) {
+	jobName := configuration.JobName
+	mapperInputFileNames := configuration.MapperInputFileNames
+	numReducers := configuration.NumReducers
+
+	// Clean up mapper output files.
+	for mapTaskIdx := range mapperInputFileNames {
+		for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
+			fileName := IntermediateFileName(
+				jobName, mapTaskIdx, reduceTaskIdx,
+			)
+			RemoveFile(fileName)
+		}
+	}
+
+	// Clean up reducer output files.
+	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
+		fileName := ReducerOutputFileName(jobName, reduceTaskIdx)
+		RemoveFile(fileName)
+	}
+
+	// Clean up final output file.
+	RemoveFile("mrtmp." + jobName)
 }

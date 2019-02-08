@@ -10,7 +10,7 @@ import (
 )
 
 // ExecuteReducing runs a reduce task.
-func ExecuteReducing(configuration Configuration) {
+func ExecuteReducing(configuration *Configuration) {
 	common.Debug(
 		"reduceTaskIdx %v: Beginning reduce task with config: %v.\n",
 		configuration.ReduceTaskIdx,

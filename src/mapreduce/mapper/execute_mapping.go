@@ -10,7 +10,7 @@ import (
 )
 
 // ExecuteMapping runs a map task.
-func ExecuteMapping(configuration Configuration) {
+func ExecuteMapping(configuration *Configuration) {
 	common.Debug(
 		"mapTaskIdx %v: Beginning map task with config: %v.\n",
 		configuration.MapTaskIdx,

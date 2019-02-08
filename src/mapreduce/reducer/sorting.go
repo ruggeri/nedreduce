@@ -10,7 +10,7 @@ import (
 	"sort"
 )
 
-func sortReducerInputFiles(configuration Configuration) {
+func sortReducerInputFiles(configuration *Configuration) {
 	// Open the reducer's input files.
 	reducerInputManager := NewInputManager(configuration)
 	defer reducerInputManager.Close()
@@ -27,7 +27,7 @@ func sortReducerInputFiles(configuration Configuration) {
 }
 
 func sortReducerInputFile(
-	configuration Configuration,
+	configuration *Configuration,
 	mapTaskIdx int,
 	inputReadingFile os.File,
 	inputDecoder *json.Decoder,

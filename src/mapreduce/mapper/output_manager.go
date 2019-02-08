@@ -16,7 +16,7 @@ type OutputManager struct {
 }
 
 // NewOutputManager makes a new OutputManager.
-func NewOutputManager(configuration Configuration) OutputManager {
+func NewOutputManager(configuration *Configuration) OutputManager {
 	jobName := configuration.JobName
 	mapTaskIdx := configuration.MapTaskIdx
 	numReducers := configuration.NumReducers

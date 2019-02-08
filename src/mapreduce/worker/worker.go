@@ -87,7 +87,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 			wk.Map,
 		)
 
-		mapper.ExecuteMapping(mapperConfiguration)
+		mapper.ExecuteMapping(&mapperConfiguration)
 	case common.ReducePhase:
 		reducerConfiguration := reducer.NewConfiguration(
 			arg.JobName,
@@ -96,7 +96,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 			wk.Reduce,
 		)
 
-		reducer.ExecuteReducing(reducerConfiguration)
+		reducer.ExecuteReducing(&reducerConfiguration)
 	}
 
 	wk.Lock()
