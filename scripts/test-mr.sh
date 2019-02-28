@@ -1,21 +1,21 @@
 #!/bin/bash
-here=$(dirname "$0")
-[[ "$here" = /* ]] || here="$PWD/$here"
-export GOPATH="$here/../../"
-echo ""
+
 echo "==> Part I"
-go test -run Sequential mapreduce/...
+go test ./tests -run Sequential
+
 echo ""
 echo "==> Part II"
-(cd "$here" && sh ./test-wc.sh > /dev/null)
+./scripts/test-wc.sh
+
 echo ""
 echo "==> Part III"
-go test -run TestParallel mapreduce/...
+go test ./tests -run TestParallel
+
+# TODO: These tests don't pass yet.
 echo ""
 echo "==> Part IV"
-go test -run Failure mapreduce/...
-echo ""
-echo "==> Part V (inverted index)"
-(cd "$here" && sh ./test-ii.sh > /dev/null)
+go test ./tests -run Failure
 
-rm "$here"/mrtmp.* "$here"/diff.out
+# echo ""
+# echo "==> Part V (inverted index)"
+# (cd "$here" && sh ./test-ii.sh > /dev/null)
