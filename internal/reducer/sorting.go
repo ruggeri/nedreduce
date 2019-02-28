@@ -11,6 +11,9 @@ import (
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
+// Helper function to iterate the input files to the reducer, sorting
+// each one by key. This is needed because mappers don't emit rows in
+// any particular order.
 func sortReducerInputFiles(configuration *Configuration) {
 	// Open the reducer's input files.
 	reducerInputManager := NewInputManager(configuration)
