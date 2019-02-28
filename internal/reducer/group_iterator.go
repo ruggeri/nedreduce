@@ -3,7 +3,8 @@ package reducer
 import (
 	"io"
 	"log"
-	. "mapreduce/types"
+
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // A GroupIterator is an iterator that yields successive KeyValues all

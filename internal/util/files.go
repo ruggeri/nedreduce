@@ -2,9 +2,10 @@ package util
 
 import (
 	"log"
-	. "mapreduce/types"
 	"os"
 	"strconv"
+
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // IntermediateFileName constructs the name of the intermediate file

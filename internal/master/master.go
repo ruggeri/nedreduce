@@ -6,13 +6,14 @@ package master
 
 import (
 	"fmt"
-	"mapreduce/mapper"
-	"mapreduce/reducer"
-	mr_rpc "mapreduce/rpc"
-	. "mapreduce/types"
-	"mapreduce/util"
 	"net"
 	"sync"
+
+	"github.com/ruggeri/nedreduce/internal/mapper"
+	"github.com/ruggeri/nedreduce/internal/reducer"
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/util"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // Master holds all the state that the master needs to keep track of.

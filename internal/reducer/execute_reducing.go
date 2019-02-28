@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	. "mapreduce/types"
-	"mapreduce/util"
 	"os"
+
+	"github.com/ruggeri/nedreduce/internal/util"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // ExecuteReducing runs a reduce task.

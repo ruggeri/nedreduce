@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	. "mapreduce/types"
 	"os"
 	"sort"
+
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // MergeReducerOutputFiles combines the results of the many reduce jobs

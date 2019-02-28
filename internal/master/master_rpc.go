@@ -3,11 +3,12 @@ package master
 import (
 	"fmt"
 	"log"
-	"mapreduce/util"
-	mr_rpc "mapreduce/rpc"
 	"net"
 	"net/rpc"
 	"os"
+
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/util"
 )
 
 // RegisterWorker is an RPC method that is called by workers after they

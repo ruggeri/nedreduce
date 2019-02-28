@@ -3,8 +3,9 @@ package reducer
 import (
 	"encoding/json"
 	"log"
-	"mapreduce/util"
 	"os"
+
+	"github.com/ruggeri/nedreduce/internal/util"
 )
 
 // A InputManager manages the mapper output files that constitute the

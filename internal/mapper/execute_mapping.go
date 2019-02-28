@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"io"
 	"log"
-	. "mapreduce/types"
-	"mapreduce/util"
 	"os"
+
+	"github.com/ruggeri/nedreduce/internal/util"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // ExecuteMapping runs a map task.

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"hash/fnv"
 	"log"
-	"mapreduce/util"
-	. "mapreduce/types"
 	"os"
+
+	"github.com/ruggeri/nedreduce/internal/util"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // A OutputManager manages the many output files of a single map task.

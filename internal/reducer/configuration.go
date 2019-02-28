@@ -1,7 +1,7 @@
 package reducer
 
 import (
-	. "mapreduce/types"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // A Configuration describes the settings for this reduce task.

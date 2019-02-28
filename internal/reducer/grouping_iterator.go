@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	. "mapreduce/types"
+
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // A GroupingIterator is an iterator that yields GroupIterators.

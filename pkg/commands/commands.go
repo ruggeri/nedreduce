@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"mapreduce/master"
-	. "mapreduce/types"
-	"mapreduce/worker"
+	"github.com/ruggeri/nedreduce/internal/master"
+	"github.com/ruggeri/nedreduce/internal/worker"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // RunSequentialJob runs map and reduce tasks sequentially, waiting for

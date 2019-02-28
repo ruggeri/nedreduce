@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"io"
 	"log"
-	mr_commands "mapreduce/commands"
-	mr_types "mapreduce/types"
 	"os"
 	"strconv"
 	"strings"
 	"unicode"
+
+	mr_commands "github.com/ruggeri/nedreduce/pkg/commands"
+	mr_types "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 //

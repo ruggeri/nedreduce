@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"mapreduce/util"
-	. "mapreduce/types"
 	"os"
 	"sort"
+
+	"github.com/ruggeri/nedreduce/internal/util"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 func sortReducerInputFiles(configuration *Configuration) {

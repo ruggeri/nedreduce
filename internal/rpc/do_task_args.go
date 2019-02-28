@@ -1,6 +1,6 @@
 package rpc
 
-import . "mapreduce/types"
+import . "github.com/ruggeri/nedreduce/pkg/types"
 
 // DoTaskArgs holds the arguments that are passed to a Worker when a job
 // is scheduled for it.

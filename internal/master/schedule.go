@@ -3,9 +3,10 @@ package master
 import (
 	"fmt"
 	"log"
-	mr_rpc "mapreduce/rpc"
-	. "mapreduce/types"
 	"sync"
+
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // A WorkerRegistrationChannel is a channel on which the master can push

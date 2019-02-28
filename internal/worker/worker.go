@@ -7,16 +7,17 @@ package worker
 import (
 	"fmt"
 	"log"
-	"mapreduce/mapper"
-	"mapreduce/reducer"
-	mr_rpc "mapreduce/rpc"
-	. "mapreduce/types"
-	"mapreduce/util"
 	"net"
 	"net/rpc"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/ruggeri/nedreduce/internal/mapper"
+	"github.com/ruggeri/nedreduce/internal/reducer"
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/util"
+	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // track whether workers executed in parallel.
