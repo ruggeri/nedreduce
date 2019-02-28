@@ -3,12 +3,13 @@ package mapreduce
 import (
 	"fmt"
 	"io"
-	"mapreduce/util"
-	"mapreduce/master"
-	. "mapreduce/types"
-	"mapreduce/worker"
 	"testing"
 	"time"
+
+	"github.com/ruggeri/nedreduce/internal/master"
+	"github.com/ruggeri/nedreduce/internal/types"
+	"github.com/ruggeri/nedreduce/internal/util"
+	"github.com/ruggeri/nedreduce/internal/worker"
 
 	"bufio"
 	"log"
@@ -31,7 +32,7 @@ const (
 func wordSplittingMappingFunction(
 	inputFileName string,
 	line string,
-	mappingEmitterFunction EmitterFunction,
+	mappingEmitterFunction types.EmitterFunction,
 ) {
 	// util.Debug("Map %v\n", line)
 	words := strings.Fields(line)
@@ -43,8 +44,8 @@ func wordSplittingMappingFunction(
 
 func wordCountingReducingFunction(
 	groupKey string,
-	groupIteratorfunction GroupIteratorFunction,
-	reducingEmitterFunction EmitterFunction,
+	groupIteratorfunction types.GroupIteratorFunction,
+	reducingEmitterFunction types.EmitterFunction,
 ) {
 	for {
 		kv, err := groupIteratorfunction()
@@ -151,7 +152,7 @@ func setup() *master.Master {
 	files := makeInputs(nMap)
 	masterPort := port("master")
 
-	configuration := Newtypes.JobConfiguration(
+	configuration := types.NewJobConfiguration(
 		"test",
 		files,
 		nReduce,
@@ -164,15 +165,15 @@ func setup() *master.Master {
 }
 
 func cleanup(master *master.Master) {
-	util.CleanupFiles(master.types.JobConfiguration)
+	util.CleanupFiles(master.JobConfiguration)
 
-	for _, f := range master.types.JobConfiguration.MapperInputFileNames {
+	for _, f := range master.JobConfiguration.MapperInputFileNames {
 		util.RemoveFile(f)
 	}
 }
 
 func TestSequentialSingle(t *testing.T) {
-	configuration := Newtypes.JobConfiguration(
+	configuration := types.NewJobConfiguration(
 		"test",
 		makeInputs(1),
 		1,
@@ -182,13 +183,13 @@ func TestSequentialSingle(t *testing.T) {
 
 	master := master.RunSequentialJob(&configuration)
 	master.Wait()
-	check(t, master.types.JobConfiguration.MapperInputFileNames)
+	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
 
 func TestSequentialMany(t *testing.T) {
-	configuration := Newtypes.JobConfiguration(
+	configuration := types.NewJobConfiguration(
 		"test",
 		makeInputs(5),
 		3,
@@ -198,7 +199,7 @@ func TestSequentialMany(t *testing.T) {
 
 	master := master.RunSequentialJob(&configuration)
 	master.Wait()
-	check(t, master.types.JobConfiguration.MapperInputFileNames)
+	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
@@ -216,7 +217,7 @@ func TestParallelBasic(t *testing.T) {
 		)
 	}
 	master.Wait()
-	check(t, master.types.JobConfiguration.MapperInputFileNames)
+	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
@@ -235,7 +236,7 @@ func TestParallelCheck(t *testing.T) {
 		)
 	}
 	master.Wait()
-	check(t, master.types.JobConfiguration.MapperInputFileNames)
+	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 
 	parallelism.Mu.Lock()
@@ -267,7 +268,7 @@ func TestOneFailure(t *testing.T) {
 		nil,
 	)
 	master.Wait()
-	check(t, master.types.JobConfiguration.MapperInputFileNames)
+	check(t, master.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
@@ -279,7 +280,7 @@ func TestManyFailures(t *testing.T) {
 	for !done {
 		select {
 		case done = <-master.DoneChannel:
-			check(t, master.types.JobConfiguration.MapperInputFileNames)
+			check(t, master.JobConfiguration.MapperInputFileNames)
 			cleanup(master)
 			break
 		default:
