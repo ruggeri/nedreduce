@@ -1,15 +1,15 @@
-package commands
+package pkg
 
 import (
 	"github.com/ruggeri/nedreduce/internal/master"
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/worker"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // RunSequentialJob runs map and reduce tasks sequentially, waiting for
 // each task to complete before running the next.
 func RunSequentialJob(
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 ) {
 	master := master.RunSequentialJob(jobConfiguration)
 	master.Wait()
@@ -18,7 +18,7 @@ func RunSequentialJob(
 // RunDistributedJob schedules map and reduce tasks on workers that
 // register with the master over RPC.
 func RunDistributedJob(
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 	masterAddress string,
 ) {
 	master := master.RunDistributedJob(jobConfiguration, masterAddress)
@@ -28,8 +28,8 @@ func RunDistributedJob(
 func RunWorker(
 	masterAddress string,
 	workerAddress string,
-	mappingFunction MappingFunction,
-	reducingFunction ReducingFunction,
+	mappingFunction types.MappingFunction,
+	reducingFunction types.ReducingFunction,
 	nRPC int,
 ) {
 	worker.RunWorker(

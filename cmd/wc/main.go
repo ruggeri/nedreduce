@@ -9,8 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	mr_commands "github.com/ruggeri/nedreduce/pkg/commands"
-	mr_types "github.com/ruggeri/nedreduce/pkg/types"
+	nedreduce "github.com/ruggeri/nedreduce/pkg"
 )
 
 //
@@ -23,14 +22,14 @@ import (
 func wordSplittingMappingFunction(
 	filename string,
 	line string,
-	emitterFunction mr_types.EmitterFunction,
+	emitterFunction nedreduce.EmitterFunction,
 ) {
 	words := strings.FieldsFunc(line, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
 
 	for _, word := range words {
-		outputKeyValue := mr_types.KeyValue{word, ""}
+		outputKeyValue := nedreduce.KeyValue{word, ""}
 		emitterFunction(outputKeyValue)
 	}
 }
@@ -42,8 +41,8 @@ func wordSplittingMappingFunction(
 //
 func wordCountingReducingFunction(
 	groupKey string,
-	groupIteratorFunction mr_types.GroupIteratorFunction,
-	emitterFunction mr_types.EmitterFunction,
+	groupIteratorFunction nedreduce.GroupIteratorFunction,
+	emitterFunction nedreduce.EmitterFunction,
 ) {
 	wordCount := 0
 
@@ -59,7 +58,7 @@ func wordCountingReducingFunction(
 		wordCount++
 	}
 
-	keyValue := mr_types.KeyValue{
+	keyValue := nedreduce.KeyValue{
 		Key:   groupKey,
 		Value: strconv.Itoa(wordCount),
 	}
@@ -75,7 +74,7 @@ func main() {
 	if len(os.Args) < 4 {
 		fmt.Printf("%s: see usage comments in file\n", os.Args[0])
 	} else if os.Args[1] == "master" {
-		jobConfiguration := mr_types.NewJobConfiguration(
+		jobConfiguration := nedreduce.NewJobConfiguration(
 			"wcseq",
 			os.Args[3:],
 			3,
@@ -84,12 +83,12 @@ func main() {
 		)
 
 		if os.Args[2] == "sequential" {
-			mr_commands.RunSequentialJob(&jobConfiguration)
+			nedreduce.RunSequentialJob(&jobConfiguration)
 		} else {
-			mr_commands.RunDistributedJob(&jobConfiguration, os.Args[2])
+			nedreduce.RunDistributedJob(&jobConfiguration, os.Args[2])
 		}
 	} else {
-		mr_commands.RunWorker(
+		nedreduce.RunWorker(
 			os.Args[2],
 			os.Args[3],
 			wordSplittingMappingFunction,

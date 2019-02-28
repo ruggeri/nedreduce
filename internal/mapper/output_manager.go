@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // A OutputManager manages the many output files of a single map task.
@@ -57,7 +57,7 @@ func NewOutputManager(configuration *Configuration) OutputManager {
 
 // WriteKeyValue calculates which reduce task the KeyValue should be
 // written to, and then writes to the appropriate file.
-func (outputManager *OutputManager) WriteKeyValue(keyValue KeyValue) {
+func (outputManager *OutputManager) WriteKeyValue(keyValue types.KeyValue) {
 	reducerIdx := ihash(keyValue.Key) % len(outputManager.outputFiles)
 	err := outputManager.outputEncoders[reducerIdx].Encode(keyValue)
 	if err != nil {

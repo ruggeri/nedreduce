@@ -1,12 +1,12 @@
 package rpc
 
-import . "github.com/ruggeri/nedreduce/pkg/types"
+import "github.com/ruggeri/nedreduce/internal/types"
 
 // DoTaskArgs holds the arguments that are passed to a Worker when a job
 // is scheduled for it.
 type DoTaskArgs struct {
 	JobName  string
-	JobPhase JobPhase
+	JobPhase types.JobPhase
 	// MapInputFileName will only be set if we are in the MapPhase.
 	MapInputFileName string
 	TaskIdx          int

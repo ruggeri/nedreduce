@@ -8,7 +8,7 @@ import (
 	"os"
 	"sort"
 
-	. "github.com/ruggeri/nedreduce/pkg/types"
+	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // MergeReducerOutputFiles combines the results of the many reduce jobs
@@ -43,7 +43,7 @@ func MergeReducerOutputFiles(jobName string, numReducers int) {
 
 		// Read in entire file.
 		for {
-			var kv KeyValue
+			var kv types.KeyValue
 			err = reduceTaskOutputDecoder.Decode(&kv)
 			if err != nil {
 				break

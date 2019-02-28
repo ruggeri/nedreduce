@@ -12,8 +12,8 @@ import (
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // Master holds all the state that the master needs to keep track of.
@@ -26,7 +26,7 @@ type Master struct {
 	// protected by the mutex
 	newWorkerConditionVariable *sync.Cond // signals when Register() adds to workers[]
 	workers                    []string   // each worker's UNIX-domain socket name -- its RPC address
-	JobConfiguration           *JobConfiguration
+	JobConfiguration           *types.JobConfiguration
 	shutdown                   chan struct{}
 	connectionListener         net.Listener
 	Stats                      []int
@@ -35,7 +35,7 @@ type Master struct {
 // newMaster initializes a new Map/Reduce Master
 func newMaster(
 	masterAddress string,
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 ) (master *Master) {
 	master = new(Master)
 	master.Address = masterAddress
@@ -50,7 +50,7 @@ func newMaster(
 // RunSequentialJob runs map and reduce tasks sequentially, waiting for
 // each task to complete before running the next.
 func RunSequentialJob(
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 ) (master *Master) {
 	master = newMaster("master", jobConfiguration)
 
@@ -59,16 +59,16 @@ func RunSequentialJob(
 	go master.runJob(
 		jobConfiguration,
 		// This function executes each of the two phases.
-		func(jobPhase JobPhase) {
+		func(jobPhase types.JobPhase) {
 			switch jobPhase {
-			case MapPhase:
+			case types.MapPhase:
 				util.Debug("Beginning mapping phase\n")
 				// Run each map task one-by-one.
 				for mapTaskIdx := 0; mapTaskIdx < jobConfiguration.NumMappers(); mapTaskIdx++ {
 					mapperConfiguration := mapper.ConfigurationFromJobConfiguration(jobConfiguration, mapTaskIdx)
 					mapper.ExecuteMapping(&mapperConfiguration)
 				}
-			case ReducePhase:
+			case types.ReducePhase:
 				// Run each reduce task one-by-one.
 				util.Debug("Beginning reducing phase\n")
 				for reduceTaskIdx := 0; reduceTaskIdx < jobConfiguration.NumReducers; reduceTaskIdx++ {
@@ -89,7 +89,7 @@ func RunSequentialJob(
 // RunDistributedJob schedules map and reduce tasks on workers that
 // register with the master over RPC.
 func RunDistributedJob(
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 	masterAddress string,
 ) (master *Master) {
 	// First construct the Master and start running an RPC server which
@@ -100,7 +100,7 @@ func RunDistributedJob(
 	go master.runJob(
 		jobConfiguration,
 		// This function is used to execute each job phase.
-		func(jobPhase JobPhase) {
+		func(jobPhase types.JobPhase) {
 			// Start running someone to listen for workers to register with
 			// the master. As workers register, we will add them to our pool
 			// of available workers.
@@ -133,14 +133,14 @@ func (master *Master) Wait() {
 // runJob executes a mapreduce job on the given number of mappers and
 // reducers.
 func (master *Master) runJob(
-	jobConfiguration *JobConfiguration,
-	runPhase func(phase JobPhase),
+	jobConfiguration *types.JobConfiguration,
+	runPhase func(phase types.JobPhase),
 	collectStatsAndCleanup func(),
 ) {
 	fmt.Printf("%s: Starting Map/Reduce task %s\n", master.Address, jobConfiguration.JobName)
 
-	runPhase(MapPhase)
-	runPhase(ReducePhase)
+	runPhase(types.MapPhase)
+	runPhase(types.ReducePhase)
 	collectStatsAndCleanup()
 	util.MergeReducerOutputFiles(jobConfiguration.JobName, jobConfiguration.NumReducers)
 

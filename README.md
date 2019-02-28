@@ -15,7 +15,7 @@ The `mapreduce/commands` package contains methods like
 users call to use the library.
 
 The `mapreduce/types` package contains some types that will be useful
-for the user. The first is `JobConfiguration`: this is how the user
+for the user. The first is `types.JobConfiguration`: this is how the user
 specifies the input files, how many reducers to use, the mapping and
 reducing functions to run.
 
@@ -23,7 +23,7 @@ The `mapreduce/types` package also contains typedefs for
 `MappingFunction` and `ReducingFunction`. When the user runs a job, they
 must provide mapping and reducing functions with the appropriate
 function type signatures. `MappingFunction`s and `ReducingFunction`s
-both emit `KeyValue`s, a struct also defined in `mapreduce/types`.
+both emit `types.KeyValue`s, a struct also defined in `mapreduce/types`.
 
 All the following subpackages are internal and the user doesn't need
 them.
@@ -37,13 +37,13 @@ in the codebase.
 
 The `mapreduce/mapper` package contains all the code required for
 performing mapping. Its most important method is `ExecuteMapping`. To
-partition the output `KeyValue`s, a helper `OutputManager` was written.
+partition the output `types.KeyValue`s, a helper `OutputManager` was written.
 The `OutputManager` takes care of opening output files, setting up JSON
 encoders, and calculating which reducer should be sent each output
-`KeyValue`.
+`types.KeyValue`.
 
 I wrote a `mapper.Configuration` struct to contain the parameters for a
-map task. It tracks `JobConfiguration` fairly closely, but also contains
+map task. It tracks `types.JobConfiguration` fairly closely, but also contains
 a `MapTaskIdx`.
 
 ### mapreduce/reducer
@@ -62,12 +62,12 @@ entire file's worth of data into memory. But it would be
 super-super-overkill to write an external merge sort for this toy
 mapreduce implementation.
 
-Reducers need to iterate groups of `KeyValue`s which all have the same
+Reducers need to iterate groups of `types.KeyValue`s which all have the same
 key (for instance, all the reducer inputs for the word "the"). A group's
-`KeyValue`s may live across the different input files (the word "the"
+`types.KeyValue`s may live across the different input files (the word "the"
 may be output by multiple reduce tasks). If all input files were
 concatenated before sorting, then forming groups would be easy: scan
-`KeyValue`s until you hit one with a new key (read "the" rows until you
+`types.KeyValue`s until you hit one with a new key (read "the" rows until you
 hit a row for the word "tiny").
 
 I don't want to merge the reducer input files into one big file which is
@@ -76,13 +76,13 @@ one-by-one in ascending order using my `MergedInputIterator`. The
 `MergedInputIterator` can do this by peeking only one row ahead in each
 reducer input file.
 
-Now that `MergedInputIterator` is giving a stream of `KeyValue` by
+Now that `MergedInputIterator` is giving a stream of `types.KeyValue` by
 ascending `Key`, I wrote a `GroupingIterator` which iterates over groups
-of `KeyValue`. I don't want to load the entire group into memory at
+of `types.KeyValue`. I don't want to load the entire group into memory at
 once, though. I want to pass the user's `ReducingFunction` an iterator
 over each member of the group. So `GroupingIterator` returns a series of
 `GroupIterator`s. The idea is that the user's reducer can typically
-iterate the group without ever storing all the `KeyValue`s of the group
+iterate the group without ever storing all the `types.KeyValue`s of the group
 in memory at once.
 
 ### mapreduce/rpc

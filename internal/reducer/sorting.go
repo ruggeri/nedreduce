@@ -7,8 +7,8 @@ import (
 	"os"
 	"sort"
 
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 func sortReducerInputFiles(configuration *Configuration) {
@@ -39,9 +39,9 @@ func sortReducerInputFile(
 	// Read in all KeyValues for this mapper input. Gross.
 	//
 	// TODO(LOW): Change this into an external merge sort.
-	keyValues := []KeyValue{}
+	keyValues := []types.KeyValue{}
 	for {
-		keyValue := &KeyValue{}
+		keyValue := &types.KeyValue{}
 		err := inputDecoder.Decode(keyValue)
 		if err == io.EOF {
 			break

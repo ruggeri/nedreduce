@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	. "github.com/ruggeri/nedreduce/pkg/types"
+	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // IntermediateFileName constructs the name of the intermediate file
@@ -39,7 +39,7 @@ func RemoveFile(n string) {
 
 // CleanupFiles removes all intermediate files produced by running
 // mapreduce.
-func CleanupFiles(configuration *JobConfiguration) {
+func CleanupFiles(configuration *types.JobConfiguration) {
 	jobName := configuration.JobName
 	mapperInputFileNames := configuration.MapperInputFileNames
 	numReducers := configuration.NumReducers

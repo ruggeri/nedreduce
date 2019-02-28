@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // ExecuteReducing runs a reduce task.
@@ -65,8 +65,8 @@ func ExecuteReducing(configuration *Configuration) {
 		// Call the reducer function.
 		configuration.ReducingFunction(
 			groupIterator.GroupKey,
-			func() (*KeyValue, error) { return groupIterator.Next() },
-			func(outputKeyValue KeyValue) {
+			func() (*types.KeyValue, error) { return groupIterator.Next() },
+			func(outputKeyValue types.KeyValue) {
 				// Write out the outputValue.
 				err = outputEncoder.Encode(outputKeyValue)
 				if err != nil {

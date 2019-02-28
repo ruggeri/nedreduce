@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	. "github.com/ruggeri/nedreduce/pkg/types"
+	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // A Configuration describes the settings for this map task.
@@ -10,13 +10,13 @@ type Configuration struct {
 	MapTaskIdx          int
 	MapperInputFileName string
 	NumReducers         int
-	MappingFunction     MappingFunction
+	MappingFunction     types.MappingFunction
 }
 
 // ConfigurationFromJobConfiguration makes a mapper.Configuration object
 // from a JobConfiguration.
 func ConfigurationFromJobConfiguration(
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 	mapTaskIdx int,
 ) Configuration {
 	return NewConfiguration(
@@ -34,7 +34,7 @@ func NewConfiguration(
 	mapTaskIdx int,
 	mapperInputFileName string,
 	numReducers int,
-	mappingFunction MappingFunction,
+	mappingFunction types.MappingFunction,
 ) Configuration {
 	return Configuration{
 		JobName:             jobName,

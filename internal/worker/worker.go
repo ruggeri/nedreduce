@@ -16,8 +16,8 @@ import (
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // track whether workers executed in parallel.
@@ -32,8 +32,8 @@ type Worker struct {
 	sync.Mutex
 
 	name        string
-	Map         MappingFunction
-	Reduce      ReducingFunction
+	Map         types.MappingFunction
+	Reduce      types.ReducingFunction
 	nRPC        int // quit after this many RPCs; protected by mutex
 	nTasks      int // total tasks executed; protected by mutex
 	concurrent  int // number of parallel DoTasks in this worker; mutex
@@ -79,7 +79,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 	}
 
 	switch arg.JobPhase {
-	case MapPhase:
+	case types.MapPhase:
 		mapperConfiguration := mapper.NewConfiguration(
 			arg.JobName,
 			arg.TaskIdx,
@@ -89,7 +89,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 		)
 
 		mapper.ExecuteMapping(&mapperConfiguration)
-	case ReducePhase:
+	case types.ReducePhase:
 		reducerConfiguration := reducer.NewConfiguration(
 			arg.JobName,
 			arg.NumTasksInOtherPhase,
@@ -138,8 +138,8 @@ func (wk *Worker) register(master string) {
 // RunWorker sets up a connection with the master, registers its address, and
 // waits for tasks to be scheduled.
 func RunWorker(MasterAddress string, me string,
-	MapFunc MappingFunction,
-	ReduceFunc ReducingFunction,
+	MapFunc types.MappingFunction,
+	ReduceFunc types.ReducingFunction,
 	nRPC int, parallelism *Parallelism,
 ) {
 	util.Debug("RunWorker %s\n", me)

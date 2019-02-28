@@ -36,7 +36,7 @@ func wordSplittingMappingFunction(
 	// util.Debug("Map %v\n", line)
 	words := strings.Fields(line)
 	for _, w := range words {
-		kv := KeyValue{Key: w, Value: ""}
+		kv := types.KeyValue{Key: w, Value: ""}
 		mappingEmitterFunction(kv)
 	}
 }
@@ -151,7 +151,7 @@ func setup() *master.Master {
 	files := makeInputs(nMap)
 	masterPort := port("master")
 
-	configuration := NewJobConfiguration(
+	configuration := Newtypes.JobConfiguration(
 		"test",
 		files,
 		nReduce,
@@ -164,15 +164,15 @@ func setup() *master.Master {
 }
 
 func cleanup(master *master.Master) {
-	util.CleanupFiles(master.JobConfiguration)
+	util.CleanupFiles(master.types.JobConfiguration)
 
-	for _, f := range master.JobConfiguration.MapperInputFileNames {
+	for _, f := range master.types.JobConfiguration.MapperInputFileNames {
 		util.RemoveFile(f)
 	}
 }
 
 func TestSequentialSingle(t *testing.T) {
-	configuration := NewJobConfiguration(
+	configuration := Newtypes.JobConfiguration(
 		"test",
 		makeInputs(1),
 		1,
@@ -182,13 +182,13 @@ func TestSequentialSingle(t *testing.T) {
 
 	master := master.RunSequentialJob(&configuration)
 	master.Wait()
-	check(t, master.JobConfiguration.MapperInputFileNames)
+	check(t, master.types.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
 
 func TestSequentialMany(t *testing.T) {
-	configuration := NewJobConfiguration(
+	configuration := Newtypes.JobConfiguration(
 		"test",
 		makeInputs(5),
 		3,
@@ -198,7 +198,7 @@ func TestSequentialMany(t *testing.T) {
 
 	master := master.RunSequentialJob(&configuration)
 	master.Wait()
-	check(t, master.JobConfiguration.MapperInputFileNames)
+	check(t, master.types.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
@@ -216,7 +216,7 @@ func TestParallelBasic(t *testing.T) {
 		)
 	}
 	master.Wait()
-	check(t, master.JobConfiguration.MapperInputFileNames)
+	check(t, master.types.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
@@ -235,7 +235,7 @@ func TestParallelCheck(t *testing.T) {
 		)
 	}
 	master.Wait()
-	check(t, master.JobConfiguration.MapperInputFileNames)
+	check(t, master.types.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 
 	parallelism.Mu.Lock()
@@ -267,7 +267,7 @@ func TestOneFailure(t *testing.T) {
 		nil,
 	)
 	master.Wait()
-	check(t, master.JobConfiguration.MapperInputFileNames)
+	check(t, master.types.JobConfiguration.MapperInputFileNames)
 	checkWorker(t, master.Stats)
 	cleanup(master)
 }
@@ -279,7 +279,7 @@ func TestManyFailures(t *testing.T) {
 	for !done {
 		select {
 		case done = <-master.DoneChannel:
-			check(t, master.JobConfiguration.MapperInputFileNames)
+			check(t, master.types.JobConfiguration.MapperInputFileNames)
 			cleanup(master)
 			break
 		default:

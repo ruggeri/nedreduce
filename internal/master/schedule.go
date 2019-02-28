@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
-	. "github.com/ruggeri/nedreduce/pkg/types"
+	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // A WorkerRegistrationChannel is a channel on which the master can push
@@ -17,15 +17,15 @@ type WorkerRegistrationChannel chan string
 // MapPhase or the ReducePhase. It calls _runDistributedPhase, simply
 // varying the function which pushes map work.
 func runDistributedPhase(
-	jobConfiguration *JobConfiguration,
-	jobPhase JobPhase,
+	jobConfiguration *types.JobConfiguration,
+	jobPhase types.JobPhase,
 	registerChan chan string,
 ) {
 	numMappers := jobConfiguration.NumMappers()
 	numReducers := jobConfiguration.NumReducers
 
 	switch jobPhase {
-	case MapPhase:
+	case types.MapPhase:
 		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numMappers, jobPhase, numReducers)
 
 		_runDistributedPhase(
@@ -34,7 +34,7 @@ func runDistributedPhase(
 				pushMapWork(wg, workChannel, noMoreWorkChannel, jobConfiguration)
 			},
 		)
-	case ReducePhase:
+	case types.ReducePhase:
 		fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", numReducers, jobPhase, numMappers)
 
 		_runDistributedPhase(
@@ -107,7 +107,7 @@ func pushMapWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
 	noMoreWorkChannel NoMoreWorkChannel,
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 ) {
 	jobName := jobConfiguration.JobName
 	numMappers := jobConfiguration.NumMappers()
@@ -117,7 +117,7 @@ func pushMapWork(
 		mapInputFileName := jobConfiguration.MapperInputFileNames[mapTaskIdx]
 		args := mr_rpc.DoTaskArgs{
 			JobName:              jobName,
-			JobPhase:             MapPhase,
+			JobPhase:             types.MapPhase,
 			MapInputFileName:     mapInputFileName,
 			TaskIdx:              mapTaskIdx,
 			NumTasksInOtherPhase: numReducers,
@@ -141,7 +141,7 @@ func pushReduceWork(
 	wg *sync.WaitGroup,
 	workChannel WorkChannel,
 	noMoreWorkChannel NoMoreWorkChannel,
-	jobConfiguration *JobConfiguration,
+	jobConfiguration *types.JobConfiguration,
 ) {
 	jobName := jobConfiguration.JobName
 	numMappers := jobConfiguration.NumMappers()
@@ -150,7 +150,7 @@ func pushReduceWork(
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		args := mr_rpc.DoTaskArgs{
 			JobName:              jobName,
-			JobPhase:             ReducePhase,
+			JobPhase:             types.ReducePhase,
 			TaskIdx:              reduceTaskIdx,
 			NumTasksInOtherPhase: numMappers,
 		}

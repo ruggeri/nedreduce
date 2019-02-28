@@ -4,7 +4,7 @@ import (
 	"io"
 	"log"
 
-	. "github.com/ruggeri/nedreduce/pkg/types"
+	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // A GroupIterator is an iterator that yields successive KeyValues all
@@ -25,7 +25,7 @@ func NewGroupIterator(
 }
 
 // Next yields the next KeyValue in the group, if any.
-func (groupIterator *GroupIterator) Next() (*KeyValue, error) {
+func (groupIterator *GroupIterator) Next() (*types.KeyValue, error) {
 	if groupIterator.groupingIterator == nil {
 		// As discussed below, groupingIterator is set to nil when the group
 		// has been exhuasted.
@@ -54,7 +54,7 @@ func (groupIterator *GroupIterator) Next() (*KeyValue, error) {
 
 // Close is used to exhaust the GroupIterator. This is needed because we
 // must advance the `GroupingIterator`s underlying iterator. We need to
-// skip enough `KeyValues to get to the next group.
+// skip enough `KeyValues` to get to the next group.
 func (groupIterator *GroupIterator) Close() {
 	for {
 		_, err := groupIterator.Next()

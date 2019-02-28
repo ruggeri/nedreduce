@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
-	. "github.com/ruggeri/nedreduce/pkg/types"
 )
 
 // ExecuteMapping runs a map task.
@@ -46,7 +46,7 @@ func ExecuteMapping(configuration *Configuration) {
 		configuration.MappingFunction(
 			configuration.MapperInputFileName,
 			line,
-			func(outputKeyValue KeyValue) {
+			func(outputKeyValue types.KeyValue) {
 				// Write the map outputs.
 				outputManager.WriteKeyValue(outputKeyValue)
 			},
