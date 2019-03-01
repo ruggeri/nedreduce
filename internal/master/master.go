@@ -6,10 +6,12 @@ package master
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 
 	"github.com/ruggeri/nedreduce/internal/mapper"
+	"github.com/ruggeri/nedreduce/internal/master/worker_pool_manager"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
@@ -23,13 +25,14 @@ type Master struct {
 	Address     string
 	DoneChannel chan bool
 
+	workerPoolManager *worker_pool_manager.WorkerPoolManager
+	rpcServer         *masterRPCServer
+
 	// protected by the mutex
-	newWorkerConditionVariable *sync.Cond // signals when Register() adds to workers[]
-	workers                    []string   // each worker's UNIX-domain socket name -- its RPC address
-	JobConfiguration           *types.JobConfiguration
-	shutdown                   chan struct{}
-	connectionListener         net.Listener
-	Stats                      []int
+	JobConfiguration   *types.JobConfiguration
+	shutdown           chan struct{}
+	connectionListener net.Listener
+	Stats              []int
 }
 
 // newMaster initializes a new Map/Reduce Master
@@ -40,7 +43,7 @@ func newMaster(
 	master = new(Master)
 	master.Address = masterAddress
 	master.shutdown = make(chan struct{})
-	master.newWorkerConditionVariable = sync.NewCond(master)
+	master.workerPoolManager = worker_pool_manager.StartManager()
 	master.DoneChannel = make(chan bool)
 
 	master.JobConfiguration = jobConfiguration
@@ -84,6 +87,23 @@ func RunSequentialJob(
 	)
 
 	return
+}
+
+func (master *Master) startRPCServer() {
+	if master.rpcServer != nil {
+		log.Fatalf("Trying to start master's RPC server twice?")
+	} else {
+		master.rpcServer = startMasterRPCServer(master)
+	}
+}
+
+func (master *Master) stopRPCServer() {
+	if master.rpcServer == nil {
+		log.Fatalf("Trying to stop an RPC server that was never started?")
+	} else {
+		master.rpcServer.Shutdown()
+		master.rpcServer = nil
+	}
 }
 
 // RunDistributedJob schedules map and reduce tasks on workers that
@@ -154,22 +174,18 @@ func (master *Master) runJob(
 func (master *Master) forwardWorkerRegistrations(
 	workerRegistrationChannel WorkerRegistrationChannel,
 ) {
-	i := 0
-	for {
-		// We lock to synchronize access to the slice of workers.
-		master.Lock()
-		if len(master.workers) > i {
-			// there's a worker that we haven't told schedule() about.
-			w := master.workers[i]
-			go func() { workerRegistrationChannel <- w }() // send without holding the lock.
-			i = i + 1
-		} else {
-			// wait for RegisterWorker to add an entry to workers[] in
-			// response to a registration RPC from a new worker.
-			master.newWorkerConditionVariable.Wait()
-		}
-		master.Unlock()
+	for workerRPCAddress := range master.workerPoolManager.WorkerRPCAddressStream() {
+		workerRegistrationChannel <- workerRPCAddress
 	}
+}
+
+func (master *Master) Shutdown() {
+	master.workerPoolManager.SendShutdown()
+	// TODO: In theory shuts down the listener. But see my comment
+	// below...
+	close(master.shutdown)
+	// "causes the Accept to fail" -- see my comment below.
+	master.connectionListener.Close()
 }
 
 // killWorkers cleans up all workers by sending each one a Shutdown RPC.
@@ -179,8 +195,9 @@ func (master *Master) killWorkers() []int {
 	master.Lock()
 	defer master.Unlock()
 
-	numTasksProcessed := make([]int, 0, len(master.workers))
-	for _, w := range master.workers {
+	workerRPCAddresses := master.workerPoolManager.WorkerRPCAddress()
+	numTasksProcessed := make([]int, 0, len(workerRPCAddresses))
+	for _, w := range workerRPCAddresses {
 		util.Debug("Master: shutdown worker %s\n", w)
 		var reply mr_rpc.ShutdownReply
 		ok := mr_rpc.Call(w, "Worker.Shutdown", new(struct{}), &reply)
