@@ -9,7 +9,7 @@ type workerAddressStreamer struct {
 	workerRPCAddressesChannel chan string
 }
 
-func makeWorkersRPCAddressStream(manager *WorkerPoolManager) chan string {
+func makeWorkerRPCAddressStream(manager *WorkerPoolManager) chan string {
 	streamer := &workerAddressStreamer{
 		manager:                   manager,
 		numWorkersSent:            0,

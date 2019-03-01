@@ -91,10 +91,20 @@ func (manager *WorkerPoolManager) SendShutdown() {
 	}()
 }
 
-// WorkersRPCAddressStream gives the caller a channel on which
-// connecting workers' RPC addresses are piped down.
-func (manager *WorkerPoolManager) WorkersRPCAddressStream() chan string {
+// WorkerRPCAddress gives the caller the present a list of all workers
+// addresses that have ever connected.
+func (manager *WorkerPoolManager) WorkerRPCAddress() []string {
 	// Check out the workerAddressStreamer to see who and how the RPC
 	// addresses are pushed on down.
-	return makeWorkersRPCAddressStream(manager)
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
+	return append([]string(nil), manager.workerRPCAddresses...)
+}
+
+// WorkerRPCAddressStream gives the caller a channel on which
+// connecting workers' RPC addresses are piped down.
+func (manager *WorkerPoolManager) WorkerRPCAddressStream() chan string {
+	// Check out the workerAddressStreamer to see who and how the RPC
+	// addresses are pushed on down.
+	return makeWorkerRPCAddressStream(manager)
 }
