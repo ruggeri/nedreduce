@@ -104,7 +104,7 @@ func (manager *WorkerPoolManager) WorkerRPCAddress() []string {
 // WorkerRPCAddressStream gives the caller a channel on which
 // connecting workers' RPC addresses are piped down.
 func (manager *WorkerPoolManager) WorkerRPCAddressStream() chan string {
-	// Check out the workerAddressStreamer to see who and how the RPC
-	// addresses are pushed on down.
+	// Check out the workerAddressStreamer to see how the RPC addresses
+	// are pushed on down.
 	return makeWorkerRPCAddressStream(manager)
 }

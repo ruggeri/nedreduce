@@ -64,7 +64,7 @@ func startMasterRPCServer(master *Master) *masterRPCServer {
 	// Record the address to run the RPC server on.
 	masterRPCServer.address = master.Address
 
-	// Set up underlying RPC Server.
+	// Set up underlying RPC target and base server.
 	rpcServerTarget := rpcServerTarget{master: master}
 	masterRPCServer.baseRPCServer = rpc.NewServer()
 	masterRPCServer.baseRPCServer.Register(rpcServerTarget)
@@ -92,7 +92,10 @@ func startMasterRPCServer(master *Master) *masterRPCServer {
 	return masterRPCServer
 }
 
+// Shutdown shuts down the RPC server.
 func (server *masterRPCServer) Shutdown() {
+	// This will clean up the background goroutine because it will cause
+	// connectionListener.Accept calls to fail.
 	server.connectionListener.Close()
 }
 
@@ -100,11 +103,11 @@ func (server *masterRPCServer) Shutdown() {
 func (server *masterRPCServer) listenForConnections() {
 	for {
 		// Keeps connecting clients who want to make RPCs. Note: when the
-		// listener is closed, we will error out,
+		// listener is closed on Shutdown, we will error out,
 		connection, err := server.connectionListener.Accept()
 
 		if err == nil {
-			// Since RPC requests could be slow or blocking, do this in
+			// Since RPC requests could be slow or blocking, do this in yet
 			// another goroutine.
 			go server.handleRPCConnection(connection)
 		} else {
