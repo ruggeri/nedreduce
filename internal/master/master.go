@@ -7,7 +7,6 @@ package master
 import (
 	"fmt"
 	"log"
-	"net"
 	"sync"
 
 	"github.com/ruggeri/nedreduce/internal/mapper"
@@ -29,10 +28,8 @@ type Master struct {
 	rpcServer         *masterRPCServer
 
 	// protected by the mutex
-	JobConfiguration   *types.JobConfiguration
-	shutdown           chan struct{}
-	connectionListener net.Listener
-	Stats              []int
+	JobConfiguration *types.JobConfiguration
+	Stats            []int
 }
 
 // newMaster initializes a new Map/Reduce Master
@@ -42,7 +39,6 @@ func newMaster(
 ) (master *Master) {
 	master = new(Master)
 	master.Address = masterAddress
-	master.shutdown = make(chan struct{})
 	master.workerPoolManager = worker_pool_manager.StartManager()
 	master.DoneChannel = make(chan bool)
 
@@ -124,8 +120,7 @@ func RunDistributedJob(
 			// Start running someone to listen for workers to register with
 			// the master. As workers register, we will add them to our pool
 			// of available workers.
-			workerRegistrationChannel := make(WorkerRegistrationChannel)
-			go master.forwardWorkerRegistrations(workerRegistrationChannel)
+			workerRegistrationChannel := master.workerPoolManager.WorkerRPCAddressStream()
 
 			runDistributedPhase(
 				jobConfiguration,
@@ -169,23 +164,9 @@ func (master *Master) runJob(
 	master.DoneChannel <- true
 }
 
-// forwardWorkerRegistrations sends all registered workers to the phase,
-// and then forwards more workers as they connect.
-func (master *Master) forwardWorkerRegistrations(
-	workerRegistrationChannel WorkerRegistrationChannel,
-) {
-	for workerRPCAddress := range master.workerPoolManager.WorkerRPCAddressStream() {
-		workerRegistrationChannel <- workerRPCAddress
-	}
-}
-
 func (master *Master) Shutdown() {
+	master.rpcServer.Shutdown()
 	master.workerPoolManager.SendShutdown()
-	// TODO: In theory shuts down the listener. But see my comment
-	// below...
-	close(master.shutdown)
-	// "causes the Accept to fail" -- see my comment below.
-	master.connectionListener.Close()
 }
 
 // killWorkers cleans up all workers by sending each one a Shutdown RPC.
