@@ -109,7 +109,6 @@ and `rcp.Call` functions.
 
 ### nedreduce/internal/master
 
-**TODO(HIGH)**
 
 ### nedreduce/internal/worker
 

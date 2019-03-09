@@ -23,3 +23,7 @@
 * `reducer.MergedInputIterator` might be faster with a heap. Meh.
 * `reducer.sortReducerInputFile` would ideally do an external merge
   sort, but that is way too much effort.
+
+
+internal/master/rpc_server.go:  // TODO: I think this os.Remove business is used in case a Unix socket
+internal/master/rpc_server.go:                  // TODO: I really dislike this. How do we know that Accept failed

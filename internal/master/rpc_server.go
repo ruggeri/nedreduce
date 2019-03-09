@@ -16,7 +16,7 @@ type masterRPCTarget struct {
 func (rpcServerTarget *masterRPCTarget) RegisterWorker(args *mr_rpc.RegisterArgs, _ *struct{}) error {
 	util.Debug(
 		"master running at %s received RegisterWorker RPC from worker @ %s\n",
-		rpcServerTarget.master.Address,
+		rpcServerTarget.master.address,
 		args.WorkerRPCAdress,
 	)
 
@@ -31,7 +31,7 @@ func (rpcServerTarget *masterRPCTarget) RegisterWorker(args *mr_rpc.RegisterArgs
 func (rpcServerTarget *masterRPCTarget) Shutdown(_, _ *struct{}) error {
 	util.Debug(
 		"master running at %s received Shutdown RPC\n",
-		rpcServerTarget.master.Address,
+		rpcServerTarget.master.address,
 	)
 
 	rpcServerTarget.master.Shutdown()
@@ -39,6 +39,7 @@ func (rpcServerTarget *masterRPCTarget) Shutdown(_, _ *struct{}) error {
 	return nil
 }
 
+// startMasterRPCServer is used by Master to start an RPC server.
 func startMasterRPCServer(master *Master) *mr_rpc.Server {
-	return mr_rpc.StartServer(master.Address, &masterRPCTarget{master: master})
+	return mr_rpc.StartServer(master.address, &masterRPCTarget{master: master})
 }

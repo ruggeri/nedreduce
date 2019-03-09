@@ -99,9 +99,9 @@ func (manager *WorkerPoolManager) WorkerRPCAddresses() []string {
 	return append([]string(nil), manager.workerRPCAddresses...)
 }
 
-// WorkerRPCAddressStream gives the caller a channel on which
+// NewWorkerRPCAddressStream gives the caller a channel on which
 // connecting workers' RPC addresses are piped down.
-func (manager *WorkerPoolManager) WorkerRPCAddressStream() chan string {
+func (manager *WorkerPoolManager) NewWorkerRPCAddressStream() chan string {
 	// Check out the workerAddressStreamer to see how the RPC addresses
 	// are pushed on down.
 	return makeWorkerRPCAddressStream(manager)
