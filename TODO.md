@@ -6,6 +6,7 @@
   `mapreduce/worker` packages.
 * Get all of the `test-mr.sh` tests passing.
 * Fix `test-wc.sh` test so that it verifies correct output.
+* `rpc.Server` doesn't try to figure out why `conn.Accept` fails.
 
 **Medium**
 
