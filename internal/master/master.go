@@ -25,7 +25,7 @@ type Master struct {
 	DoneChannel chan bool
 
 	workerPoolManager *worker_pool_manager.WorkerPoolManager
-	rpcServer         *masterRPCServer
+	rpcServer         *mr_rpc.Server
 
 	// protected by the mutex
 	JobConfiguration *types.JobConfiguration
