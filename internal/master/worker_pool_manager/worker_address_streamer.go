@@ -65,6 +65,8 @@ func (streamer *workerAddressStreamer) run() {
 			streamer.manager.conditionVariable.Wait()
 		}
 	}
+
+	// This should be unreachable.
 }
 
 // handleNewWorkers streams down new worker RPC addresses to the user.
