@@ -176,7 +176,7 @@ func (master *Master) killWorkers() []int {
 	master.Lock()
 	defer master.Unlock()
 
-	workerRPCAddresses := master.workerPoolManager.WorkerRPCAddress()
+	workerRPCAddresses := master.workerPoolManager.WorkerRPCAddresses()
 	numTasksProcessed := make([]int, 0, len(workerRPCAddresses))
 	for _, w := range workerRPCAddresses {
 		util.Debug("Master: shutdown worker %s\n", w)

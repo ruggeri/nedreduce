@@ -91,11 +91,9 @@ func (manager *WorkerPoolManager) SendShutdown() {
 	}()
 }
 
-// WorkerRPCAddress gives the caller the present a list of all workers
-// addresses that have ever connected.
-func (manager *WorkerPoolManager) WorkerRPCAddress() []string {
-	// Check out the workerAddressStreamer to see who and how the RPC
-	// addresses are pushed on down.
+// WorkerRPCAddresses gives the caller a list of all workers addresses
+// that have ever connected.
+func (manager *WorkerPoolManager) WorkerRPCAddresses() []string {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	return append([]string(nil), manager.workerRPCAddresses...)
