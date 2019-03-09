@@ -11,15 +11,15 @@ import (
 )
 
 // ExecuteMapping runs a map task.
-func ExecuteMapping(configuration *Configuration) {
+func ExecuteMapping(mapTask *MapTask) {
 	util.Debug(
 		"mapTaskIdx %v: Beginning map task with config: %v.\n",
-		configuration.MapTaskIdx,
-		configuration,
+		mapTask.MapTaskIdx,
+		mapTask,
 	)
 
 	// Open the map input file for reading.
-	inputFile, err := os.Open(configuration.MapperInputFileName)
+	inputFile, err := os.Open(mapTask.MapperInputFileName)
 	if err != nil {
 		log.Fatalf("error opening mapper input file: %v\n", err)
 	}
@@ -27,11 +27,11 @@ func ExecuteMapping(configuration *Configuration) {
 	inputReader := bufio.NewReader(inputFile)
 
 	// Open files for map output.
-	outputManager := NewOutputManager(configuration)
+	outputManager := NewOutputManager(mapTask)
 	defer outputManager.Close()
 
 	util.Debug(
-		"mapTaskIdx %v: Beginning mapping.\n", configuration.MapTaskIdx,
+		"mapTaskIdx %v: Beginning mapping.\n", mapTask.MapTaskIdx,
 	)
 	for {
 		// Read a line from the map input file.
@@ -43,8 +43,8 @@ func ExecuteMapping(configuration *Configuration) {
 		}
 
 		// Apply the mapping function.
-		configuration.MappingFunction(
-			configuration.MapperInputFileName,
+		mapTask.MappingFunction(
+			mapTask.MapperInputFileName,
 			line,
 			func(outputKeyValue types.KeyValue) {
 				// Write the map outputs.
@@ -54,6 +54,6 @@ func ExecuteMapping(configuration *Configuration) {
 	}
 
 	util.Debug(
-		"mapTaskIdx %v: Completed map task.\n", configuration.MapTaskIdx,
+		"mapTaskIdx %v: Completed map task.\n", mapTask.MapTaskIdx,
 	)
 }

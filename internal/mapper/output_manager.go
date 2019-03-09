@@ -17,10 +17,10 @@ type OutputManager struct {
 }
 
 // NewOutputManager makes a new OutputManager.
-func NewOutputManager(configuration *Configuration) OutputManager {
-	jobName := configuration.JobName
-	mapTaskIdx := configuration.MapTaskIdx
-	numReducers := configuration.NumReducers
+func NewOutputManager(mapTask *MapTask) OutputManager {
+	jobName := mapTask.JobName
+	mapTaskIdx := mapTask.MapTaskIdx
+	numReducers := mapTask.NumReducers
 
 	// Allocate space for slices.
 	outputManager := OutputManager{

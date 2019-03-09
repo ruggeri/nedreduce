@@ -14,15 +14,15 @@ import (
 // Helper function to iterate the input files to the reducer, sorting
 // each one by key. This is needed because mappers don't emit rows in
 // any particular order.
-func sortReducerInputFiles(configuration *Configuration) {
+func sortReducerInputFiles(reduceTask *ReduceTask) {
 	// Open the reducer's input files.
-	reducerInputManager := NewInputManager(configuration)
+	reducerInputManager := NewInputManager(reduceTask)
 	defer reducerInputManager.Close()
 
 	for mapTaskIdx, inputDecoder := range reducerInputManager.inputDecoders {
 		// Sort each file.
 		sortReducerInputFile(
-			configuration,
+			reduceTask,
 			mapTaskIdx,
 			reducerInputManager.inputFiles[mapTaskIdx],
 			inputDecoder,
@@ -31,13 +31,13 @@ func sortReducerInputFiles(configuration *Configuration) {
 }
 
 func sortReducerInputFile(
-	configuration *Configuration,
+	reduceTask *ReduceTask,
 	mapTaskIdx int,
 	inputReadingFile os.File,
 	inputDecoder *json.Decoder,
 ) {
-	jobName := configuration.JobName
-	reduceTaskIdx := configuration.ReduceTaskIdx
+	jobName := reduceTask.JobName
+	reduceTaskIdx := reduceTask.ReduceTaskIdx
 
 	// Read in all KeyValues for this mapper input. Gross.
 	//

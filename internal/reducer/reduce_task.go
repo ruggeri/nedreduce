@@ -4,21 +4,21 @@ import (
 	"github.com/ruggeri/nedreduce/internal/types"
 )
 
-// A Configuration describes the settings for this reduce task.
-type Configuration struct {
+// A ReduceTask describes the settings for this reduce task.
+type ReduceTask struct {
 	JobName          string
 	NumMappers       int
 	ReduceTaskIdx    int
 	ReducingFunction types.ReducingFunction
 }
 
-// ConfigurationFromJobConfiguration makes a reducer.Configuration
-// object from a JobConfiguration.
-func ConfigurationFromJobConfiguration(
+// ReduceTaskFromJobConfiguration makes a reducer.ReduceTask object from
+// a JobConfiguration.
+func ReduceTaskFromJobConfiguration(
 	jobConfiguration *types.JobConfiguration,
 	reduceTaskIdx int,
-) Configuration {
-	return NewConfiguration(
+) ReduceTask {
+	return NewReduceTask(
 		jobConfiguration.JobName,
 		jobConfiguration.NumMappers(),
 		reduceTaskIdx,
@@ -26,14 +26,14 @@ func ConfigurationFromJobConfiguration(
 	)
 }
 
-// NewConfiguration makes a reducer.Configuration object.
-func NewConfiguration(
+// NewReduceTask makes a reducer.ReduceTask object.
+func NewReduceTask(
 	jobName string,
 	numMappers int,
 	reduceTaskIdx int,
 	reducingFunction types.ReducingFunction,
-) Configuration {
-	return Configuration{
+) ReduceTask {
+	return ReduceTask{
 		JobName:          jobName,
 		NumMappers:       numMappers,
 		ReduceTaskIdx:    reduceTaskIdx,

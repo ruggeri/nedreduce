@@ -11,31 +11,31 @@ import (
 )
 
 // ExecuteReducing runs a reduce task.
-func ExecuteReducing(configuration *Configuration) {
+func ExecuteReducing(reduceTask *ReduceTask) {
 	util.Debug(
 		"reduceTaskIdx %v: Beginning reduce task with config: %v.\n",
-		configuration.ReduceTaskIdx,
-		configuration,
+		reduceTask.ReduceTaskIdx,
+		reduceTask,
 	)
 
 	// First, we must sort each mapper output file.
 	util.Debug(
 		"reduceTaskIdx %v: Beginning sorting.\n",
-		configuration.ReduceTaskIdx,
+		reduceTask.ReduceTaskIdx,
 	)
-	sortReducerInputFiles(configuration)
+	sortReducerInputFiles(reduceTask)
 	util.Debug(
 		"reduceTaskIdx %v: Finished sorting.\n",
-		configuration.ReduceTaskIdx,
+		reduceTask.ReduceTaskIdx,
 	)
 
 	// Now, open the reducer's input files.
-	inputManager := NewInputManager(configuration)
+	inputManager := NewInputManager(reduceTask)
 	defer inputManager.Close()
 
 	// Open the reducer's output file. Setup the output encoder.
 	outputFileName := util.ReducerOutputFileName(
-		configuration.JobName, configuration.ReduceTaskIdx,
+		reduceTask.JobName, reduceTask.ReduceTaskIdx,
 	)
 	outputFile, err := os.OpenFile(
 		outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644,
@@ -48,7 +48,7 @@ func ExecuteReducing(configuration *Configuration) {
 
 	util.Debug(
 		"reduceTaskIdx %v: Beginning reducing.\n",
-		configuration.ReduceTaskIdx,
+		reduceTask.ReduceTaskIdx,
 	)
 	// Iterate the groups one at a time.
 	groupingIterator := NewGroupingIterator(inputManager.inputDecoders)
@@ -63,7 +63,7 @@ func ExecuteReducing(configuration *Configuration) {
 		}
 
 		// Call the reducer function.
-		configuration.ReducingFunction(
+		reduceTask.ReducingFunction(
 			groupIterator.GroupKey,
 			func() (*types.KeyValue, error) { return groupIterator.Next() },
 			func(outputKeyValue types.KeyValue) {
@@ -83,6 +83,6 @@ func ExecuteReducing(configuration *Configuration) {
 
 	util.Debug(
 		"reduceTaskIdx %v: Completed reduce task.\n",
-		configuration.ReduceTaskIdx,
+		reduceTask.ReduceTaskIdx,
 	)
 }

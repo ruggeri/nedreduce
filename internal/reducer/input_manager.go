@@ -17,10 +17,10 @@ type InputManager struct {
 
 // NewInputManager opens the appropriate files, sets up the decoders,
 // and builds a ReducerInputManager.
-func NewInputManager(configuration *Configuration) InputManager {
-	jobName := configuration.JobName
-	numMappers := configuration.NumMappers
-	reduceTaskIdx := configuration.ReduceTaskIdx
+func NewInputManager(reduceTask *ReduceTask) InputManager {
+	jobName := reduceTask.JobName
+	numMappers := reduceTask.NumMappers
+	reduceTaskIdx := reduceTask.ReduceTaskIdx
 
 	inputManager := InputManager{
 		inputFiles:    make([]os.File, 0, numMappers),
