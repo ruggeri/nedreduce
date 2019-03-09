@@ -60,7 +60,7 @@ func (manager *WorkerPoolManager) SendNewWorker(workerRPCAddress string) {
 			return
 		}
 
-		// TODO: Should probably look for accidental reconnection
+		// TODO(MEDIUM): Should probably look for accidental reconnection
 		// (deduplicate).
 		manager.workerRPCAddresses = append(manager.workerRPCAddresses, workerRPCAddress)
 

@@ -14,6 +14,8 @@
   * Also, I feel like `Worker`s should be told the `MappingFunction` and
     `ReducingFunction` via the RPC. Else they are hard-coded at `Worker`
     initialization.
+* The `WorkerPoolManager` should, when a new worker is registered, check
+  to see if it already has listed that worker as available.
 
 **Low**
 
