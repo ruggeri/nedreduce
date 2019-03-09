@@ -4,6 +4,8 @@
 
 * Review, refactor, and document the `mapreduce/master` and
   `mapreduce/worker` packages.
+* Get all of the `test-mr.sh` tests passing.
+* Fix `test-wc.sh` test so that it verifies correct output.
 
 **Medium**
 

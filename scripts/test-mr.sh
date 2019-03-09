@@ -11,7 +11,7 @@ echo ""
 echo "==> Part III"
 go test ./tests -run TestParallel
 
-# TODO: These tests don't pass yet.
+# TODO(HIGH): These tests don't pass yet.
 echo ""
 echo "==> Part IV"
 go test ./tests -run Failure
