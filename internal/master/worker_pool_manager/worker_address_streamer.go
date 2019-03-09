@@ -54,17 +54,16 @@ func (streamer *workerAddressStreamer) run() {
 			continue
 		} else {
 			// Nothing has happened since last time, so there is nothing to
-			// do.
+			// do. Therefore, pause here until the manager tells us some new
+			// events have occurred.
+			//
+			// Condition variables release the mutex while waiting, so waiting
+			// here won't block the manager. On wake, the condition variable
+			// reacquires the mutex. It's important that the mutex is
+			// reacquired so that we can safely inspect the manager's internal
+			// state once again when we loop back around.
+			streamer.manager.conditionVariable.Wait()
 		}
-
-		// Pause here until the manager tells us some new events have
-		// occurred.
-		//
-		// Condition variables release the mutex while waiting, so waiting
-		// here won't block the manager. On wake, the condition variable
-		// reacquires the mutex. It's important to reacquire the mutex so
-		// that we can inspect the manager's internal state once again.
-		streamer.manager.conditionVariable.Wait()
 	}
 }
 
@@ -73,8 +72,9 @@ func (streamer *workerAddressStreamer) run() {
 func (streamer *workerAddressStreamer) handleNewWorkers() {
 	// Get the new workers to send on down.
 	workersToSend := streamer.manager.workerRPCAddresses[streamer.numWorkersSent:]
-	// Be careful and make a "defensive copy" and don't try to hold on to
-	// the manager's internal state. We're about to unlock the manager.
+	// Be careful and make a "defensive copy." We don't want to hold on to
+	// any of the manager's internal state, since we're about to unlock
+	// the manager.
 	workersToSend = append([]string(nil), workersToSend...)
 
 	// We will send the workers' RPC addresses down a channel, which is a
