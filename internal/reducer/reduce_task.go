@@ -13,33 +13,32 @@ type ReduceTask struct {
 	ReducingFunctionName string
 }
 
-// ReduceTaskFromJobConfiguration makes a reducer.ReduceTask object from
-// a JobConfiguration.
-func ReduceTaskFromJobConfiguration(
+// NewReduceTask makes a reducer.ReduceTask object from a
+// JobConfiguration.
+func NewReduceTask(
 	jobConfiguration *types.JobConfiguration,
 	reduceTaskIdx int,
 ) ReduceTask {
-	return NewReduceTask(
-		jobConfiguration.JobName,
-		jobConfiguration.NumMappers(),
-		reduceTaskIdx,
-		jobConfiguration.ReducingFunctionName,
-	)
+	return ReduceTask{
+		JobName:              jobConfiguration.JobName,
+		NumMappers:           jobConfiguration.NumMappers(),
+		ReduceTaskIdx:        reduceTaskIdx,
+		ReducingFunctionName: jobConfiguration.ReducingFunctionName,
+	}
 }
 
-// NewReduceTask makes a reducer.ReduceTask object.
-func NewReduceTask(
-	jobName string,
-	numMappers int,
-	reduceTaskIdx int,
-	reducingFunctionName string,
-) ReduceTask {
-	return ReduceTask{
-		JobName:              jobName,
-		NumMappers:           numMappers,
-		ReduceTaskIdx:        reduceTaskIdx,
-		ReducingFunctionName: reducingFunctionName,
+func AllReduceTasks(
+	jobConfiguration *types.JobConfiguration,
+) []ReduceTask {
+	numReducers := jobConfiguration.NumReducers
+	reduceTasks := []ReduceTask(nil)
+
+	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
+		reduceTask := NewReduceTask(jobConfiguration, reduceTaskIdx)
+		reduceTasks = append(reduceTasks, reduceTask)
 	}
+
+	return reduceTasks
 }
 
 // ReducingFunction loads the specified reducing function by name.

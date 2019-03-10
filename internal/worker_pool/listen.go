@@ -4,22 +4,41 @@ import (
 	"io"
 	"log"
 
-	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
+// listenForMessages is run by a background goroutine to handle
+// successive incoming messages.
 func (workerPool *WorkerPool) listenForMessages() {
 	for message := range workerPool.messageChannel {
 		workerPool.handleMessage(message)
 	}
 }
 
+// handleMessage is used to dispatch to the correct message handler.
+func (workerPool *WorkerPool) handleMessage(message message) {
+	switch message.Kind {
+	case startNewWorkSetMessage:
+		workerPool.handleStartingNewWorkSet()
+	case workerCompletedTaskMessage:
+		workerPool.handleTaskCompletion(message.Address)
+	case workerRegistrationMessage:
+		workerPool.handleWorkerRegistration(message.Address)
+	default:
+		log.Panic("Unexpected message type: %v\n", message.Kind)
+	}
+
+	// The message is processed, so there is one less in flight.
+	workerPool.noMoreMessagesWaitGroup.Done()
+}
+
+// handleStartingNewWorkSet starts working on a workSet by assigning
+// tasks to all currently registered workers.
 func (workerPool *WorkerPool) handleStartingNewWorkSet() {
+	util.Debug("WorkerPool is starting new work set\n")
+
 	for _, workerRPCAddress := range workerPool.workerRPCAddresses {
-		if workerPool.state == workingThroughWorkSetTasks {
-			workerPool.assignTaskToWorker(workerRPCAddress)
-		} else {
-			// This can happen if there are more workers than tasks.
+		if !workerPool.assignTaskToWorker(workerRPCAddress) {
 			break
 		}
 	}
@@ -27,37 +46,18 @@ func (workerPool *WorkerPool) handleStartingNewWorkSet() {
 
 func (workerPool *WorkerPool) handleTaskCompletion(workerRPCAddress string) {
 	util.Debug("worker running at %v finished work assignment\n", workerRPCAddress)
-	workerPool.numWorkersWorking--
+	workerPool.currentWorkSet.handleTaskCompletion()
 
-	if workerPool.state == workingThroughWorkSetTasks {
+	if !workerPool.currentWorkSet.isCompleted() {
+		// If the work set is completed, try to assign more work to the free
+		// worker.
 		workerPool.assignTaskToWorker(workerRPCAddress)
+	} else {
+		// Else, we are done!
+		util.Debug("WorkerPool: work set has been completed\n")
+		workerPool.currentWorkSet = nil
+		workerPool.workerPoolIsFreeForNewWorkSetCond.Signal()
 	}
-
-	if workerPool.taskSetIsCompleted() {
-		workerPool.handleTaskSetCompletion()
-	}
-}
-
-func (workerPool *WorkerPool) taskSetIsCompleted() bool {
-	if workerPool.state == waitingForLastWorkSetTasksToComplete {
-		if workerPool.numWorkersWorking == 0 {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (workerPool *WorkerPool) handleTaskSetCompletion() {
-	util.Debug("WorkAssigner: all work has been completed\n")
-
-	// Notify whoever schedule this job that we have completed
-	go func(workSetResultChannel chan WorkSetResult) {
-		workSetResultChannel <- workSetCompleted
-	}(workerPool.workSetResultChannel)
-
-	workerPool.state = freeForNewWorkSetToBeAssigned
-	workerPool.conditionVariable.Signal()
 }
 
 func (workerPool *WorkerPool) handleWorkerRegistration(newWorkerRPCAddress string) {
@@ -68,44 +68,24 @@ func (workerPool *WorkerPool) handleWorkerRegistration(newWorkerRPCAddress strin
 		newWorkerRPCAddress,
 	)
 
-	if workerPool.state == workingThroughWorkSetTasks {
+	if workerPool.currentWorkSet != nil {
 		workerPool.assignTaskToWorker(newWorkerRPCAddress)
 	}
 }
 
-func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) {
-	if workerPool.state != workingThroughWorkSetTasks {
-		log.Panicf("Shouldn't try to assign work unless there maybe is some to give.")
+func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) bool {
+	nextTask, err := workerPool.currentWorkSet.getNextTask()
+
+	if err == io.EOF {
+		return false
+	} else if err != nil {
+		log.Panic("Unexpcted error getting task?\n", err)
 	}
 
-	nextWorkItem, err := workerPool.workProducingFunction()
-
-	if err == nil {
-		util.Debug("WorkAssigner: assigning new work to worker running %v\n", workerRPCAddress)
-		workerPool.sendWorkToWorker(nextWorkItem, workerRPCAddress)
-		workerPool.numWorkersWorking++
-		return
-	} else if err != io.EOF {
-		log.Panicf("Unexpected work production error: %v\n", err)
-	}
-
-	util.Debug("WorkAssigner: all work has been assigned\n")
-	workerPool.state = waitingForLastWorkSetTasksToComplete
-}
-
-func (workerPool *WorkerPool) handleMessage(message message) {
-	switch message.Kind {
-	case startNewWorkSetMessage:
-		workerPool.handleStartingNewWorkSet()
-	case workerRegistrationMessage:
-		workerPool.handleWorkerRegistration(message.Address)
-	case workerCompletedTaskMessage:
-		workerPool.handleTaskCompletion(message.Address)
-	}
-}
-
-func (workerPool *WorkerPool) sendWorkToWorker(workItem mr_rpc.Task, workerAddress string) {
-	workItem.StartOnWorker(workerAddress, func() {
-		workerPool.SendWorkerCompletedTaskMessage(workerAddress)
+	util.Debug("WorkSet: assigning new work to worker running at %v\n", workerRPCAddress)
+	nextTask.StartOnWorker(workerRPCAddress, func() {
+		workerPool.SendWorkerCompletedTaskMessage(workerRPCAddress)
 	})
+
+	return true
 }

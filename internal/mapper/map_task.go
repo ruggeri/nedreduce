@@ -29,6 +29,20 @@ func NewMapTask(
 	}
 }
 
+func AllMapTasks(
+	jobConfiguration *types.JobConfiguration,
+) []MapTask {
+	numMappers := jobConfiguration.NumMappers()
+	mapTasks := []MapTask(nil)
+
+	for mapTaskIdx := 0; mapTaskIdx < numMappers; mapTaskIdx++ {
+		mapTask := NewMapTask(jobConfiguration, mapTaskIdx)
+		mapTasks = append(mapTasks, mapTask)
+	}
+
+	return mapTasks
+}
+
 // MappingFunction loads the specified mapping function by name.
 func (mapTask *MapTask) MappingFunction() types.MappingFunction {
 	return util.LoadMappingFunctionByName(mapTask.MappingFunctionName)

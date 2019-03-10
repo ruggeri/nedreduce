@@ -1,34 +1,32 @@
 package master
 
 import (
-	"io"
 	"log"
 
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
+
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // runDistributedMapPhase runs a distributed map phase on the master.
 func runDistributedMapPhase(master *Master) {
-	mapTasksIterator := mapper.NewMapTasksIterator(master.jobConfiguration)
-
-	// This function will produce each map task one-by-one.
-	produceNextMapTask := func() (mr_rpc.Task, error) {
-		mapTask, err := mapTasksIterator.Next()
-
-		if err == io.EOF {
-			return nil, io.EOF
-		} else if err != nil {
-			log.Panicf("Unexpected MapTask iteration error: %v\n", err)
-		}
-
-		return mr_rpc.Task((*mr_rpc.MapTask)(mapTask)), nil
+	// Boilerplate to cast []MapTask to []mr_rpc.Task.
+	allTasks := []mr_rpc.Task(nil)
+	for _, mapTask := range mapper.AllMapTasks(master.jobConfiguration) {
+		mapTask := mr_rpc.MapTask(mapTask)
+		allTasks = append(allTasks, mr_rpc.Task(&mapTask))
 	}
 
 	// The worker pool will hand out the map tasks to the workers.
-	workSetResultChan := master.workerPool.AssignNewWorkSet(produceNextMapTask)
+	workSetResultChan, err := master.workerPool.AssignNewWorkSet(allTasks)
+
+	// In theory the WorkerPool could have been shut down before we could
+	// assign the work.
+	if err != nil {
+		log.Panic("WorkerPool wasn't able to start mapPhase?")
+	}
 
 	// We wait until the workAssigner has completed all the work.
 	<-workSetResultChan
@@ -37,23 +35,21 @@ func runDistributedMapPhase(master *Master) {
 // runDistributedReducePhase runs a distributed reduce phase on the
 // master.
 func runDistributedReducePhase(master *Master) {
-	reduceTasksIterator := reducer.NewReduceTasksIterator(master.jobConfiguration)
-
-	// This function will produce each reduce task one-by-one.
-	produceNextReduceTask := func() (mr_rpc.Task, error) {
-		reduceTask, err := reduceTasksIterator.Next()
-
-		if err == io.EOF {
-			return nil, io.EOF
-		} else if err != nil {
-			log.Panicf("Unexpected ReduceTask iteration error: %v\n", err)
-		}
-
-		return mr_rpc.Task((*mr_rpc.ReduceTask)(reduceTask)), nil
+	// Boilerplate to cast []ReduceTask to []mr_rpc.Task.
+	allTasks := []mr_rpc.Task(nil)
+	for _, reduceTask := range reducer.AllReduceTasks(master.jobConfiguration) {
+		reduceTask := mr_rpc.ReduceTask(reduceTask)
+		allTasks = append(allTasks, mr_rpc.Task(&reduceTask))
 	}
 
 	// The worker pool will hand out the reduce tasks to the workers.
-	workSetResultChan := master.workerPool.AssignNewWorkSet(produceNextReduceTask)
+	workSetResultChan, err := master.workerPool.AssignNewWorkSet(allTasks)
+
+	// In theory the WorkerPool could have been shut down before we could
+	// assign the work.
+	if err != nil {
+		log.Panic("WorkerPool wasn't able to start reducePhase?")
+	}
 
 	// We wait until the workAssigner has completed all the work.
 	<-workSetResultChan
