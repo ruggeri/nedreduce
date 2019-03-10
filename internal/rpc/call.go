@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"fmt"
 	"net/rpc"
 )
 
@@ -22,18 +21,22 @@ func Call(
 	rpcServerAddress string,
 	serviceMethod string,
 	args interface{},
-	reply interface{}) bool {
-	c, err := rpc.Dial("unix", rpcServerAddress)
+	reply interface{},
+) bool {
+	// TODO(MEDIUM): Make this more expressive about what kind of errors
+	// can occur. For instance, we'll need to restart tasks if there are
+	// network errors. But we also want to know about errors we can't
+	// recover from.
+	conn, err := rpc.Dial("unix", rpcServerAddress)
 	if err != nil {
 		return false
 	}
-	defer c.Close()
+	defer conn.Close()
 
-	err = c.Call(serviceMethod, args, reply)
+	err = conn.Call(serviceMethod, args, reply)
 	if err == nil {
 		return true
 	}
 
-	fmt.Println(err)
 	return false
 }

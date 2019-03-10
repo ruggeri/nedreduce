@@ -24,7 +24,9 @@ type Server struct {
 	connectionListener net.Listener
 }
 
-// StartServer starts a Server for the provided target.
+// StartServer starts a Server for the provided target. Note that we are
+// flexible on the target's name. That lets us use dummy classes with
+// fewer RPC methods exposed.
 func StartServer(address string, serverTargetName string, serverTarget interface{}) *Server {
 	server := &Server{}
 
