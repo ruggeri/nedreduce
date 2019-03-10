@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"bufio"
 	"encoding/json"
 	"hash/fnv"
 	"log"
@@ -12,8 +13,9 @@ import (
 
 // A OutputManager manages the many output files of a single map task.
 type OutputManager struct {
-	outputFiles    []os.File
-	outputEncoders []*json.Encoder
+	outputFiles        []os.File
+	outputBufioWriters []*bufio.Writer
+	outputEncoders     []*json.Encoder
 }
 
 // NewOutputManager makes a new OutputManager.
@@ -24,8 +26,9 @@ func NewOutputManager(mapTask *MapTask) OutputManager {
 
 	// Allocate space for slices.
 	outputManager := OutputManager{
-		outputFiles:    make([]os.File, 0, numReducers),
-		outputEncoders: make([]*json.Encoder, 0, numReducers),
+		outputFiles:        make([]os.File, 0, numReducers),
+		outputBufioWriters: make([]*bufio.Writer, 0, numReducers),
+		outputEncoders:     make([]*json.Encoder, 0, numReducers),
 	}
 
 	// For each reduce task...
@@ -44,9 +47,14 @@ func NewOutputManager(mapTask *MapTask) OutputManager {
 			outputManager.outputFiles, *outputFile,
 		)
 
+		bufioWriter := bufio.NewWriter(outputFile)
+		outputManager.outputBufioWriters = append(
+			outputManager.outputBufioWriters, bufioWriter,
+		)
+
 		// Then prepare a JSON encoder so we can write KeyValues in a nice
 		// format.
-		outputEncoder := json.NewEncoder(outputFile)
+		outputEncoder := json.NewEncoder(bufioWriter)
 		outputManager.outputEncoders = append(
 			outputManager.outputEncoders, outputEncoder,
 		)
@@ -67,6 +75,10 @@ func (outputManager *OutputManager) WriteKeyValue(keyValue types.KeyValue) {
 
 // Close iterates the map task output files and closes each.
 func (outputManager *OutputManager) Close() {
+	for _, bufioWriter := range outputManager.outputBufioWriters {
+		bufioWriter.Flush()
+	}
+
 	for _, outputFile := range outputManager.outputFiles {
 		outputFile.Close()
 	}
