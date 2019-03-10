@@ -5,7 +5,7 @@ type JobPhase string
 
 const (
 	// MapPhase means we are in the map phase (duh).
-	MapPhase JobPhase = "MapPhase"
+	MapPhase = JobPhase("MapPhase")
 	// ReducePhase means we are in the reduce phase (duh).
-	ReducePhase = "ReducePhase"
+	ReducePhase = JobPhase("ReducePhase")
 )
