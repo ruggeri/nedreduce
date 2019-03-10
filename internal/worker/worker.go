@@ -105,7 +105,7 @@ func (wk *Worker) DoTask(f func()) error {
 
 // Shutdown is called by the master when all work has been completed.
 // We should respond with the number of tasks we have processed.
-func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.ShutdownReply) error {
+func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.WorkerShutdownResponse) error {
 	util.Debug("Shutdown %s\n", wk.name)
 	wk.Lock()
 	defer wk.Unlock()
