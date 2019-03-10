@@ -10,7 +10,7 @@ import (
 func RunSequentialJob(
 	jobConfiguration *JobConfiguration,
 ) {
-	master := master.RunSequentialJob(jobConfiguration)
+	master := master.StartSequentialJob(jobConfiguration)
 	master.Wait()
 }
 
@@ -20,7 +20,7 @@ func RunDistributedJob(
 	jobConfiguration *JobConfiguration,
 	masterAddress string,
 ) {
-	master := master.RunDistributedJob(jobConfiguration, masterAddress)
+	master := master.StartDistributedJob(jobConfiguration, masterAddress)
 	master.Wait()
 }
 

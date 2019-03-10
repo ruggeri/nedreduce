@@ -41,11 +41,23 @@ type Worker struct {
 	parallelism *Parallelism
 }
 
+func (wk *Worker) ExecuteMapTask(mapTask *mr_rpc.MapTask, _ *struct{}) error {
+	return wk.DoTask(func() {
+		mapper.ExecuteMapping((*mapper.MapTask)(mapTask))
+	})
+}
+
+func (wk *Worker) ExecuteReduceTask(reduceTask *mr_rpc.ReduceTask, _ *struct{}) error {
+	return wk.DoTask(func() {
+		reducer.ExecuteReducing((*reducer.ReduceTask)(reduceTask))
+	})
+}
+
 // DoTask is called by the master when a new task is being scheduled on this
 // worker.
-func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
-	fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
-		wk.name, arg.JobPhase, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase)
+func (wk *Worker) DoTask(f func()) error {
+	// fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
+	// 	wk.name, arg.JobPhase, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase)
 
 	wk.Lock()
 	wk.nTasks += 1
@@ -78,27 +90,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 		time.Sleep(time.Second)
 	}
 
-	switch arg.JobPhase {
-	case types.MapPhase:
-		mapperConfiguration := mapper.NewConfiguration(
-			arg.JobName,
-			arg.TaskIdx,
-			arg.MapInputFileName,
-			arg.NumTasksInOtherPhase,
-			wk.Map,
-		)
-
-		mapper.ExecuteMapping(&mapperConfiguration)
-	case types.ReducePhase:
-		reducerConfiguration := reducer.NewConfiguration(
-			arg.JobName,
-			arg.NumTasksInOtherPhase,
-			arg.TaskIdx,
-			wk.Reduce,
-		)
-
-		reducer.ExecuteReducing(&reducerConfiguration)
-	}
+	f()
 
 	wk.Lock()
 	wk.concurrent -= 1
@@ -110,7 +102,7 @@ func (wk *Worker) DoTask(arg *mr_rpc.DoTaskArgs, _ *struct{}) error {
 		wk.parallelism.Mu.Unlock()
 	}
 
-	fmt.Printf("%s: %v task #%d done\n", wk.name, arg.JobPhase, arg.TaskIdx)
+	// fmt.Printf("%s: %v task #%d done\n", wk.name, arg.JobPhase, arg.TaskIdx)
 	return nil
 }
 
