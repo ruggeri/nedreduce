@@ -5,7 +5,7 @@ import (
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
-	"github.com/ruggeri/nedreduce/internal/worker_pool"
+	"github.com/ruggeri/nedreduce/internal/workerpool"
 )
 
 // Master can be either "running" or "jobCompleted"
@@ -26,7 +26,7 @@ type Master struct {
 	address          string
 	jobConfiguration *types.JobConfiguration
 	rpcServer        *mr_rpc.Server
-	workerPool       *worker_pool.WorkerPool
+	workerPool       *workerpool.WorkerPool
 	state            masterState
 }
 
@@ -40,7 +40,7 @@ func StartMaster(
 		address:          masterAddress,
 		jobConfiguration: jobConfiguration,
 		rpcServer:        nil,
-		workerPool:       worker_pool.Start(),
+		workerPool:       workerpool.Start(),
 		state:            runningJob,
 	}
 
