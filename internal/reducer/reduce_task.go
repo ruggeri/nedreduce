@@ -27,6 +27,7 @@ func NewReduceTask(
 	}
 }
 
+// AllReduceTasks gives a slice containing every ReduceTask for the job.
 func AllReduceTasks(
 	jobConfiguration *types.JobConfiguration,
 ) []ReduceTask {

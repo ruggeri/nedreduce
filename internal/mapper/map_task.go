@@ -29,6 +29,7 @@ func NewMapTask(
 	}
 }
 
+// AllMapTasks gives a slice containing every MapTask for the job.
 func AllMapTasks(
 	jobConfiguration *types.JobConfiguration,
 ) []MapTask {

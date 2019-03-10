@@ -30,6 +30,7 @@ type workSet struct {
 	workSetResultChannel chan WorkSetResult
 }
 
+// newWorkSet creates a new workSet.
 func newWorkSet(tasks []mr_rpc.Task) *workSet {
 	return &workSet{
 		numTasksAssigned:     0,
@@ -39,6 +40,7 @@ func newWorkSet(tasks []mr_rpc.Task) *workSet {
 	}
 }
 
+// newWorkSet gets a new task that should be assigned.
 func (workSet *workSet) getNextTask() (mr_rpc.Task, error) {
 	currentTaskIdx := workSet.numTasksCompleted + workSet.numTasksAssigned
 
@@ -51,11 +53,12 @@ func (workSet *workSet) getNextTask() (mr_rpc.Task, error) {
 	return nextTask, nil
 }
 
+// handleTaskCompletion records that a task has been completed.
 func (workSet *workSet) handleTaskCompletion() {
 	workSet.numTasksCompleted++
 	workSet.numTasksAssigned--
 
-	// If workSet is completed, asynchronously notify whoever is
+	// If workSet is entirely completed, asynchronously notify whoever is
 	// listening.
 	if workSet.isCompleted() {
 		go func() {
@@ -64,6 +67,7 @@ func (workSet *workSet) handleTaskCompletion() {
 	}
 }
 
+// isCompleted tells you if all the work in the workSet is completed.
 func (workSet *workSet) isCompleted() bool {
 	return workSet.numTasksCompleted == len(workSet.tasks)
 }

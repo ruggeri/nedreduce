@@ -119,7 +119,7 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 }
 
 // SendWorkerCompletedTaskMessage asynchronously notifies the pool
-// manager that a worker has completed their taskk.
+// manager that a worker has completed their task.
 func (workerPool *WorkerPool) SendWorkerCompletedTaskMessage(
 	workerAddress string,
 ) bool {

@@ -28,7 +28,7 @@ func runDistributedMapPhase(master *Master) {
 		log.Panic("WorkerPool wasn't able to start mapPhase?")
 	}
 
-	// We wait until the workAssigner has completed all the work.
+	// We wait until the WorkerPool has completed all the work.
 	<-workSetResultChan
 }
 
@@ -51,7 +51,7 @@ func runDistributedReducePhase(master *Master) {
 		log.Panic("WorkerPool wasn't able to start reducePhase?")
 	}
 
-	// We wait until the workAssigner has completed all the work.
+	// We wait until the WorkerPool has completed all the work.
 	<-workSetResultChan
 }
 
