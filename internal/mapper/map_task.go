@@ -5,20 +5,17 @@ import (
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
-// A MapTask contains all the information needed to performo a single
-// map task.
+// A MapTask contains all the information needed to perform a single map
+// task.
 type MapTask struct {
 	JobName             string
 	MapTaskIdx          int
 	MapperInputFileName string
 	NumReducers         int
 	MappingFunctionName string
-
-	mappingFunction types.MappingFunction
 }
 
-// NewMapTask makes a MapTask object from a
-// JobConfiguration.
+// NewMapTask makes a MapTask object from a JobConfiguration.
 func NewMapTask(
 	jobConfiguration *types.JobConfiguration,
 	mapTaskIdx int,
@@ -29,15 +26,10 @@ func NewMapTask(
 		MapperInputFileName: jobConfiguration.MapperInputFileNames[mapTaskIdx],
 		NumReducers:         jobConfiguration.NumReducers,
 		MappingFunctionName: jobConfiguration.MappingFunctionName,
-		mappingFunction:     nil,
 	}
 }
 
+// MappingFunction loads the specified mapping function by name.
 func (mapTask *MapTask) MappingFunction() types.MappingFunction {
-	if mapTask.mappingFunction == nil {
-		mapTask.mappingFunction = util.LoadMappingFunctionByName(mapTask.MappingFunctionName)
-
-	}
-
-	return mapTask.mappingFunction
+	return util.LoadMappingFunctionByName(mapTask.MappingFunctionName)
 }

@@ -11,8 +11,6 @@ type ReduceTask struct {
 	NumMappers           int
 	ReduceTaskIdx        int
 	ReducingFunctionName string
-
-	reducingFunction types.ReducingFunction
 }
 
 // ReduceTaskFromJobConfiguration makes a reducer.ReduceTask object from
@@ -44,10 +42,7 @@ func NewReduceTask(
 	}
 }
 
+// ReducingFunction loads the specified reducing function by name.
 func (reduceTask *ReduceTask) ReducingFunction() types.ReducingFunction {
-	if reduceTask.reducingFunction == nil {
-		reduceTask.reducingFunction = util.LoadReducingFunctionByName(reduceTask.ReducingFunctionName)
-	}
-
-	return reduceTask.reducingFunction
+	return util.LoadReducingFunctionByName(reduceTask.ReducingFunctionName)
 }

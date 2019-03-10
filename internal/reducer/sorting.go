@@ -77,10 +77,14 @@ func sortReducerInputFile(
 	}
 	defer inputWritingFile.Close()
 
+	// Use buffered writing for better performance.
 	inputFileBufioWriter := bufio.NewWriter(inputWritingFile)
 	defer inputFileBufioWriter.Flush()
 
+	// Setup the encoder.
 	encoder := json.NewEncoder(inputFileBufioWriter)
+
+	// And now write all sorted data back out.
 	for _, keyValue := range keyValues {
 		err := encoder.Encode(keyValue)
 		if err != nil {

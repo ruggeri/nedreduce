@@ -47,6 +47,7 @@ func NewOutputManager(mapTask *MapTask) OutputManager {
 			outputManager.outputFiles, *outputFile,
 		)
 
+		// We'll buffer the output for better performance.
 		bufioWriter := bufio.NewWriter(outputFile)
 		outputManager.outputBufioWriters = append(
 			outputManager.outputBufioWriters, bufioWriter,

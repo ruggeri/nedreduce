@@ -44,6 +44,7 @@ func NewInputManager(reduceTask *ReduceTask) InputManager {
 			inputManager.inputFiles, *inputFile,
 		)
 
+		// We'll buffer reading for better performance.
 		inputBufioReader := bufio.NewReader(inputFile)
 		inputManager.inputBufioReaders = append(
 			inputManager.inputBufioReaders, inputBufioReader,

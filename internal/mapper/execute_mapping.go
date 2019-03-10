@@ -34,6 +34,7 @@ func ExecuteMapping(mapTask *MapTask) {
 		"mapTaskIdx %v: Beginning mapping.\n", mapTask.MapTaskIdx,
 	)
 
+	// Get the mappingFunction to use.
 	mappingFunction := mapTask.MappingFunction()
 
 	for {

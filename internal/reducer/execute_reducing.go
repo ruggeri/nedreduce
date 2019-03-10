@@ -34,7 +34,7 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 	inputManager := NewInputManager(reduceTask)
 	defer inputManager.Close()
 
-	// Open the reducer's output file. Setup the output encoder.
+	// Open the reducer's output file.
 	outputFileName := util.ReducerOutputFileName(
 		reduceTask.JobName, reduceTask.ReduceTaskIdx,
 	)
@@ -46,9 +46,11 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 	}
 	defer outputFile.Close()
 
+	// We'll buffer the output for better performance.
 	outputBufioWriter := bufio.NewWriter(outputFile)
 	defer outputBufioWriter.Flush()
 
+	// Setup the output encoder.
 	outputEncoder := json.NewEncoder(outputBufioWriter)
 
 	util.Debug(
@@ -56,6 +58,7 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 		reduceTask.ReduceTaskIdx,
 	)
 
+	// Get the reducingFunction to use.
 	reducingFunction := reduceTask.ReducingFunction()
 
 	// Iterate the groups one at a time.
