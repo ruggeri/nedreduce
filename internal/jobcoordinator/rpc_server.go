@@ -5,10 +5,10 @@ import (
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
-// masterRPCTarget is a dummy type that exposes only those methods of
-// the JobCoordinator that should be called via RPC.
+// jobCoordinatorRPCTarget is a dummy type that exposes only those
+// methods of the JobCoordinator that should be called via RPC.
 type jobCoordinatorRPCTarget struct {
-	master *JobCoordinator
+	jobCoordinator *JobCoordinator
 }
 
 // RegisterWorker is called by workers after they have started up so
@@ -18,46 +18,47 @@ func (rpcServerTarget *jobCoordinatorRPCTarget) RegisterWorker(
 	_ *struct{},
 ) error {
 	util.Debug(
-		"master running at %s received RegisterWorker RPC from worker @ %s\n",
-		rpcServerTarget.master.address,
+		"jobCoordinator running at %s received RegisterWorker RPC from worker @ %s\n",
+		rpcServerTarget.jobCoordinator.address,
 		registrationMessage.WorkerRPCAdress,
 	)
 
-	// The master's workerRegistrationManager is responsible for notifying
-	// folks about this new worker.
-	rpcServerTarget.master.workerPool.RegisterNewWorker(
+	// The jobCoordinator's workerRegistrationManager is responsible for
+	// notifying folks about this new worker.
+	rpcServerTarget.jobCoordinator.workerPool.RegisterNewWorker(
 		registrationMessage.WorkerRPCAdress,
 	)
 
 	return nil
 }
 
-// Shutdown is called to shut down the master.
+// Shutdown is called to shut down the jobCoordinator.
 //
-// TODO(HIGH): I should re-enable remote shutdown of the master in case
+// TODO(HIGH): I should re-enable remote shutdown of the jobCoordinator in case
 // we want to kill it early.
 //
-// func (rpcServerTarget *masterRPCTarget) Shutdown(_, _ *struct{})
+// func (rpcServerTarget *jobCoordinatorRPCTarget) Shutdown(_, _ *struct{})
 // error {
 //  util.Debug(
-//    "master running at %s received Shutdown RPC\n",
-//    rpcServerTarget.master.address,
+//    "jobCoordinator running at %s received Shutdown RPC\n",
+//    rpcServerTarget.jobCoordinator.address,
 //  )
 //
-// 	rpcServerTarget.master.Shutdown()
+// 	rpcServerTarget.jobCoordinator.Shutdown()
 //
 // 	return nil
 // }
 
 // startJobCoordinatorRPCServer is used by the JobCoordinator to start
 // its RPC server.
-func startJobCoordinatorRPCServer(master *JobCoordinator) *mr_rpc.Server {
+func startJobCoordinatorRPCServer(jobCoordinator *JobCoordinator) *mr_rpc.Server {
 	// Notice how I specify the target's name as "JobCoordinator", even
-	// though in theory it would be masterRPCTarget? This is how I obscure
-	// those methods of JobCoordinator that I don't want to be RPCable.
+	// though in theory it would be jobCoordinatorRPCTarget? This is how I
+	// obscure those methods of JobCoordinator that I don't want to be
+	// RPCable.
 	return mr_rpc.StartServer(
-		master.address,
+		jobCoordinator.address,
 		"JobCoordinator",
-		&jobCoordinatorRPCTarget{master: master},
+		&jobCoordinatorRPCTarget{jobCoordinator: jobCoordinator},
 	)
 }

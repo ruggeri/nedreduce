@@ -116,7 +116,7 @@ func port(suffix string) string {
 
 func setup() (*types.JobConfiguration, *jobcoordinator.JobCoordinator) {
 	files := makeInputs(nMap)
-	masterPort := port("master")
+	jobCoordinatorPort := port("jobCoordinator")
 
 	configuration := types.NewJobConfiguration(
 		"test",
@@ -126,8 +126,8 @@ func setup() (*types.JobConfiguration, *jobcoordinator.JobCoordinator) {
 		"WordCountingReducingFunction",
 	)
 
-	master := jobcoordinator.StartDistributedJob(&configuration, masterPort)
-	return &configuration, master
+	jobCoordinator := jobcoordinator.StartDistributedJob(&configuration, jobCoordinatorPort)
+	return &configuration, jobCoordinator
 }
 
 func cleanup(jobConfiguration *types.JobConfiguration) {
@@ -151,10 +151,10 @@ func TestSequentialSingle(t *testing.T) {
 
 	defer cleanup(&configuration)
 
-	master := jobcoordinator.StartSequentialJob(&configuration)
-	master.Wait()
+	jobCoordinator := jobcoordinator.StartSequentialJob(&configuration)
+	jobCoordinator.Wait()
 	check(t, configuration.MapperInputFileNames)
-	// checkWorker(t, master.Stats)
+	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestSequentialMany(t *testing.T) {
@@ -170,19 +170,19 @@ func TestSequentialMany(t *testing.T) {
 
 	defer cleanup(&configuration)
 
-	master := jobcoordinator.StartSequentialJob(&configuration)
-	master.Wait()
+	jobCoordinator := jobcoordinator.StartSequentialJob(&configuration)
+	jobCoordinator.Wait()
 	check(t, configuration.MapperInputFileNames)
-	// checkWorker(t, master.Stats)
+	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestParallelBasic(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, master := setup()
+	configuration, jobCoordinator := setup()
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
-			master.Address(),
+			jobCoordinator.Address(),
 			port("worker"+strconv.Itoa(i)),
 			-1,
 			nil,
@@ -191,29 +191,29 @@ func TestParallelBasic(t *testing.T) {
 
 	defer cleanup(configuration)
 
-	master.Wait()
+	jobCoordinator.Wait()
 	check(t, configuration.MapperInputFileNames)
-	// checkWorker(t, master.Stats)
+	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestParallelCheck(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, master := setup()
+	configuration, jobCoordinator := setup()
 	defer cleanup(configuration)
 
 	parallelism := &worker.Parallelism{}
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
-			master.Address(),
+			jobCoordinator.Address(),
 			port("worker"+strconv.Itoa(i)),
 			-1,
 			parallelism,
 		)
 	}
-	master.Wait()
+	jobCoordinator.Wait()
 	check(t, configuration.MapperInputFileNames)
-	// checkWorker(t, master.Stats)
+	// checkWorker(t, jobCoordinator.Stats)
 
 	parallelism.Mu.Lock()
 	if parallelism.Max < 2 {
@@ -225,36 +225,36 @@ func TestParallelCheck(t *testing.T) {
 func TestOneFailure(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, master := setup()
+	configuration, jobCoordinator := setup()
 	defer cleanup(configuration)
 
 	// Start 2 workers that fail after 10 tasks
 	go worker.RunWorker(
-		master.Address(),
+		jobCoordinator.Address(),
 		port("worker"+strconv.Itoa(0)),
 		10,
 		nil,
 	)
 	go worker.RunWorker(
-		master.Address(),
+		jobCoordinator.Address(),
 		port("worker"+strconv.Itoa(1)),
 		-1,
 		nil,
 	)
-	master.Wait()
+	jobCoordinator.Wait()
 	check(t, configuration.MapperInputFileNames)
-	// checkWorker(t, master.Stats)
+	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestManyFailures(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, master := setup()
+	configuration, jobCoordinator := setup()
 	defer cleanup(configuration)
 
 	doneChannel := make(chan struct{})
 	go func() {
-		master.Wait()
+		jobCoordinator.Wait()
 		doneChannel <- struct{}{}
 	}()
 
@@ -269,7 +269,7 @@ func TestManyFailures(t *testing.T) {
 			// Start 2 workers each sec. The workers fail after 10 tasks
 			w := port("worker" + strconv.Itoa(i))
 			go worker.RunWorker(
-				master.Address(),
+				jobCoordinator.Address(),
 				w,
 				10,
 				nil,
@@ -277,7 +277,7 @@ func TestManyFailures(t *testing.T) {
 			i++
 			w = port("worker" + strconv.Itoa(i))
 			go worker.RunWorker(
-				master.Address(),
+				jobCoordinator.Address(),
 				w,
 				10,
 				nil,

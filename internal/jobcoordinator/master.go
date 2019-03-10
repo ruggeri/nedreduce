@@ -16,8 +16,8 @@ const (
 	jobCompleted = jobCoordinatorState("jobCompleted")
 )
 
-// JobCoordinator holds all the state that the master needs to keep
-// track of.
+// JobCoordinator holds all the state that the jobCoordinator needs to
+// keep track of.
 type JobCoordinator struct {
 	mutex             sync.Mutex
 	conditionVariable *sync.Cond
@@ -32,64 +32,64 @@ type JobCoordinator struct {
 // StartJobCoordinator creates a new JobCoordinator and starts it
 // running an RPC Server and a WorkerPool.
 func StartJobCoordinator(
-	masterAddress string,
+	jobCoordinatorAddress string,
 	jobConfiguration *types.JobConfiguration,
 ) *JobCoordinator {
-	master := &JobCoordinator{
-		address:          masterAddress,
+	jobCoordinator := &JobCoordinator{
+		address:          jobCoordinatorAddress,
 		jobConfiguration: jobConfiguration,
 		rpcServer:        nil,
 		workerPool:       workerpool.Start(),
 		state:            runningJob,
 	}
 
-	master.conditionVariable = sync.NewCond(&master.mutex)
-	master.rpcServer = startJobCoordinatorRPCServer(master)
+	jobCoordinator.conditionVariable = sync.NewCond(&jobCoordinator.mutex)
+	jobCoordinator.rpcServer = startJobCoordinatorRPCServer(jobCoordinator)
 
-	return master
+	return jobCoordinator
 }
 
 // Address is merely a getter used elsewhere (simply for logging, I
 // think).
-func (master *JobCoordinator) Address() string {
-	return master.address
+func (jobCoordinator *JobCoordinator) Address() string {
+	return jobCoordinator.address
 }
 
-// MarkJobAsCompleted tells the master that the job is complete. The
-// JobCoordinator should now shut itself down.
-func (master *JobCoordinator) MarkJobAsCompleted() {
-	master.mutex.Lock()
-	defer master.mutex.Unlock()
+// MarkJobAsCompleted tells the jobCoordinator that the job is complete.
+// The JobCoordinator should now shut itself down.
+func (jobCoordinator *JobCoordinator) MarkJobAsCompleted() {
+	jobCoordinator.mutex.Lock()
+	defer jobCoordinator.mutex.Unlock()
 
-	if master.state == jobCompleted {
+	if jobCoordinator.state == jobCompleted {
 		// Ignore redundant requests to shutdown.
 		return
 	}
 
 	// Tell the RPC server and the workerRegistrationManager to both shut
 	// themselves down.
-	master.rpcServer.Shutdown()
-	master.workerPool.Shutdown()
+	jobCoordinator.rpcServer.Shutdown()
+	jobCoordinator.workerPool.Shutdown()
 
 	// Update our state.
-	master.state = jobCompleted
+	jobCoordinator.state = jobCompleted
 
 	// And last, let waiters know the job is complete.
-	master.conditionVariable.Broadcast()
+	jobCoordinator.conditionVariable.Broadcast()
 }
 
 // Wait blocks until the job has completed. This happens when all tasks
 // have been scheduled and completed, the final output have been
 // computed, and all workers have been shut down.
-func (master *JobCoordinator) Wait() {
-	master.mutex.Lock()
-	defer master.mutex.Unlock()
+func (jobCoordinator *JobCoordinator) Wait() {
+	jobCoordinator.mutex.Lock()
+	defer jobCoordinator.mutex.Unlock()
 
 	for {
-		if master.state == jobCompleted {
+		if jobCoordinator.state == jobCompleted {
 			return
 		}
 
-		master.conditionVariable.Wait()
+		jobCoordinator.conditionVariable.Wait()
 	}
 }

@@ -15,8 +15,8 @@ type JobConfiguration struct {
 // Note that mapping/reducing functions are specified by *name*. That is
 // because workers need to be able to start up without knowing the
 // mapping/reducing functions in advance, and it is not possible to send
-// functions themselves over the wire from master to reducer. (Or even
-// from client to master.)
+// functions themselves over the wire from jobCoordinator to reducer.
+// (Or even from client to jobCoordinator.)
 func NewJobConfiguration(
 	jobName string,
 	mapperInputFileNames []string,

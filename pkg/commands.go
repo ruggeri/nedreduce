@@ -10,30 +10,34 @@ import (
 func RunSequentialJob(
 	jobConfiguration *JobConfiguration,
 ) {
-	master := jobcoordinator.StartSequentialJob(jobConfiguration)
-	master.Wait()
+	jobCoordinator := jobcoordinator.StartSequentialJob(jobConfiguration)
+	jobCoordinator.Wait()
 }
 
 // RunDistributedJob schedules map and reduce tasks on workers that
-// register with the master over RPC.
+// register with the jobCoordinator over RPC.
 func RunDistributedJob(
 	jobConfiguration *JobConfiguration,
-	masterAddress string,
+	jobCoordinatorAddress string,
 ) {
-	master := jobcoordinator.StartDistributedJob(jobConfiguration, masterAddress)
-	master.Wait()
+	jobCoordinator := jobcoordinator.StartDistributedJob(
+		jobConfiguration,
+		jobCoordinatorAddress,
+	)
+	jobCoordinator.Wait()
 }
 
-// RunWorker will run a worker, connecting to the specified master, and
-// listening for RPC instructions at the specified worker address.
+// RunWorker will run a worker, connecting to the specified
+// jobCoordinator, and listening for RPC instructions at the specified
+// worker address.
 func RunWorker(
-	masterAddress string,
+	jobCoordinatorAddress string,
 	workerAddress string,
 	nRPC int,
 ) {
 	// TODO(MEDIUM): what is nRPC?
 	worker.RunWorker(
-		masterAddress,
+		jobCoordinatorAddress,
 		workerAddress,
 		nRPC,
 		nil,
