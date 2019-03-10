@@ -1,5 +1,7 @@
 package master
 
+// TODO(HIGH): what's the plan with killWorkers?
+
 // //
 // // Please do not modify this file.
 // //

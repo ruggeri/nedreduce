@@ -7,4 +7,4 @@ import (
 // A WorkProducingFunction is how a user of the WorkAssigner produces
 // WorkItems to be assigned. When there is no more work to be assigned,
 // the WorkProducingFunction should return nil.
-type WorkProducingFunction func() mr_rpc.Task
+type WorkProducingFunction func() (mr_rpc.Task, error)

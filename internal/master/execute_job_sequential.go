@@ -9,6 +9,8 @@ import (
 	"github.com/ruggeri/nedreduce/internal/types"
 )
 
+// runSequentialMapPhase runs a map phase on the master, running each
+// map task one-at-a-time.
 func runSequentialMapPhase(
 	master *Master,
 ) {
@@ -19,11 +21,9 @@ func runSequentialMapPhase(
 	for {
 		mapTask, err := mapTasksIterator.Next()
 
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-
+		if err == io.EOF {
+			return
+		} else if err != nil {
 			log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
 		}
 
@@ -31,6 +31,8 @@ func runSequentialMapPhase(
 	}
 }
 
+// runSequentialReducePhase runs a map phase on the master, running each
+// reduce task one-at-a-time.
 func runSequentialReducePhase(
 	master *Master,
 ) {
@@ -41,11 +43,9 @@ func runSequentialReducePhase(
 	for {
 		reduceTask, err := reduceTasksIterator.Next()
 
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-
+		if err == io.EOF {
+			return
+		} else if err != nil {
 			log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
 		}
 
@@ -60,6 +60,8 @@ func StartSequentialJob(
 ) *Master {
 	master := StartMaster("master", jobConfiguration)
 
+	// Even though work is done sequentially, it is performed in a
+	// background goroutine.
 	go master.executeJob(
 		runSequentialMapPhase,
 		runSequentialReducePhase,

@@ -8,7 +8,7 @@ import (
 	"github.com/ruggeri/nedreduce/internal/util/worker_registration_manager"
 )
 
-// Master can be either "running" or "shutdown"
+// Master can be either "running" or "jobCompleted"
 type masterState string
 
 const (
@@ -17,6 +17,8 @@ const (
 )
 
 // Master holds all the state that the master needs to keep track of.
+//
+// TODO(HIGH): rename to JobCoordinator.
 type Master struct {
 	mutex             sync.Mutex
 	conditionVariable *sync.Cond
@@ -26,10 +28,6 @@ type Master struct {
 	rpcServer                 *mr_rpc.Server
 	workerRegistrationManager *worker_registration_manager.WorkerRegistrationManager
 	state                     masterState
-}
-
-func (master *Master) Address() string {
-	return master.address
 }
 
 // StartMaster creates a new Master and starts it running an RPC Server
@@ -52,10 +50,15 @@ func StartMaster(
 	return master
 }
 
-// Shutdown tells the master to shut itself down. That involves killing
-// those goroutines responsible for running the RPC Server and for
-// managing the WorkerRegistrationManager.
-func (master *Master) Shutdown() {
+// Address is merely a getter used elsewhere (simply for logging, I
+// think).
+func (master *Master) Address() string {
+	return master.address
+}
+
+// MarkJobAsCompleted tells the master that the job is complete. The
+// Master should now shut itself down.
+func (master *Master) MarkJobAsCompleted() {
 	master.mutex.Lock()
 	defer master.mutex.Unlock()
 
@@ -64,16 +67,21 @@ func (master *Master) Shutdown() {
 		return
 	}
 
+	// Tell the RPC server and the workerRegistrationManager to both shut
+	// themselves down.
 	master.rpcServer.Shutdown()
 	master.workerRegistrationManager.SendShutdown()
 
+	// Update our state.
 	master.state = jobCompleted
+
+	// And last, let waiters know the job is complete.
 	master.conditionVariable.Broadcast()
 }
 
-// Wait blocks until the currently scheduled work has completed. This
-// happens when all tasks have been scheduled and completed, the final
-// output have been computed, and all workers have been shut down.
+// Wait blocks until the job has completed. This happens when all tasks
+// have been scheduled and completed, the final output have been
+// computed, and all workers have been shut down.
 func (master *Master) Wait() {
 	master.mutex.Lock()
 	defer master.mutex.Unlock()

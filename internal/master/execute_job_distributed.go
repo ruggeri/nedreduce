@@ -11,47 +11,58 @@ import (
 	"github.com/ruggeri/nedreduce/internal/util/work_assigner"
 )
 
+// runDistributedMapPhase runs a distributed map phase on the master.
 func runDistributedMapPhase(master *Master) {
 	mapTasksIterator := mapper.NewMapTasksIterator(master.jobConfiguration)
 
+	// This function will produce each map task one-by-one.
+	produceNextMapTask := func() (mr_rpc.Task, error) {
+		mapTask, err := mapTasksIterator.Next()
+
+		if err == io.EOF {
+			return nil, io.EOF
+		} else if err != nil {
+			log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
+		}
+
+		return mr_rpc.Task((*mr_rpc.MapTask)(mapTask)), nil
+	}
+
+	// The workAssigner will hand out the map tasks to the workers.
 	workAssigner := work_assigner.Start(
-		func() mr_rpc.Task {
-			mapTask, err := mapTasksIterator.Next()
-			if err != nil {
-				if err == io.EOF {
-					return nil
-				}
-
-				log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
-			}
-
-			return mr_rpc.Task((*mr_rpc.MapTask)(mapTask))
-		},
+		produceNextMapTask,
 		master.workerRegistrationManager.NewWorkerRPCAddressStream(),
 	)
 
+	// We wait until the workAssigner has completed all the work.
 	workAssigner.Wait()
 }
 
+// runDistributedReducePhase runs a distributed reduce phase on the
+// master.
 func runDistributedReducePhase(master *Master) {
 	reduceTasksIterator := reducer.NewReduceTasksIterator(master.jobConfiguration)
 
+	// This function will produce each reduce task one-by-one.
+	produceNextReduceTask := func() (mr_rpc.Task, error) {
+		reduceTask, err := reduceTasksIterator.Next()
+
+		if err == io.EOF {
+			return nil, io.EOF
+		} else if err != nil {
+			log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
+		}
+
+		return mr_rpc.Task((*mr_rpc.ReduceTask)(reduceTask)), nil
+	}
+
+	// The workAssigner will hand out the map tasks to the workers.
 	workAssigner := work_assigner.Start(
-		func() mr_rpc.Task {
-			reduceTask, err := reduceTasksIterator.Next()
-			if err != nil {
-				if err == io.EOF {
-					return nil
-				}
-
-				log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
-			}
-
-			return mr_rpc.Task((*mr_rpc.ReduceTask)(reduceTask))
-		},
+		produceNextReduceTask,
 		master.workerRegistrationManager.NewWorkerRPCAddressStream(),
 	)
 
+	// We wait until the workAssigner has completed all the work.
 	workAssigner.Wait()
 }
 
@@ -65,6 +76,7 @@ func StartDistributedJob(
 	// can listen for connections.
 	master := StartMaster(masterAddress, jobConfiguration)
 
+	// In the background, begin executing the job.
 	go master.executeJob(
 		runDistributedMapPhase,
 		runDistributedReducePhase,

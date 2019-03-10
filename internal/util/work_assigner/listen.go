@@ -1,6 +1,11 @@
 package work_assigner
 
-import "github.com/ruggeri/nedreduce/internal/util"
+import (
+	"io"
+	"log"
+
+	"github.com/ruggeri/nedreduce/internal/util"
+)
 
 type WorkerRegistrationChannel chan string
 
@@ -32,13 +37,15 @@ func (workAssigner *WorkAssigner) handleMessage(message message) {
 		workAssigner.numWorkersWorking--
 	}
 
-	nextWorkItem := workAssigner.workProducingFunction()
+	nextWorkItem, err := workAssigner.workProducingFunction()
 
-	if nextWorkItem != nil {
+	if err == io.EOF {
 		util.Debug("WorkAssigner: assigning new work to worker running %v\n", message.Address)
 		workAssigner.SendWorkToWorker(nextWorkItem, message.Address)
 		workAssigner.numWorkersWorking++
 		return
+	} else if err != nil {
+		log.Fatalf("Unexpected work production error: %v\n", err)
 	}
 
 	if workAssigner.state == assigningNewWork {
