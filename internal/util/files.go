@@ -33,7 +33,7 @@ func ReducerOutputFileName(jobName string, reduceTaskIdx int) string {
 func RemoveFile(n string) {
 	err := os.Remove(n)
 	if err != nil {
-		log.Fatal("CleanupFiles ", err)
+		log.Print("CleanupFiles: ", err)
 	}
 }
 
