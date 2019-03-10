@@ -8,7 +8,6 @@
 * `rpc.Server` doesn't try to figure out why `conn.Accept` fails.
 * Clear out `killWorkers` code in master?
 * Re-enable remote shutdown of Master.
-* Rename Master to JobCoordinator.
 
 **Medium**
 
