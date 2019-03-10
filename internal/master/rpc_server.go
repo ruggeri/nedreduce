@@ -13,16 +13,21 @@ type masterRPCTarget struct {
 
 // RegisterWorker is called by workers after they have started up so
 // they can report that they are ready to receive tasks.
-func (rpcServerTarget *masterRPCTarget) RegisterWorker(args *mr_rpc.RegisterArgs, _ *struct{}) error {
+func (rpcServerTarget *masterRPCTarget) RegisterWorker(
+	registrationMessage *mr_rpc.WorkerRegistrationMessage,
+	_ *struct{},
+) error {
 	util.Debug(
 		"master running at %s received RegisterWorker RPC from worker @ %s\n",
 		rpcServerTarget.master.address,
-		args.WorkerRPCAdress,
+		registrationMessage.WorkerRPCAdress,
 	)
 
 	// The master's workerRegistrationManager is responsible for notifying
 	// folks about this new worker.
-	rpcServerTarget.master.workerRegistrationManager.SendNewWorker(args.WorkerRPCAdress)
+	rpcServerTarget.master.workerRegistrationManager.SendNewWorker(
+		registrationMessage.WorkerRPCAdress,
+	)
 
 	return nil
 }

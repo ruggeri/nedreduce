@@ -116,7 +116,7 @@ func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.ShutdownReply) error {
 
 // Tell the master we exist and ready to work
 func (wk *Worker) register(master string) {
-	args := new(mr_rpc.RegisterArgs)
+	args := new(mr_rpc.WorkerRegistrationMessage)
 	args.WorkerRPCAdress = wk.name
 	ok := mr_rpc.Call(master, "Master.RegisterWorker", args, new(struct{}))
 	if ok == false {
