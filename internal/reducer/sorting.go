@@ -1,6 +1,7 @@
 package reducer
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
 	"log"
@@ -76,7 +77,10 @@ func sortReducerInputFile(
 	}
 	defer inputWritingFile.Close()
 
-	encoder := json.NewEncoder(inputWritingFile)
+	inputFileBufioWriter := bufio.NewWriter(inputWritingFile)
+	defer inputFileBufioWriter.Flush()
+
+	encoder := json.NewEncoder(inputFileBufioWriter)
 	for _, keyValue := range keyValues {
 		err := encoder.Encode(keyValue)
 		if err != nil {

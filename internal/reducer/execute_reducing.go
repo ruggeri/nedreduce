@@ -1,6 +1,7 @@
 package reducer
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
 	"log"
@@ -44,7 +45,11 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 		log.Fatalf("error opening reducer output file: %v\n", err)
 	}
 	defer outputFile.Close()
-	outputEncoder := json.NewEncoder(outputFile)
+
+	outputBufioWriter := bufio.NewWriter(outputFile)
+	defer outputBufioWriter.Flush()
+
+	outputEncoder := json.NewEncoder(outputBufioWriter)
 
 	util.Debug(
 		"reduceTaskIdx %v: Beginning reducing.\n",

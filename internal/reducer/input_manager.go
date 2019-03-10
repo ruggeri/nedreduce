@@ -1,6 +1,7 @@
 package reducer
 
 import (
+	"bufio"
 	"encoding/json"
 	"log"
 	"os"
@@ -11,8 +12,9 @@ import (
 // A InputManager manages the mapper output files that constitute the
 // input for this reduce task.
 type InputManager struct {
-	inputFiles    []os.File
-	inputDecoders []*json.Decoder
+	inputFiles        []os.File
+	inputBufioReaders []*bufio.Reader
+	inputDecoders     []*json.Decoder
 }
 
 // NewInputManager opens the appropriate files, sets up the decoders,
@@ -23,8 +25,9 @@ func NewInputManager(reduceTask *ReduceTask) InputManager {
 	reduceTaskIdx := reduceTask.ReduceTaskIdx
 
 	inputManager := InputManager{
-		inputFiles:    make([]os.File, 0, numMappers),
-		inputDecoders: make([]*json.Decoder, 0, numMappers),
+		inputFiles:        make([]os.File, 0, numMappers),
+		inputBufioReaders: make([]*bufio.Reader, 0, numMappers),
+		inputDecoders:     make([]*json.Decoder, 0, numMappers),
 	}
 
 	// For each map task...
@@ -41,9 +44,14 @@ func NewInputManager(reduceTask *ReduceTask) InputManager {
 			inputManager.inputFiles, *inputFile,
 		)
 
+		inputBufioReader := bufio.NewReader(inputFile)
+		inputManager.inputBufioReaders = append(
+			inputManager.inputBufioReaders, inputBufioReader,
+		)
+
 		// Then prepare a JSON decoder so we can read KeyValues in a nice
 		// format.
-		inputDecoder := json.NewDecoder(inputFile)
+		inputDecoder := json.NewDecoder(inputBufioReader)
 		inputManager.inputDecoders = append(
 			inputManager.inputDecoders, inputDecoder,
 		)
