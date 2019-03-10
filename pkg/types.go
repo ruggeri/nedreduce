@@ -13,14 +13,14 @@ func NewJobConfiguration(
 	jobName string,
 	mapperInputFileNames []string,
 	numReducers int,
-	mappingFunction MappingFunction,
-	reducingFunction ReducingFunction,
+	mappingFunctionName string,
+	reducingFunctionName string,
 ) JobConfiguration {
 	return types.NewJobConfiguration(
 		jobName,
 		mapperInputFileNames,
 		numReducers,
-		mappingFunction,
-		reducingFunction,
+		mappingFunctionName,
+		reducingFunctionName,
 	)
 }

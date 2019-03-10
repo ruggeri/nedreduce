@@ -2,7 +2,6 @@ package nedreduce
 
 import (
 	"fmt"
-	"io"
 	"testing"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -27,38 +25,6 @@ const (
 
 // Create input file with N numbers
 // Check if we have N numbers in output file
-
-// Split in words
-func wordSplittingMappingFunction(
-	inputFileName string,
-	line string,
-	mappingEmitterFunction types.EmitterFunction,
-) {
-	// util.Debug("Map %v\n", line)
-	words := strings.Fields(line)
-	for _, w := range words {
-		kv := types.KeyValue{Key: w, Value: ""}
-		mappingEmitterFunction(kv)
-	}
-}
-
-func wordCountingReducingFunction(
-	groupKey string,
-	groupIteratorfunction types.GroupIteratorFunction,
-	reducingEmitterFunction types.EmitterFunction,
-) {
-	for {
-		kv, err := groupIteratorfunction()
-
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Fatalf("unexpected reducing error: %v\n", err)
-		}
-
-		reducingEmitterFunction(*kv)
-	}
-}
 
 // Checks input file agaist output file: each input number should show up
 // in the output file in string sorted order
@@ -156,8 +122,8 @@ func setup() (*types.JobConfiguration, *master.Master) {
 		"test",
 		files,
 		nReduce,
-		wordSplittingMappingFunction,
-		wordCountingReducingFunction,
+		"WordSplittingMappingFunctionForTest",
+		"WordCountingReducingFunction",
 	)
 
 	master := master.StartDistributedJob(&configuration, masterPort)
@@ -173,12 +139,14 @@ func cleanup(jobConfiguration *types.JobConfiguration) {
 }
 
 func TestSequentialSingle(t *testing.T) {
+	util.SetPluginPath("../build/plugin.so")
+
 	configuration := types.NewJobConfiguration(
 		"test",
 		makeInputs(1),
 		1,
-		wordSplittingMappingFunction,
-		wordCountingReducingFunction,
+		"WordSplittingMappingFunctionForTest",
+		"WordCountingReducingFunction",
 	)
 
 	master := master.StartSequentialJob(&configuration)
@@ -189,12 +157,14 @@ func TestSequentialSingle(t *testing.T) {
 }
 
 func TestSequentialMany(t *testing.T) {
+	util.SetPluginPath("../build/plugin.so")
+
 	configuration := types.NewJobConfiguration(
 		"test",
 		makeInputs(5),
 		3,
-		wordSplittingMappingFunction,
-		wordCountingReducingFunction,
+		"WordSplittingMappingFunctionForTest",
+		"WordCountingReducingFunction",
 	)
 
 	master := master.StartSequentialJob(&configuration)
@@ -205,13 +175,13 @@ func TestSequentialMany(t *testing.T) {
 }
 
 func TestParallelBasic(t *testing.T) {
+	util.SetPluginPath("../build/plugin.so")
+
 	configuration, master := setup()
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
 			master.Address(),
 			port("worker"+strconv.Itoa(i)),
-			wordSplittingMappingFunction,
-			wordCountingReducingFunction,
 			-1,
 			nil,
 		)
@@ -223,14 +193,14 @@ func TestParallelBasic(t *testing.T) {
 }
 
 func TestParallelCheck(t *testing.T) {
+	util.SetPluginPath("../build/plugin.so")
+
 	configuration, master := setup()
 	parallelism := &worker.Parallelism{}
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
 			master.Address(),
 			port("worker"+strconv.Itoa(i)),
-			wordSplittingMappingFunction,
-			wordCountingReducingFunction,
 			-1,
 			parallelism,
 		)
@@ -249,21 +219,19 @@ func TestParallelCheck(t *testing.T) {
 }
 
 func TestOneFailure(t *testing.T) {
+	util.SetPluginPath("../build/plugin.so")
+
 	configuration, master := setup()
 	// Start 2 workers that fail after 10 tasks
 	go worker.RunWorker(
 		master.Address(),
 		port("worker"+strconv.Itoa(0)),
-		wordSplittingMappingFunction,
-		wordCountingReducingFunction,
 		10,
 		nil,
 	)
 	go worker.RunWorker(
 		master.Address(),
 		port("worker"+strconv.Itoa(1)),
-		wordSplittingMappingFunction,
-		wordCountingReducingFunction,
 		-1,
 		nil,
 	)
@@ -274,6 +242,8 @@ func TestOneFailure(t *testing.T) {
 }
 
 func TestManyFailures(t *testing.T) {
+	util.SetPluginPath("../build/plugin.so")
+
 	configuration, master := setup()
 
 	doneChannel := make(chan struct{})
@@ -296,8 +266,6 @@ func TestManyFailures(t *testing.T) {
 			go worker.RunWorker(
 				master.Address(),
 				w,
-				wordSplittingMappingFunction,
-				wordCountingReducingFunction,
 				10,
 				nil,
 			)
@@ -306,8 +274,6 @@ func TestManyFailures(t *testing.T) {
 			go worker.RunWorker(
 				master.Address(),
 				w,
-				wordSplittingMappingFunction,
-				wordCountingReducingFunction,
 				10,
 				nil,
 			)

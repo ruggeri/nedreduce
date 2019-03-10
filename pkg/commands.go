@@ -27,15 +27,11 @@ func RunDistributedJob(
 func RunWorker(
 	masterAddress string,
 	workerAddress string,
-	mappingFunction MappingFunction,
-	reducingFunction ReducingFunction,
 	nRPC int,
 ) {
 	worker.RunWorker(
 		masterAddress,
 		workerAddress,
-		mappingFunction,
-		reducingFunction,
 		nRPC,
 		nil,
 	)

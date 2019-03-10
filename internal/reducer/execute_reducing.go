@@ -50,6 +50,9 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 		"reduceTaskIdx %v: Beginning reducing.\n",
 		reduceTask.ReduceTaskIdx,
 	)
+
+	reducingFunction := reduceTask.ReducingFunction()
+
 	// Iterate the groups one at a time.
 	groupingIterator := NewGroupingIterator(inputManager.inputDecoders)
 	for {
@@ -63,7 +66,7 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 		}
 
 		// Call the reducer function.
-		reduceTask.ReducingFunction(
+		reducingFunction(
 			groupIterator.GroupKey,
 			func() (*types.KeyValue, error) { return groupIterator.Next() },
 			func(outputKeyValue types.KeyValue) {

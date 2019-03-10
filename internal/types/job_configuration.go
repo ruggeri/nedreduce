@@ -6,8 +6,8 @@ type JobConfiguration struct {
 	MapperInputFileNames []string
 	NumReducers          int
 
-	MappingFunction  MappingFunction
-	ReducingFunction ReducingFunction
+	MappingFunctionName  string
+	ReducingFunctionName string
 }
 
 // NewJobConfiguration creates a JobConfiguration.
@@ -15,15 +15,15 @@ func NewJobConfiguration(
 	jobName string,
 	mapperInputFileNames []string,
 	numReducers int,
-	mappingFunction MappingFunction,
-	reducingFunction ReducingFunction,
+	mappingFunctionName string,
+	reducingFunctionName string,
 ) JobConfiguration {
 	return JobConfiguration{
 		JobName:              jobName,
 		MapperInputFileNames: mapperInputFileNames,
 		NumReducers:          numReducers,
-		MappingFunction:      mappingFunction,
-		ReducingFunction:     reducingFunction,
+		MappingFunctionName:  mappingFunctionName,
+		ReducingFunctionName: reducingFunctionName,
 	}
 }
 

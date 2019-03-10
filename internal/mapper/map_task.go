@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"github.com/ruggeri/nedreduce/internal/types"
+	"github.com/ruggeri/nedreduce/internal/util"
 )
 
 // A MapTask contains all the information needed to performo a single
@@ -11,7 +12,9 @@ type MapTask struct {
 	MapTaskIdx          int
 	MapperInputFileName string
 	NumReducers         int
-	MappingFunction     types.MappingFunction
+	MappingFunctionName string
+
+	mappingFunction types.MappingFunction
 }
 
 // NewMapTask makes a MapTask object from a
@@ -25,6 +28,16 @@ func NewMapTask(
 		MapTaskIdx:          mapTaskIdx,
 		MapperInputFileName: jobConfiguration.MapperInputFileNames[mapTaskIdx],
 		NumReducers:         jobConfiguration.NumReducers,
-		MappingFunction:     jobConfiguration.MappingFunction,
+		MappingFunctionName: jobConfiguration.MappingFunctionName,
+		mappingFunction:     nil,
 	}
+}
+
+func (mapTask *MapTask) MappingFunction() types.MappingFunction {
+	if mapTask.mappingFunction == nil {
+		mapTask.mappingFunction = util.LoadMappingFunctionByName(mapTask.MappingFunctionName)
+
+	}
+
+	return mapTask.mappingFunction
 }

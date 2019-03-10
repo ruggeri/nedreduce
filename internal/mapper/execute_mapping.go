@@ -33,6 +33,9 @@ func ExecuteMapping(mapTask *MapTask) {
 	util.Debug(
 		"mapTaskIdx %v: Beginning mapping.\n", mapTask.MapTaskIdx,
 	)
+
+	mappingFunction := mapTask.MappingFunction()
+
 	for {
 		// Read a line from the map input file.
 		line, err := inputReader.ReadString('\n')
@@ -43,7 +46,7 @@ func ExecuteMapping(mapTask *MapTask) {
 		}
 
 		// Apply the mapping function.
-		mapTask.MappingFunction(
+		mappingFunction(
 			mapTask.MapperInputFileName,
 			line,
 			func(outputKeyValue types.KeyValue) {
