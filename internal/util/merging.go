@@ -25,7 +25,7 @@ import (
 // Anyway, I leave this here as a concession to the way the tests are
 // currently run.
 func MergeReducerOutputFiles(jobName string, numReducers int) {
-	Debug("Reducer output merge phase beginning...")
+	Debug("Reducer output merge phase beginning...\n")
 
 	kvs := make(map[string]string)
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {

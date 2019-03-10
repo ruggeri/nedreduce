@@ -83,7 +83,7 @@ func (server *Server) listenForConnections() {
 			// failed because of a clean Shutdown? There shouldn't be an error
 			// message then.
 			util.Debug(
-				"server running at %v encountered RPC connection accept error: %v",
+				"server running at %v encountered RPC connection accept error: %v\n",
 				server.address,
 				err,
 			)
