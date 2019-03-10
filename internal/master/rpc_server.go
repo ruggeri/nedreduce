@@ -25,7 +25,7 @@ func (rpcServerTarget *masterRPCTarget) RegisterWorker(
 
 	// The master's workerRegistrationManager is responsible for notifying
 	// folks about this new worker.
-	rpcServerTarget.master.workerRegistrationManager.SendNewWorker(
+	rpcServerTarget.master.workerPool.RegisterNewWorker(
 		registrationMessage.WorkerRPCAdress,
 	)
 

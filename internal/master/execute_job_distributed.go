@@ -8,7 +8,6 @@ import (
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
-	"github.com/ruggeri/nedreduce/internal/util/work_assigner"
 )
 
 // runDistributedMapPhase runs a distributed map phase on the master.
@@ -28,14 +27,11 @@ func runDistributedMapPhase(master *Master) {
 		return mr_rpc.Task((*mr_rpc.MapTask)(mapTask)), nil
 	}
 
-	// The workAssigner will hand out the map tasks to the workers.
-	workAssigner := work_assigner.Start(
-		produceNextMapTask,
-		master.workerRegistrationManager.NewWorkerRPCAddressStream(),
-	)
+	// The worker pool will hand out the map tasks to the workers.
+	workSetResultChan := master.workerPool.AssignNewWorkSet(produceNextMapTask)
 
 	// We wait until the workAssigner has completed all the work.
-	workAssigner.Wait()
+	<-workSetResultChan
 }
 
 // runDistributedReducePhase runs a distributed reduce phase on the
@@ -56,14 +52,11 @@ func runDistributedReducePhase(master *Master) {
 		return mr_rpc.Task((*mr_rpc.ReduceTask)(reduceTask)), nil
 	}
 
-	// The workAssigner will hand out the map tasks to the workers.
-	workAssigner := work_assigner.Start(
-		produceNextReduceTask,
-		master.workerRegistrationManager.NewWorkerRPCAddressStream(),
-	)
+	// The worker pool will hand out the reduce tasks to the workers.
+	workSetResultChan := master.workerPool.AssignNewWorkSet(produceNextReduceTask)
 
 	// We wait until the workAssigner has completed all the work.
-	workAssigner.Wait()
+	<-workSetResultChan
 }
 
 // StartDistributedJob schedules map and reduce tasks on workers that

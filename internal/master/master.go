@@ -5,7 +5,7 @@ import (
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
-	"github.com/ruggeri/nedreduce/internal/util/worker_registration_manager"
+	"github.com/ruggeri/nedreduce/internal/worker_pool"
 )
 
 // Master can be either "running" or "jobCompleted"
@@ -23,25 +23,25 @@ type Master struct {
 	mutex             sync.Mutex
 	conditionVariable *sync.Cond
 
-	address                   string
-	jobConfiguration          *types.JobConfiguration
-	rpcServer                 *mr_rpc.Server
-	workerRegistrationManager *worker_registration_manager.WorkerRegistrationManager
-	state                     masterState
+	address          string
+	jobConfiguration *types.JobConfiguration
+	rpcServer        *mr_rpc.Server
+	workerPool       *worker_pool.WorkerPool
+	state            masterState
 }
 
 // StartMaster creates a new Master and starts it running an RPC Server
-// and WorkerRegistrationManager.
+// and a WorkerPool.
 func StartMaster(
 	masterAddress string,
 	jobConfiguration *types.JobConfiguration,
 ) *Master {
 	master := &Master{
-		address:                   masterAddress,
-		jobConfiguration:          jobConfiguration,
-		rpcServer:                 nil,
-		workerRegistrationManager: worker_registration_manager.StartManager(),
-		state:                     runningJob,
+		address:          masterAddress,
+		jobConfiguration: jobConfiguration,
+		rpcServer:        nil,
+		workerPool:       worker_pool.Start(),
+		state:            runningJob,
 	}
 
 	master.conditionVariable = sync.NewCond(&master.mutex)
@@ -70,7 +70,7 @@ func (master *Master) MarkJobAsCompleted() {
 	// Tell the RPC server and the workerRegistrationManager to both shut
 	// themselves down.
 	master.rpcServer.Shutdown()
-	master.workerRegistrationManager.SendShutdown()
+	master.workerPool.Shutdown()
 
 	// Update our state.
 	master.state = jobCompleted
