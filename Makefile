@@ -1,7 +1,9 @@
-all: wc
+all: plugin wc
 
-./build/plugin.so: ./plugin/*
+plugin:
 	go build -buildmode=plugin -o ./build/plugin.so ./plugin
 
-wc: ./build/plugin.so
+wc:
 	go build -o ./build/bin/wc ./cmd/wc
+
+.PHONY: plugin wc
