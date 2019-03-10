@@ -12,11 +12,13 @@ func (mapTask *MapTask) StartOnWorker(
 	workerAddress string,
 	rpcCompletionCallback RPCCompletionCallback,
 ) {
-	ok := Call(workerAddress, "Worker.ExecuteMapTask", mapTask, nil)
+	go func() {
+		ok := Call(workerAddress, "Worker.ExecuteMapTask", mapTask, nil)
 
-	if !ok {
-		log.Fatal("Something went wrong with RPC call to worker.")
-	} else {
-		rpcCompletionCallback()
-	}
+		if !ok {
+			log.Fatal("Something went wrong with RPC call to worker.")
+		} else {
+			rpcCompletionCallback()
+		}
+	}()
 }
