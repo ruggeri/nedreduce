@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"os"
 	"strconv"
 
@@ -29,14 +28,6 @@ func ReducerOutputFileName(jobName string, reduceTaskIdx int) string {
 	return fileName
 }
 
-// RemoveFile is a simple wrapper around os.Remove that logs errors.
-func RemoveFile(n string) {
-	err := os.Remove(n)
-	if err != nil {
-		log.Print("CleanupFiles: ", err)
-	}
-}
-
 // CleanupFiles removes all intermediate files produced by running
 // mapreduce.
 func CleanupFiles(configuration *types.JobConfiguration) {
@@ -50,13 +41,13 @@ func CleanupFiles(configuration *types.JobConfiguration) {
 			fileName := IntermediateFileName(
 				jobName, mapTaskIdx, reduceTaskIdx,
 			)
-			RemoveFile(fileName)
+			os.Remove(fileName)
 		}
 	}
 
 	// Clean up reducer output files.
 	for reduceTaskIdx := 0; reduceTaskIdx < numReducers; reduceTaskIdx++ {
 		fileName := ReducerOutputFileName(jobName, reduceTaskIdx)
-		RemoveFile(fileName)
+		os.Remove(fileName)
 	}
 }

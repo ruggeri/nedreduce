@@ -168,7 +168,7 @@ func cleanup(jobConfiguration *types.JobConfiguration) {
 	util.CleanupFiles(jobConfiguration)
 
 	for _, f := range jobConfiguration.MapperInputFileNames {
-		util.RemoveFile(f)
+		os.Remove(f)
 	}
 }
 
