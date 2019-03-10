@@ -1,6 +1,10 @@
 package reducer
 
-import "github.com/ruggeri/nedreduce/internal/types"
+import (
+	"io"
+
+	"github.com/ruggeri/nedreduce/internal/types"
+)
 
 type ReduceTasksIterator struct {
 	jobConfiguration  *types.JobConfiguration
@@ -14,9 +18,9 @@ func NewReduceTasksIterator(jobConfiguration *types.JobConfiguration) *ReduceTas
 	}
 }
 
-func (reduceTasksIterator *ReduceTasksIterator) Next() *ReduceTask {
+func (reduceTasksIterator *ReduceTasksIterator) Next() (*ReduceTask, error) {
 	if reduceTasksIterator.nextReduceTaskIdx == reduceTasksIterator.jobConfiguration.NumReducers {
-		return nil
+		return nil, io.EOF
 	}
 
 	reduceTask := ReduceTaskFromJobConfiguration(
@@ -26,5 +30,5 @@ func (reduceTasksIterator *ReduceTasksIterator) Next() *ReduceTask {
 
 	reduceTasksIterator.nextReduceTaskIdx++
 
-	return &reduceTask
+	return &reduceTask, nil
 }

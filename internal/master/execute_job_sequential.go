@@ -1,6 +1,9 @@
 package master
 
 import (
+	"io"
+	"log"
+
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	"github.com/ruggeri/nedreduce/internal/types"
@@ -14,10 +17,14 @@ func runSequentialMapPhase(
 	)
 
 	for {
-		mapTask := mapTasksIterator.Next()
+		mapTask, err := mapTasksIterator.Next()
 
-		if mapTask == nil {
-			return
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+
+			log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
 		}
 
 		mapper.ExecuteMapping(mapTask)
@@ -32,10 +39,14 @@ func runSequentialReducePhase(
 	)
 
 	for {
-		reduceTask := reduceTasksIterator.Next()
+		reduceTask, err := reduceTasksIterator.Next()
 
-		if reduceTask == nil {
-			return
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+
+			log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
 		}
 
 		reducer.ExecuteReducing(reduceTask)

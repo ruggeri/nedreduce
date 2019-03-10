@@ -1,6 +1,9 @@
 package master
 
 import (
+	"io"
+	"log"
+
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
@@ -13,7 +16,16 @@ func runDistributedMapPhase(master *Master) {
 
 	workAssigner := work_assigner.Start(
 		func() mr_rpc.Task {
-			return (*mr_rpc.MapTask)(mapTasksIterator.Next())
+			mapTask, err := mapTasksIterator.Next()
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+
+				log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
+			}
+
+			return mr_rpc.Task((*mr_rpc.MapTask)(mapTask))
 		},
 		master.workerRegistrationManager.NewWorkerRPCAddressStream(),
 	)
@@ -26,7 +38,17 @@ func runDistributedReducePhase(master *Master) {
 
 	workAssigner := work_assigner.Start(
 		func() mr_rpc.Task {
-			return (*mr_rpc.ReduceTask)(reduceTasksIterator.Next())
+
+			reduceTask, err := reduceTasksIterator.Next()
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+
+				log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
+			}
+
+			return mr_rpc.Task((*mr_rpc.ReduceTask)(reduceTask))
 		},
 		master.workerRegistrationManager.NewWorkerRPCAddressStream(),
 	)

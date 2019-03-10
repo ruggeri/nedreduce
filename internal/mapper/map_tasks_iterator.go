@@ -1,6 +1,10 @@
 package mapper
 
-import "github.com/ruggeri/nedreduce/internal/types"
+import (
+	"io"
+
+	"github.com/ruggeri/nedreduce/internal/types"
+)
 
 type MapTasksIterator struct {
 	jobConfiguration *types.JobConfiguration
@@ -14,9 +18,9 @@ func NewMapTasksIterator(jobConfiguration *types.JobConfiguration) *MapTasksIter
 	}
 }
 
-func (mapTasksIterator *MapTasksIterator) Next() *MapTask {
+func (mapTasksIterator *MapTasksIterator) Next() (*MapTask, error) {
 	if mapTasksIterator.nextMapTaskIdx == mapTasksIterator.jobConfiguration.NumMappers() {
-		return nil
+		return nil, io.EOF
 	}
 
 	mapTask := NewMapTask(
@@ -26,5 +30,5 @@ func (mapTasksIterator *MapTasksIterator) Next() *MapTask {
 
 	mapTasksIterator.nextMapTaskIdx++
 
-	return &mapTask
+	return &mapTask, nil
 }
