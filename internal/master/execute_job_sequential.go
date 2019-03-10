@@ -13,7 +13,13 @@ func runSequentialMapPhase(
 		master.jobConfiguration,
 	)
 
-	for mapTask := mapTasksIterator.Next(); mapTask != nil; {
+	for {
+		mapTask := mapTasksIterator.Next()
+
+		if mapTask == nil {
+			return
+		}
+
 		mapper.ExecuteMapping(mapTask)
 	}
 }
@@ -25,7 +31,13 @@ func runSequentialReducePhase(
 		master.jobConfiguration,
 	)
 
-	for reduceTask := reduceTasksIterator.Next(); reduceTask != nil; {
+	for {
+		reduceTask := reduceTasksIterator.Next()
+
+		if reduceTask == nil {
+			return
+		}
+
 		reducer.ExecuteReducing(reduceTask)
 	}
 }
