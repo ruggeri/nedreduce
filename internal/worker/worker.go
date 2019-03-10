@@ -13,7 +13,7 @@ import (
 type Worker struct {
 	sync.Mutex
 
-	name        string
+	rpcAddress  string
 	nRPC        int // quit after this many RPCs; protected by mutex
 	nTasks      int // total tasks executed; protected by mutex
 	concurrent  int // number of parallel DoTasks in this worker; mutex

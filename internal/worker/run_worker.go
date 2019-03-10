@@ -16,7 +16,7 @@ func NewWorker(
 	parallelism *Parallelism,
 ) *Worker {
 	wk := &Worker{
-		name:        workerRPCAddress,
+		rpcAddress:  workerRPCAddress,
 		nRPC:        nRPC,
 		parallelism: parallelism,
 	}
