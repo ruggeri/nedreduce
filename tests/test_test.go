@@ -149,11 +149,12 @@ func TestSequentialSingle(t *testing.T) {
 		"WordCountingReducingFunction",
 	)
 
+	defer cleanup(&configuration)
+
 	master := master.StartSequentialJob(&configuration)
 	master.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, master.Stats)
-	cleanup(&configuration)
 }
 
 func TestSequentialMany(t *testing.T) {
@@ -167,11 +168,12 @@ func TestSequentialMany(t *testing.T) {
 		"WordCountingReducingFunction",
 	)
 
+	defer cleanup(&configuration)
+
 	master := master.StartSequentialJob(&configuration)
 	master.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, master.Stats)
-	cleanup(&configuration)
 }
 
 func TestParallelBasic(t *testing.T) {
@@ -186,16 +188,20 @@ func TestParallelBasic(t *testing.T) {
 			nil,
 		)
 	}
+
+	defer cleanup(configuration)
+
 	master.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, master.Stats)
-	cleanup(configuration)
 }
 
 func TestParallelCheck(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
 	configuration, master := setup()
+	defer cleanup(configuration)
+
 	parallelism := &worker.Parallelism{}
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
@@ -214,14 +220,14 @@ func TestParallelCheck(t *testing.T) {
 		t.Fatalf("workers did not execute in parallel")
 	}
 	parallelism.Mu.Unlock()
-
-	cleanup(configuration)
 }
 
 func TestOneFailure(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
 	configuration, master := setup()
+	defer cleanup(configuration)
+
 	// Start 2 workers that fail after 10 tasks
 	go worker.RunWorker(
 		master.Address(),
@@ -238,13 +244,13 @@ func TestOneFailure(t *testing.T) {
 	master.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, master.Stats)
-	cleanup(configuration)
 }
 
 func TestManyFailures(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
 	configuration, master := setup()
+	defer cleanup(configuration)
 
 	doneChannel := make(chan struct{})
 	go func() {
@@ -258,7 +264,6 @@ func TestManyFailures(t *testing.T) {
 		select {
 		case <-doneChannel:
 			check(t, configuration.MapperInputFileNames)
-			cleanup(configuration)
 			break
 		default:
 			// Start 2 workers each sec. The workers fail after 10 tasks
