@@ -24,7 +24,7 @@ func runSequentialMapPhase(
 		if err == io.EOF {
 			return
 		} else if err != nil {
-			log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
+			log.Panicf("Unexpected MapTask iteration error: %v\n", err)
 		}
 
 		mapper.ExecuteMapping(mapTask)
@@ -46,7 +46,7 @@ func runSequentialReducePhase(
 		if err == io.EOF {
 			return
 		} else if err != nil {
-			log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
+			log.Panicf("Unexpected ReduceTask iteration error: %v\n", err)
 		}
 
 		reducer.ExecuteReducing(reduceTask)

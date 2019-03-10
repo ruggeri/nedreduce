@@ -21,7 +21,7 @@ func ExecuteMapping(mapTask *MapTask) {
 	// Open the map input file for reading.
 	inputFile, err := os.Open(mapTask.MapperInputFileName)
 	if err != nil {
-		log.Fatalf("error opening mapper input file: %v\n", err)
+		log.Panicf("error opening mapper input file: %v\n", err)
 	}
 	defer inputFile.Close()
 	inputReader := bufio.NewReader(inputFile)
@@ -43,7 +43,7 @@ func ExecuteMapping(mapTask *MapTask) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalf("error reading file: %v\n", err)
+			log.Panicf("error reading file: %v\n", err)
 		}
 
 		// Apply the mapping function.

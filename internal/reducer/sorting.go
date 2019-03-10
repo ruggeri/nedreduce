@@ -50,7 +50,7 @@ func sortReducerInputFile(
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalf("unexpected decode error: %v\n", err)
+			log.Panicf("unexpected decode error: %v\n", err)
 		}
 
 		keyValues = append(keyValues, *keyValue)
@@ -73,7 +73,7 @@ func sortReducerInputFile(
 		inputFileName, os.O_TRUNC|os.O_WRONLY, 0644,
 	)
 	if err != nil {
-		log.Fatalf("unexpected error re-opening %v\n", err)
+		log.Panicf("unexpected error re-opening %v\n", err)
 	}
 	defer inputWritingFile.Close()
 
@@ -88,7 +88,7 @@ func sortReducerInputFile(
 	for _, keyValue := range keyValues {
 		err := encoder.Encode(keyValue)
 		if err != nil {
-			log.Fatalf("unexpected error encoding KeyValue: %v\n", err)
+			log.Panicf("unexpected error encoding KeyValue: %v\n", err)
 		}
 	}
 }

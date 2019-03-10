@@ -45,7 +45,7 @@ func StartServer(address string, serverTargetName string, serverTarget interface
 	os.Remove(server.address)
 	connectionListener, err := net.Listen("unix", server.address)
 	if err != nil {
-		log.Fatalf(
+		log.Panicf(
 			"server running at %v encountered error opening socket to receive RPCs: %v",
 			address,
 			err,

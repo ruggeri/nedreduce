@@ -22,7 +22,7 @@ func runDistributedMapPhase(master *Master) {
 		if err == io.EOF {
 			return nil, io.EOF
 		} else if err != nil {
-			log.Fatalf("Unexpected MapTask iteration error: %v\n", err)
+			log.Panicf("Unexpected MapTask iteration error: %v\n", err)
 		}
 
 		return mr_rpc.Task((*mr_rpc.MapTask)(mapTask)), nil
@@ -50,7 +50,7 @@ func runDistributedReducePhase(master *Master) {
 		if err == io.EOF {
 			return nil, io.EOF
 		} else if err != nil {
-			log.Fatalf("Unexpected ReduceTask iteration error: %v\n", err)
+			log.Panicf("Unexpected ReduceTask iteration error: %v\n", err)
 		}
 
 		return mr_rpc.Task((*mr_rpc.ReduceTask)(reduceTask)), nil

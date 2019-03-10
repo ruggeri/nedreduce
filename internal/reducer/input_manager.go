@@ -38,7 +38,7 @@ func NewInputManager(reduceTask *ReduceTask) InputManager {
 		)
 		inputFile, err := os.Open(inputFileName)
 		if err != nil {
-			log.Fatalf("error opening reducer input file: %v\n", err)
+			log.Panicf("error opening reducer input file: %v\n", err)
 		}
 		inputManager.inputFiles = append(
 			inputManager.inputFiles, *inputFile,

@@ -46,7 +46,7 @@ func (groupIterator *GroupIterator) Next() (*types.KeyValue, error) {
 
 		return nil, io.EOF
 	} else if err != nil {
-		log.Fatalf("unexpected error in GroupIterator: %v\n", err)
+		log.Panicf("unexpected error in GroupIterator: %v\n", err)
 	}
 
 	return keyValue, nil

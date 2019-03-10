@@ -45,7 +45,7 @@ func (workAssigner *WorkAssigner) handleMessage(message message) {
 		workAssigner.numWorkersWorking++
 		return
 	} else if err != io.EOF {
-		log.Fatalf("Unexpected work production error: %v\n", err)
+		log.Panicf("Unexpected work production error: %v\n", err)
 	}
 
 	if workAssigner.state == assigningNewWork {

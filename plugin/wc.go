@@ -69,7 +69,7 @@ func WordCountingReducingFunction(
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalf("Unexpected error from group iterator")
+			log.Panicf("Unexpected error from group iterator")
 		}
 
 		wordCount++

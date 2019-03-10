@@ -27,7 +27,7 @@ func NewGroupingIterator(
 	// Peek the first KeyValue.
 	peekedKeyValue, err := iter.mergedInputIterator.Next()
 	if err != nil {
-		log.Fatalf(
+		log.Panicf(
 			"expected at least one KeyValue but got error: %v\n", err,
 		)
 	}
@@ -66,7 +66,7 @@ func (iter *GroupingIterator) advanceUnderlyingIterator() (*types.KeyValue, erro
 			// We have exhausted the input so there is no KeyValue to peek.
 			iter.peekedKeyValue = nil
 		} else if err != nil {
-			log.Fatalf("unexpected grouping error: %v\n", err)
+			log.Panicf("unexpected grouping error: %v\n", err)
 		} else {
 			iter.peekedKeyValue = peekedKeyValue
 		}

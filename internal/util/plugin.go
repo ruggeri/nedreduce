@@ -16,12 +16,12 @@ func SetPluginPath(newPluginPath string) {
 func LoadMappingFunctionByName(mappingFunctionName string) types.MappingFunction {
 	p, err := plugin.Open(pluginPath)
 	if err != nil {
-		log.Fatalf("Error loading plugin: %v\n", err)
+		log.Panicf("Error loading plugin: %v\n", err)
 	}
 
 	fn, err := p.Lookup(mappingFunctionName)
 	if err != nil {
-		log.Fatalf("Error loading plugin: %v\n", err)
+		log.Panicf("Error loading plugin: %v\n", err)
 	}
 
 	return types.MappingFunction(fn.(func(string, string, types.EmitterFunction)))
@@ -30,12 +30,12 @@ func LoadMappingFunctionByName(mappingFunctionName string) types.MappingFunction
 func LoadReducingFunctionByName(reducingFunctionName string) types.ReducingFunction {
 	p, err := plugin.Open(pluginPath)
 	if err != nil {
-		log.Fatalf("Error loading plugin: %v\n", err)
+		log.Panicf("Error loading plugin: %v\n", err)
 	}
 
 	fn, err := p.Lookup(reducingFunctionName)
 	if err != nil {
-		log.Fatalf("Error loading plugin: %v\n", err)
+		log.Panicf("Error loading plugin: %v\n", err)
 	}
 
 	return types.ReducingFunction(

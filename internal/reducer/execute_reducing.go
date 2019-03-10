@@ -42,7 +42,7 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 		outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644,
 	)
 	if err != nil {
-		log.Fatalf("error opening reducer output file: %v\n", err)
+		log.Panicf("error opening reducer output file: %v\n", err)
 	}
 	defer outputFile.Close()
 
@@ -70,7 +70,7 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 			// No more groups.
 			break
 		} else if err != nil {
-			log.Fatalf("unexpected groupingIterator error: %v\n", err)
+			log.Panicf("unexpected groupingIterator error: %v\n", err)
 		}
 
 		// Call the reducer function.
@@ -81,7 +81,7 @@ func ExecuteReducing(reduceTask *ReduceTask) {
 				// Write out the outputValue.
 				err = outputEncoder.Encode(outputKeyValue)
 				if err != nil {
-					log.Fatalf("reduce output error: %v\n", err)
+					log.Panicf("reduce output error: %v\n", err)
 				}
 			},
 		)

@@ -51,7 +51,7 @@ func (mergedInputIterator *MergedInputIterator) pullNextPeekedValue(
 
 	// If there was an error, then log and die.
 	if err != nil && err != io.EOF {
-		log.Fatalf("error decoding reducer input: %v\n", err)
+		log.Panicf("error decoding reducer input: %v\n", err)
 	}
 
 	if err == io.EOF {

@@ -41,7 +41,7 @@ func NewOutputManager(mapTask *MapTask) OutputManager {
 			outputFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644,
 		)
 		if err != nil {
-			log.Fatalf("error opening mapper output file: %v\n", err)
+			log.Panicf("error opening mapper output file: %v\n", err)
 		}
 		outputManager.outputFiles = append(
 			outputManager.outputFiles, *outputFile,
@@ -70,7 +70,7 @@ func (outputManager *OutputManager) WriteKeyValue(keyValue types.KeyValue) {
 	reducerIdx := ihash(keyValue.Key) % len(outputManager.outputFiles)
 	err := outputManager.outputEncoders[reducerIdx].Encode(keyValue)
 	if err != nil {
-		log.Fatalf("unexpected map output error: %v\n", err)
+		log.Panicf("unexpected map output error: %v\n", err)
 	}
 }
 
