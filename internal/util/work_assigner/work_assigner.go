@@ -58,7 +58,6 @@ func (workAssigner *WorkAssigner) SendWorkCompletedMessage(workerAddress string)
 }
 
 func (workAssigner *WorkAssigner) Shutdown() {
-	close(workAssigner.workerRegistrationChannel)
 	close(workAssigner.messageChannel)
 	workAssigner.conditionVariable.Broadcast()
 }
