@@ -10,5 +10,5 @@ wait $MASTER_PID
 
 sort -n -k2 mrtmp.wcseq | tail -10
 
-# TODO(HIGH): Restore test so that it does a comparison to correct
+# TODO(LOW): Restore test so that it does a comparison to correct
 # counts.

@@ -70,6 +70,8 @@ func (workerPool *WorkerPool) handleWorkerRegistration(newWorkerRPCAddress strin
 	util.Debug("worker running at %v entered WorkerPool\n", newWorkerRPCAddress)
 
 	// Record it in the list of workers.
+	//
+	// TODO(MEDIUM): Should check for worker re-registration.
 	workerPool.workerRPCAddresses = append(
 		workerPool.workerRPCAddresses,
 		newWorkerRPCAddress,

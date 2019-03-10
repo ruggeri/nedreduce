@@ -8,7 +8,8 @@ echo ""
 echo "==> Part IIIb"
 go test -v ./tests -run TestParallelCheck
 
-# TODO(HIGH): These tests don't pass yet.
+# TODO(HIGH): These tests that check how we handle failure don't pass
+# yet.
 echo ""
 echo "==> Part IV"
 go test -v ./tests -run Failure

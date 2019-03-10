@@ -17,6 +17,8 @@ The general architecture is as follows:
 * User facing code
   * Contained in `nedreduce/pkg`.
 
+**TODO(HIGH)**: Review this readme.
+
 ### nedreduce/internal/types
 
 The `nedreduce/internal/types` package contains the core, common types
@@ -109,6 +111,7 @@ and `rcp.Call` functions.
 
 ### nedreduce/internal/master
 
+**TODO(HIGH)**
 
 ### nedreduce/internal/worker
 
