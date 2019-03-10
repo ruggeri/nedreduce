@@ -25,6 +25,7 @@ func (master *Master) executeJob(
 
 	fmt.Printf("%s: Beginning final files cleanup\n", master.address)
 	util.MergeReducerOutputFiles(jobConfiguration.JobName, jobConfiguration.NumReducers)
+	util.CleanupFiles(jobConfiguration)
 	fmt.Printf("%s: Completed stats collection and files cleanup\n", master.address)
 
 	fmt.Printf("%s: Map/Reduce task completed\n", master.address)
