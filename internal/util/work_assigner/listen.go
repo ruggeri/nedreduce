@@ -27,7 +27,6 @@ func (workAssigner *WorkAssigner) handleMessage(message message) {
 
 	if message.Kind == workerRegistrationMessage {
 		util.Debug("worker running at %v entered WorkAssigner pool\n", message.Address)
-		workAssigner.numWorkersWorking++
 	} else {
 		util.Debug("worker running at %v finished work assignment\n", message.Address)
 		workAssigner.numWorkersWorking--

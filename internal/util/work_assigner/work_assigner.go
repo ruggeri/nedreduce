@@ -17,9 +17,8 @@ type WorkAssigner struct {
 	conditionVariable *sync.Cond
 
 	// Mutable state
-	numWorkersRegistered int
-	numWorkersWorking    int
-	state                state
+	numWorkersWorking int
+	state             state
 }
 
 func Start(
@@ -33,9 +32,8 @@ func Start(
 
 		mutex: sync.Mutex{},
 
-		numWorkersRegistered: 0,
-		numWorkersWorking:    0,
-		state:                assigningNewWork,
+		numWorkersWorking: 0,
+		state:             assigningNewWork,
 	}
 
 	workAssigner.conditionVariable = sync.NewCond(&workAssigner.mutex)
