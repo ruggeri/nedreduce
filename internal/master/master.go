@@ -28,6 +28,10 @@ type Master struct {
 	state                     masterState
 }
 
+func (master *Master) Address() string {
+	return master.address
+}
+
 // StartMaster creates a new Master and starts it running an RPC Server
 // and WorkerRegistrationManager.
 func StartMaster(

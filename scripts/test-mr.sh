@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo "==> Part I"
 go test ./tests -run Sequential
 
