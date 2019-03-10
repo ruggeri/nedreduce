@@ -59,7 +59,4 @@ func CleanupFiles(configuration *types.JobConfiguration) {
 		fileName := ReducerOutputFileName(jobName, reduceTaskIdx)
 		RemoveFile(fileName)
 	}
-
-	// Clean up final output file.
-	RemoveFile("mrtmp." + jobName)
 }
