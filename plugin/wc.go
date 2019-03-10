@@ -1,5 +1,15 @@
 package main
 
+// This is the "plugin" code which is dynamically loaded by workers so
+// that they can load client code.
+//
+// This lets you start workers up even before you ship the code you want
+// to run. When you run a job, you deploy the plugin code, *not* the
+// Master or Worker code.
+//
+// That is, you don't need to recompile and redeploy the nedreduce code
+// every time you simply want to deploy a new nedreduce job.
+
 import (
 	"io"
 	"log"
@@ -10,6 +20,8 @@ import (
 	nedreduce "github.com/ruggeri/nedreduce/pkg"
 )
 
+// WordSplittingMappingFunction splits each line of text into a series
+// of words.
 func WordSplittingMappingFunction(
 	filename string,
 	line string,
@@ -25,6 +37,9 @@ func WordSplittingMappingFunction(
 	}
 }
 
+// WordSplittingMappingFunctionForTest splits each line of text into a
+// series of words, but doesn't bother to strip out non-letter
+// characters.
 func WordSplittingMappingFunctionForTest(
 	filename string,
 	line string,
@@ -38,6 +53,9 @@ func WordSplittingMappingFunctionForTest(
 	}
 }
 
+// WordCountingReducingFunction counts the number of records in a group.
+// It counts how many occurrences of the word were encountered by the
+// mappers.
 func WordCountingReducingFunction(
 	groupKey string,
 	groupIteratorFunction nedreduce.GroupIteratorFunction,
