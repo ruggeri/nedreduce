@@ -6,6 +6,8 @@ import (
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 )
 
+// WorkSetResult represents the result of trying to execute the WorkSet.
+// At present, only success is envisioned!
 type WorkSetResult string
 
 const (
