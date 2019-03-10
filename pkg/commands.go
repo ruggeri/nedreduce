@@ -24,11 +24,14 @@ func RunDistributedJob(
 	master.Wait()
 }
 
+// RunWorker will run a worker, connecting to the specified master, and
+// listening for RPC instructions at the specified worker address.
 func RunWorker(
 	masterAddress string,
 	workerAddress string,
 	nRPC int,
 ) {
+	// TODO(MEDIUM): what is nRPC?
 	worker.RunWorker(
 		masterAddress,
 		workerAddress,
