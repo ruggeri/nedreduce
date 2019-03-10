@@ -2,6 +2,8 @@ package work_assigner
 
 import (
 	"sync"
+
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 )
 
 type WorkAssigner struct {
@@ -44,7 +46,7 @@ func Start(
 	return workAssigner
 }
 
-func (workAssigner *WorkAssigner) SendWorkToWorker(workItem WorkItem, workerAddress string) {
+func (workAssigner *WorkAssigner) SendWorkToWorker(workItem mr_rpc.Task, workerAddress string) {
 	workItem.StartOnWorker(workerAddress, func() {
 		workAssigner.SendWorkCompletedMessage(workerAddress)
 	})

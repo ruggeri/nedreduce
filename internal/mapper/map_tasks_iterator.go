@@ -7,6 +7,13 @@ type MapTasksIterator struct {
 	nextMapTaskIdx   int
 }
 
+func NewMapTasksIterator(jobConfiguration *types.JobConfiguration) *MapTasksIterator {
+	return &MapTasksIterator{
+		jobConfiguration: jobConfiguration,
+		nextMapTaskIdx:   0,
+	}
+}
+
 func (mapTasksIterator *MapTasksIterator) Next() *MapTask {
 	if mapTasksIterator.nextMapTaskIdx == mapTasksIterator.jobConfiguration.NumMappers() {
 		return nil

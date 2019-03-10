@@ -7,6 +7,13 @@ type ReduceTasksIterator struct {
 	nextReduceTaskIdx int
 }
 
+func NewReduceTasksIterator(jobConfiguration *types.JobConfiguration) *ReduceTasksIterator {
+	return &ReduceTasksIterator{
+		jobConfiguration:  jobConfiguration,
+		nextReduceTaskIdx: 0,
+	}
+}
+
 func (reduceTasksIterator *ReduceTasksIterator) Next() *ReduceTask {
 	if reduceTasksIterator.nextReduceTaskIdx == reduceTasksIterator.jobConfiguration.NumReducers {
 		return nil

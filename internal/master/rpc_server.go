@@ -20,9 +20,9 @@ func (rpcServerTarget *masterRPCTarget) RegisterWorker(args *mr_rpc.RegisterArgs
 		args.WorkerRPCAdress,
 	)
 
-	// The master's workerPoolManager is responsible for notifying folks
-	// about this new worker.
-	rpcServerTarget.master.workerPoolManager.SendNewWorker(args.WorkerRPCAdress)
+	// The master's workerRegistrationManager is responsible for notifying
+	// folks about this new worker.
+	rpcServerTarget.master.workerRegistrationManager.SendNewWorker(args.WorkerRPCAdress)
 
 	return nil
 }

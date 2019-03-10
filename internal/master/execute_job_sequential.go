@@ -9,30 +9,30 @@ import (
 func runSequentialMapPhase(
 	master *Master,
 ) {
-	jobConfiguration := master.jobConfiguration
+	mapTasksIterator := mapper.NewMapTasksIterator(
+		master.jobConfiguration,
+	)
 
-	// Run each map task one-by-one.
-	for mapTaskIdx := 0; mapTaskIdx < jobConfiguration.NumMappers(); mapTaskIdx++ {
-		mapperConfiguration := mapper.ConfigurationFromJobConfiguration(jobConfiguration, mapTaskIdx)
-		mapper.ExecuteMapping(&mapperConfiguration)
+	for mapTask := mapTasksIterator.Next(); mapTask != nil; {
+		mapper.ExecuteMapping(mapTask)
 	}
 }
 
 func runSequentialReducePhase(
 	master *Master,
 ) {
-	jobConfiguration := master.jobConfiguration
+	reduceTasksIterator := reducer.NewReduceTasksIterator(
+		master.jobConfiguration,
+	)
 
-	// Run each reduce task one-by-one.
-	for reduceTaskIdx := 0; reduceTaskIdx < jobConfiguration.NumReducers; reduceTaskIdx++ {
-		reducerConfiguration := reducer.ConfigurationFromJobConfiguration(jobConfiguration, reduceTaskIdx)
-		reducer.ExecuteReducing(&reducerConfiguration)
+	for reduceTask := reduceTasksIterator.Next(); reduceTask != nil; {
+		reducer.ExecuteReducing(reduceTask)
 	}
 }
 
-// RunSequentialJob runs map and reduce tasks sequentially, waiting for
-// each task to complete before running the next.
-func RunSequentialJob(
+// StartSequentialJob runs map and reduce tasks sequentially, waiting
+// for each task to complete before running the next.
+func StartSequentialJob(
 	jobConfiguration *types.JobConfiguration,
 ) *Master {
 	master := StartMaster("master", jobConfiguration)

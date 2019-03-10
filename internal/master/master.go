@@ -3,9 +3,9 @@ package master
 import (
 	"sync"
 
-	"github.com/ruggeri/nedreduce/internal/master/worker_pool_manager"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
+	"github.com/ruggeri/nedreduce/internal/util/worker_registration_manager"
 )
 
 // Master can be either "running" or "shutdown"
@@ -21,25 +21,25 @@ type Master struct {
 	mutex             sync.Mutex
 	conditionVariable *sync.Cond
 
-	address           string
-	jobConfiguration  *types.JobConfiguration
-	rpcServer         *mr_rpc.Server
-	workerPoolManager *worker_pool_manager.WorkerPoolManager
-	state             masterState
+	address                   string
+	jobConfiguration          *types.JobConfiguration
+	rpcServer                 *mr_rpc.Server
+	workerRegistrationManager *worker_registration_manager.WorkerRegistrationManager
+	state                     masterState
 }
 
 // StartMaster creates a new Master and starts it running an RPC Server
-// and WorkerPoolManager.
+// and WorkerRegistrationManager.
 func StartMaster(
 	masterAddress string,
 	jobConfiguration *types.JobConfiguration,
 ) *Master {
 	master := &Master{
-		address:           masterAddress,
-		jobConfiguration:  jobConfiguration,
-		rpcServer:         nil,
-		workerPoolManager: worker_pool_manager.StartManager(),
-		state:             runningJob,
+		address:                   masterAddress,
+		jobConfiguration:          jobConfiguration,
+		rpcServer:                 nil,
+		workerRegistrationManager: worker_registration_manager.StartManager(),
+		state:                     runningJob,
 	}
 
 	master.conditionVariable = sync.NewCond(&master.mutex)
@@ -50,7 +50,7 @@ func StartMaster(
 
 // Shutdown tells the master to shut itself down. That involves killing
 // those goroutines responsible for running the RPC Server and for
-// managing the WorkerPoolManager.
+// managing the WorkerRegistrationManager.
 func (master *Master) Shutdown() {
 	master.mutex.Lock()
 	defer master.mutex.Unlock()
@@ -61,7 +61,7 @@ func (master *Master) Shutdown() {
 	}
 
 	master.rpcServer.Shutdown()
-	master.workerPoolManager.SendShutdown()
+	master.workerRegistrationManager.SendShutdown()
 
 	master.state = jobCompleted
 	master.conditionVariable.Broadcast()

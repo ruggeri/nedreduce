@@ -1,15 +1,15 @@
-package worker_pool_manager
+package worker_registration_manager
 
 // workerAddressStreamer is a helper that streams worker RPC addresses
 // down a channel.
 type workerAddressStreamer struct {
-	manager *WorkerPoolManager
+	manager *WorkerRegistrationManager
 	// Track how many worker addresses we have sent.
 	numWorkersSent            int
 	workerRPCAddressesChannel chan string
 }
 
-func makeWorkerRPCAddressStream(manager *WorkerPoolManager) chan string {
+func makeWorkerRPCAddressStream(manager *WorkerRegistrationManager) chan string {
 	streamer := &workerAddressStreamer{
 		manager:                   manager,
 		numWorkersSent:            0,
