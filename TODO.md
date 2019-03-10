@@ -12,8 +12,6 @@
 
 **Medium**
 
-* The `WorkerPoolManager` should, when a new worker is registered, check
-  to see if it already has listed that worker as available.
 * What is nRPC in `pkg/RunWorker`?
 * Add error handling to RPC call?
 

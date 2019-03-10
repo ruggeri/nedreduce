@@ -40,7 +40,7 @@ type WorkerPool struct {
 	// down, or shut down.
 	runState workerPoolRunState
 	// workerRPCAddresses records all connected workers.
-	workerRPCAddresses []string
+	workerRPCAddresses map[string]bool
 }
 
 // Start starts an empty WorkerPool with no presently assigned task.
@@ -56,7 +56,7 @@ func Start() *WorkerPool {
 
 		currentWorkSet:     nil,
 		runState:           running,
-		workerRPCAddresses: nil,
+		workerRPCAddresses: make(map[string]bool),
 	}
 
 	workerPool.workerPoolIsFreeForNewWorkSetCond = sync.NewCond(&workerPool.mutex)

@@ -37,7 +37,7 @@ func (workerPool *WorkerPool) handleMessage(message message) {
 func (workerPool *WorkerPool) handleStartingNewWorkSet() {
 	util.Debug("WorkerPool is starting new work set\n")
 
-	for _, workerRPCAddress := range workerPool.workerRPCAddresses {
+	for workerRPCAddress := range workerPool.workerRPCAddresses {
 		if !workerPool.assignTaskToWorker(workerRPCAddress) {
 			// We may run out of work to hand out before we run out of
 			// workers. In that case we can break early.
@@ -70,12 +70,11 @@ func (workerPool *WorkerPool) handleWorkerRegistration(newWorkerRPCAddress strin
 	util.Debug("worker running at %v entered WorkerPool\n", newWorkerRPCAddress)
 
 	// Record it in the list of workers.
-	//
-	// TODO(MEDIUM): Should check for worker re-registration.
-	workerPool.workerRPCAddresses = append(
-		workerPool.workerRPCAddresses,
-		newWorkerRPCAddress,
-	)
+	if _, ok := workerPool.workerRPCAddresses[newWorkerRPCAddress]; ok {
+		// Worker is trying to re-register. Ignore.
+		return
+	}
+	workerPool.workerRPCAddresses[newWorkerRPCAddress] = true
 
 	// And try to assign it work, if there is a currently running workSet.
 	if workerPool.currentWorkSet != nil {
