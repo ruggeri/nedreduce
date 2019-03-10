@@ -25,7 +25,7 @@ type Server struct {
 }
 
 // StartServer starts a Server for the provided target.
-func StartServer(address string, serverTarget interface{}) *Server {
+func StartServer(address string, serverTargetName string, serverTarget interface{}) *Server {
 	server := &Server{}
 
 	// Record the address to run the RPC server on.
@@ -33,7 +33,7 @@ func StartServer(address string, serverTarget interface{}) *Server {
 
 	// Set up underlying RPC target and base server.
 	server.baseRPCServer = rpc.NewServer()
-	server.baseRPCServer.Register(serverTarget)
+	server.baseRPCServer.RegisterName(serverTargetName, serverTarget)
 
 	// Open socket where we will listen for incoming connections that will
 	// make RPC requests.

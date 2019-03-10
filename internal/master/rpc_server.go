@@ -41,5 +41,5 @@ func (rpcServerTarget *masterRPCTarget) Shutdown(_, _ *struct{}) error {
 
 // startMasterRPCServer is used by Master to start an RPC server.
 func startMasterRPCServer(master *Master) *mr_rpc.Server {
-	return mr_rpc.StartServer(master.address, &masterRPCTarget{master: master})
+	return mr_rpc.StartServer(master.address, "Master", &masterRPCTarget{master: master})
 }
