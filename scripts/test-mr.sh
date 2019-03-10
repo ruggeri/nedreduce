@@ -3,7 +3,7 @@
 set -e
 
 echo "==> Part I"
-go test ./tests -run Sequential
+go test -v ./tests -run Sequential
 
 echo ""
 echo "==> Part II"
@@ -11,12 +11,12 @@ echo "==> Part II"
 
 echo ""
 echo "==> Part III"
-go test ./tests -run TestParallel
+go test -v ./tests -run TestParallel
 
 # TODO(HIGH): These tests don't pass yet.
 echo ""
 echo "==> Part IV"
-go test ./tests -run Failure
+go test -v ./tests -run Failure
 
 # echo ""
 # echo "==> Part V (inverted index)"
