@@ -1,17 +1,12 @@
 #!/bin/bash
 
-set -e
-
-echo "==> Part I"
-go test -v ./tests -run Sequential
+echo ""
+echo "==> Part IIIa"
+go test -v ./tests -run TestParallelBasic
 
 echo ""
-echo "==> Part II"
-./scripts/test-wc.sh
-
-echo ""
-echo "==> Part III"
-go test -v ./tests -run TestParallel
+echo "==> Part IIIb"
+go test -v ./tests -run TestParallelCheck
 
 # TODO(HIGH): These tests don't pass yet.
 echo ""
