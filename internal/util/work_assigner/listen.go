@@ -39,12 +39,12 @@ func (workAssigner *WorkAssigner) handleMessage(message message) {
 
 	nextWorkItem, err := workAssigner.workProducingFunction()
 
-	if err == io.EOF {
+	if err == nil {
 		util.Debug("WorkAssigner: assigning new work to worker running %v\n", message.Address)
 		workAssigner.SendWorkToWorker(nextWorkItem, message.Address)
 		workAssigner.numWorkersWorking++
 		return
-	} else if err != nil {
+	} else if err != io.EOF {
 		log.Fatalf("Unexpected work production error: %v\n", err)
 	}
 
