@@ -4,3 +4,5 @@ package rpc
 type Task interface {
 	StartOnWorker(workerAddress string, rpcCompletionCallback RPCCompletionCallback)
 }
+
+type RPCCompletionCallback func()

@@ -38,7 +38,6 @@ func runDistributedReducePhase(master *Master) {
 
 	workAssigner := work_assigner.Start(
 		func() mr_rpc.Task {
-
 			reduceTask, err := reduceTasksIterator.Next()
 			if err != nil {
 				if err == io.EOF {
