@@ -1,4 +1,4 @@
-package master
+package jobcoordinator
 
 import (
 	"github.com/ruggeri/nedreduce/internal/mapper"

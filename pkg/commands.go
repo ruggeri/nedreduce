@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/ruggeri/nedreduce/internal/master"
+	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
 	"github.com/ruggeri/nedreduce/internal/worker"
 )
 
@@ -10,7 +10,7 @@ import (
 func RunSequentialJob(
 	jobConfiguration *JobConfiguration,
 ) {
-	master := master.StartSequentialJob(jobConfiguration)
+	master := jobcoordinator.StartSequentialJob(jobConfiguration)
 	master.Wait()
 }
 
@@ -20,7 +20,7 @@ func RunDistributedJob(
 	jobConfiguration *JobConfiguration,
 	masterAddress string,
 ) {
-	master := master.StartDistributedJob(jobConfiguration, masterAddress)
+	master := jobcoordinator.StartDistributedJob(jobConfiguration, masterAddress)
 	master.Wait()
 }
 

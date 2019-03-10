@@ -1,4 +1,4 @@
-package master
+package jobcoordinator
 
 import (
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"

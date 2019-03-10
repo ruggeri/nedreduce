@@ -1,4 +1,4 @@
-package master
+package jobcoordinator
 
 // TODO(HIGH): what's the plan with killWorkers?
 
