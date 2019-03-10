@@ -19,7 +19,7 @@ func (mapTask *MapTask) StartOnWorker(
 		ok := Call(workerAddress, "Worker.ExecuteMapTask", mapTask, nil)
 
 		if !ok {
-			log.Fatal("Something went wrong with RPC call to worker.")
+			log.Panic("Something went wrong with RPC call to worker.")
 		} else {
 			rpcCompletionCallback()
 		}

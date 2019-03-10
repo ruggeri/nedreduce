@@ -20,7 +20,7 @@ func (reduceTask *ReduceTask) StartOnWorker(
 		ok := Call(workerAddress, "Worker.ExecuteReduceTask", reduceTask, nil)
 
 		if !ok {
-			log.Fatal("Something went wrong with RPC call to worker.")
+			log.Panic("Something went wrong with RPC call to worker.")
 		} else {
 			rpcCompletionCallback()
 		}

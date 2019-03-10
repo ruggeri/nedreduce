@@ -65,7 +65,7 @@ func (wk *Worker) DoTask(f func()) error {
 	if nc > 1 {
 		// schedule() should never issue more than one RPC at a
 		// time to a given worker.
-		log.Fatal("Worker.DoTask: more than one DoTask sent concurrently to a single worker\n")
+		log.Panic("Worker.DoTask: more than one DoTask sent concurrently to a single worker\n")
 	}
 
 	pause := false
@@ -139,7 +139,7 @@ func RunWorker(MasterAddress string, me string,
 	os.Remove(me) // only needed for "unix"
 	l, e := net.Listen("unix", me)
 	if e != nil {
-		log.Fatal("RunWorker: worker ", me, " error: ", e)
+		log.Panic("RunWorker: worker ", me, " error: ", e)
 	}
 	wk.l = l
 	wk.register(MasterAddress)

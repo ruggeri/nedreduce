@@ -36,7 +36,7 @@ func MergeReducerOutputFiles(jobName string, numReducers int) {
 		fmt.Printf("Merge: read %s\n", reduceTaskOutputFileName)
 		reduceTaskOutputFile, err := os.Open(reduceTaskOutputFileName)
 		if err != nil {
-			log.Fatal("Merge: ", err)
+			log.Panic("Merge: ", err)
 		}
 		defer reduceTaskOutputFile.Close()
 		reduceTaskOutputDecoder := json.NewDecoder(reduceTaskOutputFile)
@@ -62,7 +62,7 @@ func MergeReducerOutputFiles(jobName string, numReducers int) {
 	// Open merged output file.
 	mergedOutputFile, err := os.Create("mrtmp." + jobName)
 	if err != nil {
-		log.Fatal("Merge: create ", err)
+		log.Panic("Merge: create ", err)
 	}
 	defer mergedOutputFile.Close()
 
