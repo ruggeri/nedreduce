@@ -19,9 +19,7 @@ type GroupIteratorFunction func() (*KeyValue, error)
 
 // A ReducingFunction is the type of function the user supplies to do
 // the reducing. The ReducingFunction is called once per group. The user
-// *must* iterate the group to the end using the supplied
-// `groupIteratorFunction`. The user can emit KeyValues one-by-one using
-// the `emitterFunction`.
+// can emit KeyValues one-by-one using the `emitterFunction`.
 type ReducingFunction func(
 	groupKey string,
 	groupIteratorFunction GroupIteratorFunction,
