@@ -5,7 +5,7 @@ package main
 //
 // This lets you start workers up even before you ship the code you want
 // to run. When you run a job, you deploy the plugin code, *not* the
-// Master or Worker code.
+// JobCoordinator or Worker code.
 //
 // That is, you don't need to recompile and redeploy the nedreduce code
 // every time you simply want to deploy a new nedreduce job.

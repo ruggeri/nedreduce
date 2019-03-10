@@ -6,14 +6,14 @@ import (
 )
 
 // masterRPCTarget is a dummy type that exposes only those methods of
-// the Master that should be called via RPC.
-type masterRPCTarget struct {
-	master *Master
+// the JobCoordinator that should be called via RPC.
+type jobCoordinatorRPCTarget struct {
+	master *JobCoordinator
 }
 
 // RegisterWorker is called by workers after they have started up so
 // they can report that they are ready to receive tasks.
-func (rpcServerTarget *masterRPCTarget) RegisterWorker(
+func (rpcServerTarget *jobCoordinatorRPCTarget) RegisterWorker(
 	registrationMessage *mr_rpc.WorkerRegistrationMessage,
 	_ *struct{},
 ) error {
@@ -49,10 +49,15 @@ func (rpcServerTarget *masterRPCTarget) RegisterWorker(
 // 	return nil
 // }
 
-// startMasterRPCServer is used by the Master to start its RPC server.
-func startMasterRPCServer(master *Master) *mr_rpc.Server {
-	// Notice how I specify the target's name as "Master", even though in
-	// theory it would be masterRPCTarget? This is how I obscure those
-	// methods of Master that I don't want to be RPCable.
-	return mr_rpc.StartServer(master.address, "Master", &masterRPCTarget{master: master})
+// startJobCoordinatorRPCServer is used by the JobCoordinator to start
+// its RPC server.
+func startJobCoordinatorRPCServer(master *JobCoordinator) *mr_rpc.Server {
+	// Notice how I specify the target's name as "JobCoordinator", even
+	// though in theory it would be masterRPCTarget? This is how I obscure
+	// those methods of JobCoordinator that I don't want to be RPCable.
+	return mr_rpc.StartServer(
+		master.address,
+		"JobCoordinator",
+		&jobCoordinatorRPCTarget{master: master},
+	)
 }

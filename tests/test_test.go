@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ruggeri/nedreduce/internal/master"
+	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
 	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
 	"github.com/ruggeri/nedreduce/internal/worker"
@@ -114,7 +114,7 @@ func port(suffix string) string {
 	return s
 }
 
-func setup() (*types.JobConfiguration, *master.Master) {
+func setup() (*types.JobConfiguration, *jobcoordinator.JobCoordinator) {
 	files := makeInputs(nMap)
 	masterPort := port("master")
 
@@ -126,7 +126,7 @@ func setup() (*types.JobConfiguration, *master.Master) {
 		"WordCountingReducingFunction",
 	)
 
-	master := master.StartDistributedJob(&configuration, masterPort)
+	master := jobcoordinator.StartDistributedJob(&configuration, masterPort)
 	return &configuration, master
 }
 
@@ -151,7 +151,7 @@ func TestSequentialSingle(t *testing.T) {
 
 	defer cleanup(&configuration)
 
-	master := master.StartSequentialJob(&configuration)
+	master := jobcoordinator.StartSequentialJob(&configuration)
 	master.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, master.Stats)
@@ -170,7 +170,7 @@ func TestSequentialMany(t *testing.T) {
 
 	defer cleanup(&configuration)
 
-	master := master.StartSequentialJob(&configuration)
+	master := jobcoordinator.StartSequentialJob(&configuration)
 	master.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, master.Stats)

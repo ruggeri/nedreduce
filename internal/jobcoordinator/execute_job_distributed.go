@@ -11,7 +11,7 @@ import (
 )
 
 // runDistributedMapPhase runs a distributed map phase on the master.
-func runDistributedMapPhase(master *Master) {
+func runDistributedMapPhase(master *JobCoordinator) {
 	// Boilerplate to cast []MapTask to []mr_rpc.Task.
 	allTasks := []mr_rpc.Task(nil)
 	for _, mapTask := range mapper.AllMapTasks(master.jobConfiguration) {
@@ -34,7 +34,7 @@ func runDistributedMapPhase(master *Master) {
 
 // runDistributedReducePhase runs a distributed reduce phase on the
 // master.
-func runDistributedReducePhase(master *Master) {
+func runDistributedReducePhase(master *JobCoordinator) {
 	// Boilerplate to cast []ReduceTask to []mr_rpc.Task.
 	allTasks := []mr_rpc.Task(nil)
 	for _, reduceTask := range reducer.AllReduceTasks(master.jobConfiguration) {
@@ -60,10 +60,10 @@ func runDistributedReducePhase(master *Master) {
 func StartDistributedJob(
 	jobConfiguration *types.JobConfiguration,
 	masterAddress string,
-) *Master {
-	// First construct the Master and start running an RPC server which
-	// can listen for connections.
-	master := StartMaster(masterAddress, jobConfiguration)
+) *JobCoordinator {
+	// First construct the JobCoordinator and start running an RPC server
+	// which can listen for connections.
+	master := StartJobCoordinator(masterAddress, jobConfiguration)
 
 	// In the background, begin executing the job.
 	go master.executeJob(

@@ -8,18 +8,17 @@ import (
 	"github.com/ruggeri/nedreduce/internal/workerpool"
 )
 
-// Master can be either "running" or "jobCompleted"
-type masterState string
+// jobCoordinatorState can be either "running" or "jobCompleted"
+type jobCoordinatorState string
 
 const (
-	runningJob   = masterState("Running")
-	jobCompleted = masterState("jobCompleted")
+	runningJob   = jobCoordinatorState("Running")
+	jobCompleted = jobCoordinatorState("jobCompleted")
 )
 
-// Master holds all the state that the master needs to keep track of.
-//
-// TODO(HIGH): rename to JobCoordinator.
-type Master struct {
+// JobCoordinator holds all the state that the master needs to keep
+// track of.
+type JobCoordinator struct {
 	mutex             sync.Mutex
 	conditionVariable *sync.Cond
 
@@ -27,16 +26,16 @@ type Master struct {
 	jobConfiguration *types.JobConfiguration
 	rpcServer        *mr_rpc.Server
 	workerPool       *workerpool.WorkerPool
-	state            masterState
+	state            jobCoordinatorState
 }
 
-// StartMaster creates a new Master and starts it running an RPC Server
-// and a WorkerPool.
-func StartMaster(
+// StartJobCoordinator creates a new JobCoordinator and starts it
+// running an RPC Server and a WorkerPool.
+func StartJobCoordinator(
 	masterAddress string,
 	jobConfiguration *types.JobConfiguration,
-) *Master {
-	master := &Master{
+) *JobCoordinator {
+	master := &JobCoordinator{
 		address:          masterAddress,
 		jobConfiguration: jobConfiguration,
 		rpcServer:        nil,
@@ -45,20 +44,20 @@ func StartMaster(
 	}
 
 	master.conditionVariable = sync.NewCond(&master.mutex)
-	master.rpcServer = startMasterRPCServer(master)
+	master.rpcServer = startJobCoordinatorRPCServer(master)
 
 	return master
 }
 
 // Address is merely a getter used elsewhere (simply for logging, I
 // think).
-func (master *Master) Address() string {
+func (master *JobCoordinator) Address() string {
 	return master.address
 }
 
 // MarkJobAsCompleted tells the master that the job is complete. The
-// Master should now shut itself down.
-func (master *Master) MarkJobAsCompleted() {
+// JobCoordinator should now shut itself down.
+func (master *JobCoordinator) MarkJobAsCompleted() {
 	master.mutex.Lock()
 	defer master.mutex.Unlock()
 
@@ -82,7 +81,7 @@ func (master *Master) MarkJobAsCompleted() {
 // Wait blocks until the job has completed. This happens when all tasks
 // have been scheduled and completed, the final output have been
 // computed, and all workers have been shut down.
-func (master *Master) Wait() {
+func (master *JobCoordinator) Wait() {
 	master.mutex.Lock()
 	defer master.mutex.Unlock()
 

@@ -9,7 +9,7 @@ import (
 // runSequentialMapPhase runs a map phase on the master, running each
 // map task one-at-a-time.
 func runSequentialMapPhase(
-	master *Master,
+	master *JobCoordinator,
 ) {
 	for _, mapTask := range mapper.AllMapTasks(master.jobConfiguration) {
 		mapper.ExecuteMapping(&mapTask)
@@ -19,7 +19,7 @@ func runSequentialMapPhase(
 // runSequentialReducePhase runs a map phase on the master, running each
 // reduce task one-at-a-time.
 func runSequentialReducePhase(
-	master *Master,
+	master *JobCoordinator,
 ) {
 	for _, reduceTask := range reducer.AllReduceTasks(master.jobConfiguration) {
 		reducer.ExecuteReducing(&reduceTask)
@@ -30,8 +30,8 @@ func runSequentialReducePhase(
 // for each task to complete before running the next.
 func StartSequentialJob(
 	jobConfiguration *types.JobConfiguration,
-) *Master {
-	master := StartMaster("master", jobConfiguration)
+) *JobCoordinator {
+	master := StartJobCoordinator("master", jobConfiguration)
 
 	// Even though work is done sequentially, it is performed in a
 	// background goroutine.

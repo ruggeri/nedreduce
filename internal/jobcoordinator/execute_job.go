@@ -9,9 +9,9 @@ import (
 // executeJob executes the various phases of a MapReduce job. You can
 // specify how to run the map/reduce phases, which lets you pick whether
 // the tasks of a phase should be done sequentially or in parallel.
-func (master *Master) executeJob(
-	runMapPhase func(*Master),
-	runReducePhase func(*Master),
+func (master *JobCoordinator) executeJob(
+	runMapPhase func(*JobCoordinator),
+	runReducePhase func(*JobCoordinator),
 ) {
 	jobConfiguration := master.jobConfiguration
 

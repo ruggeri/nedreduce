@@ -118,7 +118,7 @@ func (wk *Worker) Shutdown(_ *struct{}, res *mr_rpc.WorkerShutdownResponse) erro
 func (wk *Worker) register(master string) {
 	args := new(mr_rpc.WorkerRegistrationMessage)
 	args.WorkerRPCAdress = wk.name
-	ok := mr_rpc.Call(master, "Master.RegisterWorker", args, new(struct{}))
+	ok := mr_rpc.Call(master, "JobCoordinator.RegisterWorker", args, new(struct{}))
 	if ok == false {
 		fmt.Printf("RegisterWorker: RPC %s register error\n", master)
 	}
@@ -126,7 +126,7 @@ func (wk *Worker) register(master string) {
 
 // RunWorker sets up a connection with the master, registers its address, and
 // waits for tasks to be scheduled.
-func RunWorker(MasterAddress string, me string,
+func RunWorker(jobCoordinatorAddress string, me string,
 	nRPC int, parallelism *Parallelism,
 ) {
 	util.Debug("RunWorker %s\n", me)
@@ -142,7 +142,7 @@ func RunWorker(MasterAddress string, me string,
 		log.Panic("RunWorker: worker ", me, " error: ", e)
 	}
 	wk.l = l
-	wk.register(MasterAddress)
+	wk.register(jobCoordinatorAddress)
 
 	// DON'T MODIFY CODE BELOW
 	for {

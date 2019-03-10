@@ -12,9 +12,10 @@ import (
 )
 
 // MergeReducerOutputFiles combines the results of the many reduce jobs
-// into a single output file. Presently a `Master` runs this function at
-// the end of a job, but it is typical for real-world MR jobs not to do
-// that. Producing many output files is a feature, not a bug.
+// into a single output file. Presently a `JobCoordinator` runs this
+// function at the end of a job, but it is typical for real-world MR
+// jobs not to do that. Producing many output files is a feature, not a
+// bug.
 //
 // Anyway, I feel like this function is unnecessary: if you wanted to
 // concatenate all partitions you could just write another MR job with a
