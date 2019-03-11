@@ -206,20 +206,20 @@ func TestParallelCheck(t *testing.T) {
 	configuration, jobCoordinator := setup()
 	defer cleanup(configuration)
 
-	parallelism := &worker.Parallelism{}
+	parallelismTester := &worker.ParallelismTester{}
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
 			jobCoordinator.Address(),
 			port("worker"+strconv.Itoa(i)),
 			-1,
-			parallelism,
+			parallelismTester,
 		)
 	}
 	jobCoordinator.Wait()
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 
-	if parallelism.MaxLevelOfParallelism() < 2 {
+	if parallelismTester.MaxLevelOfParallelism() < 2 {
 		t.Fatalf("workers did not execute in parallel")
 	}
 }

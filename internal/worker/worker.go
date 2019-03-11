@@ -27,7 +27,7 @@ type Worker struct {
 
 	// TODO: Junk instance variables.
 	numRPCsUntilSuicide int // quit after this many RPCs; protected by mutex
-	parallelism         *Parallelism
+	parallelismTester   *ParallelismTester
 }
 
 // StartWorker starts up a Worker instance. It will begin listening for
@@ -37,7 +37,7 @@ func StartWorker(
 	jobCoordinatorRPCAddress string,
 	workerRPCAddress string,
 	numRPCsUntilSuicide int,
-	parallelism *Parallelism,
+	parallelismTester *ParallelismTester,
 ) *Worker {
 	worker := &Worker{
 		mutex: sync.Mutex{},
@@ -52,7 +52,7 @@ func StartWorker(
 
 		// TODO: Junk instance variables.
 		numRPCsUntilSuicide: numRPCsUntilSuicide,
-		parallelism:         parallelism,
+		parallelismTester:   parallelismTester,
 	}
 
 	// Finish initialization of Cond variable.
@@ -77,13 +77,13 @@ func RunWorker(
 	jobCoordinatorAddress string,
 	workerAddress string,
 	numRPCsUntilSuicide int,
-	parallelism *Parallelism,
+	parallelismTester *ParallelismTester,
 ) {
 	worker := StartWorker(
 		jobCoordinatorAddress,
 		workerAddress,
 		numRPCsUntilSuicide,
-		parallelism,
+		parallelismTester,
 	)
 
 	worker.Wait()
