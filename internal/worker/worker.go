@@ -10,8 +10,9 @@ import (
 type workerRunState string
 
 const (
-	running  = workerRunState("running")
-	shutDown = workerRunState("shutDown")
+	availableForNextJob = workerRunState("availableForNextJob")
+	runningJob          = workerRunState("runningJob")
+	shutDown            = workerRunState("shutDown")
 )
 
 // A Worker executes tasks that are assigned by a JobCoordinator.
@@ -26,7 +27,6 @@ type Worker struct {
 
 	// TODO: Junk instance variables.
 	numRPCsUntilSuicide int // quit after this many RPCs; protected by mutex
-	concurrent          int // number of parallel DoTasks in this worker; mutex
 	parallelism         *Parallelism
 }
 
@@ -48,11 +48,10 @@ func StartWorker(
 		rpcAddress:        workerRPCAddress,
 		// See below. Can't start until we have a Worker.
 		rpcServer: nil,
-		runState:  running,
+		runState:  availableForNextJob,
 
 		// TODO: Junk instance variables.
 		numRPCsUntilSuicide: numRPCsUntilSuicide,
-		concurrent:          0,
 		parallelism:         parallelism,
 	}
 

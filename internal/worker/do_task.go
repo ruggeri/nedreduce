@@ -10,23 +10,12 @@ import (
 
 // TODO: this code is unreviewed.
 
-// DoTask is called by the master when a new task is being scheduled on this
-// worker.
-func (wk *Worker) DoTask(f func()) error {
-	// fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
-	// 	wk.name, arg.JobPhase, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase)
-
-	wk.mutex.Lock()
-	wk.numTasksProcessed += 1
-	wk.concurrent += 1
-	nc := wk.concurrent
-	wk.mutex.Unlock()
-
-	if nc > 1 {
-		// schedule() should never issue more than one RPC at a
-		// time to a given worker.
-		log.Panic("Worker.DoTask: more than one DoTask sent concurrently to a single worker\n")
-	}
+// DoTask performs the taskFunc is provided. This is how the Worker
+// executes the JobCoordinator's task.
+func (wk *Worker) DoTask(taskFunc func()) {
+	// First check that we are allowed to run this new task. If so, then
+	// record that we are currently running a job.
+	wk.checkAndUpdateRunStateBeforeNextTask()
 
 	pause := false
 	if wk.parallelism != nil {
@@ -47,18 +36,58 @@ func (wk *Worker) DoTask(f func()) error {
 		time.Sleep(time.Second)
 	}
 
-	f()
+	// Perform the task.
+	taskFunc()
 
-	wk.mutex.Lock()
-	wk.concurrent -= 1
-	wk.mutex.Unlock()
+	// Restore the runState so that new jobs can be accepted.
+	wk.restoreRunStateAfterTaskCompletion()
 
 	if wk.parallelism != nil {
 		wk.parallelism.Mu.Lock()
 		wk.parallelism.now -= 1
 		wk.parallelism.Mu.Unlock()
 	}
+}
 
-	// fmt.Printf("%s: %v task #%d done\n", wk.name, arg.JobPhase, arg.TaskIdx)
-	return nil
+// checkAndUpdateRunStateBeforeNextTask checks that we aren't already
+// running a job, and updates our runState to reflect that we are.
+func (worker *Worker) checkAndUpdateRunStateBeforeNextTask() {
+	worker.mutex.Lock()
+	defer worker.mutex.Unlock()
+
+	switch worker.runState {
+	case availableForNextJob:
+		worker.numTasksProcessed++
+		worker.runState = runningJob
+		return
+	case runningJob:
+		log.Panicf(
+			"worker @ %v assigned more than one task at a time.\n",
+			worker.rpcAddress,
+		)
+	case shutDown:
+		log.Panicf(
+			"worker @ %v assigned a task after shut down.\n",
+			worker.rpcAddress,
+		)
+	default:
+		log.Panicf(
+			"non-exhaustive worker runState switch: %v\n",
+			worker.runState,
+		)
+	}
+}
+
+// restoreRunStateAfterTaskCompletion restores the Worker's runState so
+// that it can accept new jobs.
+func (worker *Worker) restoreRunStateAfterTaskCompletion() {
+	worker.mutex.Lock()
+	defer worker.mutex.Unlock()
+
+	switch worker.runState {
+	case runningJob:
+		worker.runState = availableForNextJob
+	default:
+		log.Panicf("worker state changed while running job??")
+	}
 }
