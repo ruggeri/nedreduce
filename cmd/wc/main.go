@@ -32,7 +32,6 @@ func main() {
 		nedreduce.RunWorker(
 			os.Args[2],
 			os.Args[3],
-			100,
 		)
 	}
 }

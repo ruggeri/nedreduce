@@ -3,15 +3,16 @@ package worker
 type WorkerEvent string
 
 const (
-	taskStart = WorkerEvent("taskStart")
-	taskEnd   = WorkerEvent("taskEnd")
+	rpcReceived = WorkerEvent("rpcReceived")
+	taskStart   = WorkerEvent("taskStart")
+	taskEnd     = WorkerEvent("taskEnd")
 )
 
 type WorkerAction string
 
 const (
-	doNothing  = WorkerAction("doNothing")
-	killWorker = WorkerAction("killWorker")
+	doNothing = WorkerAction("doNothing")
+	failRPC   = WorkerAction("failRPC")
 )
 
 type EventListener interface {

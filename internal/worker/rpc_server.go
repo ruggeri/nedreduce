@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"errors"
+
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
@@ -26,6 +28,12 @@ func (workerRPCTarget *workerRPCTarget) ExecuteMapTask(
 		mapTask.MapTaskIdx,
 	)
 
+	for _, eventListener := range worker.eventListeners {
+		if eventListener.OnWorkerEvent(worker, rpcReceived) == failRPC {
+			return errors.New("FakeTimeoutError")
+		}
+	}
+
 	worker.DoTask(func() {
 		mapper.ExecuteMapping((*mapper.MapTask)(mapTask))
 	})
@@ -45,6 +53,12 @@ func (workerRPCTarget *workerRPCTarget) ExecuteReduceTask(
 		worker.rpcAddress,
 		reduceTask.ReduceTaskIdx,
 	)
+
+	for _, eventListener := range worker.eventListeners {
+		if eventListener.OnWorkerEvent(worker, rpcReceived) == failRPC {
+			return errors.New("FakeTimeoutError")
+		}
+	}
 
 	worker.DoTask(func() {
 		reducer.ExecuteReducing((*reducer.ReduceTask)(reduceTask))
@@ -69,13 +83,6 @@ func (workerRPCTarget *workerRPCTarget) Shutdown(
 
 	// Perform the actual shutdown of the worker.
 	worker.Shutdown()
-
-	// TODO: Can I please get rid of this? Prolly garbage?
-	func() {
-		worker.mutex.Lock()
-		defer worker.mutex.Unlock()
-		worker.numRPCsUntilSuicide = 1
-	}()
 
 	// Get the number of tasks processed by Worker over its lifespan.
 	func() {

@@ -33,13 +33,11 @@ func RunDistributedJob(
 func RunWorker(
 	jobCoordinatorAddress string,
 	workerAddress string,
-	nRPC int,
 ) {
 	// TODO(MEDIUM): what is nRPC?
 	worker.RunWorker(
 		jobCoordinatorAddress,
 		workerAddress,
-		nRPC,
 		nil,
 	)
 }

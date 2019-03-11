@@ -188,7 +188,6 @@ func TestParallelBasic(t *testing.T) {
 		go worker.RunWorker(
 			jobCoordinator.Address(),
 			port("worker"+strconv.Itoa(i)),
-			-1,
 			nil,
 		)
 	}
@@ -211,8 +210,7 @@ func TestParallelCheck(t *testing.T) {
 		go worker.RunWorker(
 			jobCoordinator.Address(),
 			port("worker"+strconv.Itoa(i)),
-			-1,
-			parallelismTester,
+			[]worker.EventListener{worker.EventListener(parallelismTester)},
 		)
 	}
 	jobCoordinator.Wait()
@@ -234,13 +232,13 @@ func TestOneFailure(t *testing.T) {
 	go worker.RunWorker(
 		jobCoordinator.Address(),
 		port("worker"+strconv.Itoa(0)),
-		10,
-		nil,
+		[]worker.EventListener{
+			worker.EventListener(worker.NewRPCLimitKiller(10)),
+		},
 	)
 	go worker.RunWorker(
 		jobCoordinator.Address(),
 		port("worker"+strconv.Itoa(1)),
-		-1,
 		nil,
 	)
 	jobCoordinator.Wait()
@@ -273,16 +271,18 @@ func TestManyFailures(t *testing.T) {
 			go worker.RunWorker(
 				jobCoordinator.Address(),
 				w,
-				10,
-				nil,
+				[]worker.EventListener{
+					worker.EventListener(worker.NewRPCLimitKiller(10)),
+				},
 			)
 			i++
 			w = port("worker" + strconv.Itoa(i))
 			go worker.RunWorker(
 				jobCoordinator.Address(),
 				w,
-				10,
-				nil,
+				[]worker.EventListener{
+					worker.EventListener(worker.NewRPCLimitKiller(10)),
+				},
 			)
 			i++
 			time.Sleep(1 * time.Second)

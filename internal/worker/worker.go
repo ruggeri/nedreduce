@@ -25,9 +25,6 @@ type Worker struct {
 	rpcAddress        string
 	rpcServer         *mr_rpc.Server
 	runState          workerRunState
-
-	// TODO: Junk instance variables.
-	numRPCsUntilSuicide int // quit after this many RPCs; protected by mutex
 }
 
 // StartWorker starts up a Worker instance. It will begin listening for
@@ -36,7 +33,6 @@ type Worker struct {
 func StartWorker(
 	jobCoordinatorRPCAddress string,
 	workerRPCAddress string,
-	numRPCsUntilSuicide int,
 	eventListeners []EventListener,
 ) *Worker {
 	worker := &Worker{
@@ -44,15 +40,12 @@ func StartWorker(
 		// See below. Can't setup until we have the mutex.
 		workerIsShutDownCond: nil,
 
+		eventListeners:    eventListeners,
 		numTasksProcessed: 0,
 		rpcAddress:        workerRPCAddress,
 		// See below. Can't start until we have a Worker.
 		rpcServer: nil,
 		runState:  availableForNextJob,
-
-		// TODO: Junk instance variables.
-		numRPCsUntilSuicide: numRPCsUntilSuicide,
-		eventListeners:      eventListeners,
 	}
 
 	// Finish initialization of Cond variable.
@@ -76,13 +69,11 @@ func StartWorker(
 func RunWorker(
 	jobCoordinatorAddress string,
 	workerAddress string,
-	numRPCsUntilSuicide int,
 	eventListeners []EventListener,
 ) {
 	worker := StartWorker(
 		jobCoordinatorAddress,
 		workerAddress,
-		numRPCsUntilSuicide,
 		eventListeners,
 	)
 
