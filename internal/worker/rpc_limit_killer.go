@@ -5,12 +5,12 @@ import "github.com/ruggeri/nedreduce/internal/util"
 // RPCLimitKiller is used to kill the worker after a set number of RPC
 // calls.
 type RPCLimitKiller struct {
-	numRPCsUntilSuicide int
+	numRPCsUntilFailure int
 }
 
-func NewRPCLimitKiller(numRPCsUntilSuicide int) *RPCLimitKiller {
+func NewRPCLimitKiller(numRPCsUntilFailure int) *RPCLimitKiller {
 	return &RPCLimitKiller{
-		numRPCsUntilSuicide: numRPCsUntilSuicide,
+		numRPCsUntilFailure: numRPCsUntilFailure,
 	}
 }
 
@@ -22,14 +22,14 @@ func (rpcLimitKiller *RPCLimitKiller) OnWorkerEvent(
 ) WorkerAction {
 	switch workerEvent {
 	case rpcReceived:
-		if rpcLimitKiller.numRPCsUntilSuicide > 0 {
-			rpcLimitKiller.numRPCsUntilSuicide--
+		if rpcLimitKiller.numRPCsUntilFailure > 0 {
+			rpcLimitKiller.numRPCsUntilFailure--
 		}
 	default:
 		// do nothing
 	}
 
-	if rpcLimitKiller.numRPCsUntilSuicide == 0 {
+	if rpcLimitKiller.numRPCsUntilFailure == 0 {
 		util.Debug(
 			"worker @ %v will fail RPC on purpose.", worker.rpcAddress,
 		)
