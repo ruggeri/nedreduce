@@ -8,6 +8,8 @@ type RPCLimitKiller struct {
 	numRPCsUntilFailure int
 }
 
+// NewRPCLimitKiller makes a new RPCLimitKiller which will start failing
+// all RPCs after numRPCsUntilFailure RPCs are performed.
 func NewRPCLimitKiller(numRPCsUntilFailure int) *RPCLimitKiller {
 	return &RPCLimitKiller{
 		numRPCsUntilFailure: numRPCsUntilFailure,
@@ -18,8 +20,8 @@ func NewRPCLimitKiller(numRPCsUntilFailure int) *RPCLimitKiller {
 // failing all future RPCs.
 func (rpcLimitKiller *RPCLimitKiller) OnWorkerEvent(
 	worker *Worker,
-	workerEvent WorkerEvent,
-) WorkerAction {
+	workerEvent Event,
+) Action {
 	switch workerEvent {
 	case rpcReceived:
 		if rpcLimitKiller.numRPCsUntilFailure > 0 {

@@ -110,11 +110,11 @@ func (worker *Worker) Shutdown() {
 		worker.runState = shutDown
 	}()
 
-	// Last, inform anyone waiting for us to shutdown.
+	// Last, inform anyone waiting for us to shut down.
 	worker.workerIsShutDownCond.Broadcast()
 }
 
-// Wait blocks until the Worker is shutdown.
+// WaitForShutdown blocks until the Worker is shut down.
 func (worker *Worker) WaitForShutdown() {
 	worker.mutex.Lock()
 	defer worker.mutex.Unlock()

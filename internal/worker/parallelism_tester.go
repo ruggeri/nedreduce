@@ -13,10 +13,12 @@ type ParallelismTester struct {
 	maxLevelOfParallelism     int
 }
 
+// OnWorkerEvent is used here to call OnTaskStart and OnTaskEnd (see
+// below).
 func (parallelismTester *ParallelismTester) OnWorkerEvent(
 	worker *Worker,
-	workerEvent WorkerEvent,
-) WorkerAction {
+	workerEvent Event,
+) Action {
 	switch workerEvent {
 	case taskStart:
 		parallelismTester.OnTaskStart(worker)
