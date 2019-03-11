@@ -101,7 +101,8 @@ func (worker *Worker) Wait() {
 	defer worker.mutex.Unlock()
 
 	for {
-		if worker.isShutdown() {
+		// FML: can't call isShutdown when you have a lock. :-(
+		if worker.runState == shutDown {
 			return
 		}
 

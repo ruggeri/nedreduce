@@ -1,7 +1,11 @@
 package nedreduce
 
+// So that people can look at goroutines.
+import _ "net/http/pprof"
+
 import (
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -286,4 +290,19 @@ func TestManyFailures(t *testing.T) {
 			time.Sleep(1 * time.Second)
 		}
 	}
+}
+
+func TestMain(m *testing.M) {
+	// Fucking beautiful. Lets you dump the stacktraces of all goroutines
+	// easily in the browser:
+	//
+	//   http://localhost:6060/debug/pprof/goroutine?debug=2
+	//
+	// Helped me find a deadlock real fast. Wowzo.
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
+
+	retCode := m.Run()
+	os.Exit(retCode)
 }
