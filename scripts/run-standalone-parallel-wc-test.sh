@@ -1,9 +1,12 @@
 #!/bin/bash
 
-./build/bin/wc master localhost:3000 assets/pg-*.txt &
+echo "Starting coordinator."
+./build/bin/wc coordinator localhost:3000 assets/pg-*.txt &
 MASTER_PID=$!
 
+echo "Starting worker."
 ./build/bin/wc worker localhost:3000 localhost:3001 assets/pg-*.txt &
+echo "Starting worker."
 ./build/bin/wc worker localhost:3000 localhost:3002 assets/pg-*.txt &
 
 wait $MASTER_PID
