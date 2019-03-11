@@ -4,8 +4,10 @@
 
 * Get parallel failure tests working by adding RPC error handling.
 * `rpc.Server` doesn't try to figure out why `conn.Accept` fails.
-* Re-enable remote shutdown of Master.
-  * Clear out `killWorkers` code in master?
+* Fix StartCoordinator (at least in wc) so that it spawns a process to
+  run the Coordinator in.
+* What to do about shutdown of workers? Clear out `killWorkers` code in
+  master?
 * Rework the README.
 
 **Low**
