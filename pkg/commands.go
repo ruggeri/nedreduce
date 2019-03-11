@@ -38,6 +38,13 @@ func ShutdownJobCoordinator(
 	mr_rpc.ShutdownJobCoordinator(jobCoordinatorAddress)
 }
 
+// ShutdownWorker performs an RPC which tells a Worker to shut down.
+func ShutdownWorker(
+	workerRPCAddress string,
+) {
+	mr_rpc.ShutdownWorker(workerRPCAddress)
+}
+
 // SubmitJob performs an RPC that tells the JobCoordinator to start
 // running the specified job.
 func SubmitJob(

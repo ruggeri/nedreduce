@@ -68,7 +68,7 @@ func main() {
 		nedreduce.SubmitJob(jobCoordinatorAddress, jobConfiguration)
 		nedreduce.WaitForJobCompletion(jobCoordinatorAddress, jobName)
 	case "run-worker":
-		if len(os.Args) < 4 {
+		if len(os.Args) != 4 {
 			log.Fatal("wc run-worker jobCoordinatorAddress workerAddress")
 		}
 
@@ -76,6 +76,14 @@ func main() {
 		workerAddress := os.Args[3]
 
 		nedreduce.RunWorker(jobCoordinatorAddress, workerAddress)
+	case "shutdown-worker":
+		if len(os.Args) != 3 {
+			log.Fatal("wc shutdown-worker workerRPCAddress")
+		}
+
+		workerRPCAddress := os.Args[2]
+
+		nedreduce.ShutdownWorker(workerRPCAddress)
 	default:
 		log.Fatalf("Unrecognized command: %v\n", command)
 	}
