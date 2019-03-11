@@ -10,7 +10,7 @@ func ShutdownJobCoordinator(
 	err := Call(
 		jobCoordinatorRPCAddress,
 		"JobCoordinator.Shutdown",
-		nil,
+		&struct{}{},
 		nil,
 	)
 
