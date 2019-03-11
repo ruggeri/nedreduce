@@ -5,17 +5,20 @@ import (
 
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
+	"github.com/ruggeri/nedreduce/internal/types"
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
-	"github.com/ruggeri/nedreduce/internal/types"
 )
 
 // runDistributedMapPhase runs a distributed map phase on the
 // jobCoordinator.
-func runDistributedMapPhase(jobCoordinator *JobCoordinator) {
+func runDistributedMapPhase(
+	jobCoordinator *JobCoordinator,
+	jobConfiguration *types.JobConfiguration,
+) {
 	// Boilerplate to cast []MapTask to []mr_rpc.Task.
 	allTasks := []mr_rpc.Task(nil)
-	for _, mapTask := range mapper.AllMapTasks(jobCoordinator.jobConfiguration) {
+	for _, mapTask := range mapper.AllMapTasks(jobConfiguration) {
 		mapTask := mr_rpc.MapTask(mapTask)
 		allTasks = append(allTasks, mr_rpc.Task(&mapTask))
 	}
@@ -35,10 +38,13 @@ func runDistributedMapPhase(jobCoordinator *JobCoordinator) {
 
 // runDistributedReducePhase runs a distributed reduce phase on the
 // jobCoordinator.
-func runDistributedReducePhase(jobCoordinator *JobCoordinator) {
+func runDistributedReducePhase(
+	jobCoordinator *JobCoordinator,
+	jobConfiguration *types.JobConfiguration,
+) {
 	// Boilerplate to cast []ReduceTask to []mr_rpc.Task.
 	allTasks := []mr_rpc.Task(nil)
-	for _, reduceTask := range reducer.AllReduceTasks(jobCoordinator.jobConfiguration) {
+	for _, reduceTask := range reducer.AllReduceTasks(jobConfiguration) {
 		reduceTask := mr_rpc.ReduceTask(reduceTask)
 		allTasks = append(allTasks, mr_rpc.Task(&reduceTask))
 	}
@@ -54,23 +60,4 @@ func runDistributedReducePhase(jobCoordinator *JobCoordinator) {
 
 	// We wait until the WorkerPool has completed all the work.
 	<-workSetResultChan
-}
-
-// StartDistributedJob schedules map and reduce tasks on workers that
-// register with the jobCoordinator over RPC.
-func StartDistributedJob(
-	jobConfiguration *types.JobConfiguration,
-	jobCoordinatorAddress string,
-) *JobCoordinator {
-	// First construct the JobCoordinator and start running an RPC server
-	// which can listen for connections.
-	jobCoordinator := StartJobCoordinator(jobCoordinatorAddress, jobConfiguration)
-
-	// In the background, begin executing the job.
-	go jobCoordinator.executeJob(
-		runDistributedMapPhase,
-		runDistributedReducePhase,
-	)
-
-	return jobCoordinator
 }

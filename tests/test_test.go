@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
 	"github.com/ruggeri/nedreduce/internal/worker"
@@ -122,16 +123,18 @@ func setup() (*types.JobConfiguration, *jobcoordinator.JobCoordinator) {
 	files := makeInputs(nMap)
 	jobCoordinatorPort := port("jobCoordinator")
 
-	configuration := types.NewJobConfiguration(
+	jobConfiguration := types.NewJobConfiguration(
 		"test",
 		files,
 		nReduce,
 		"WordSplittingMappingFunctionForTest",
 		"WordCountingReducingFunction",
+		types.Distributed,
 	)
 
-	jobCoordinator := jobcoordinator.StartDistributedJob(&configuration, jobCoordinatorPort)
-	return &configuration, jobCoordinator
+	jobCoordinator := jobcoordinator.StartJobCoordinator(jobCoordinatorPort)
+
+	return jobConfiguration, jobCoordinator
 }
 
 func cleanup(jobConfiguration *types.JobConfiguration) {
@@ -145,45 +148,51 @@ func cleanup(jobConfiguration *types.JobConfiguration) {
 func TestSequentialSingle(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration := types.NewJobConfiguration(
-		"test",
+	jobConfiguration := types.NewJobConfiguration(
+		"testJobName",
 		makeInputs(1),
 		1,
 		"WordSplittingMappingFunctionForTest",
 		"WordCountingReducingFunction",
+		types.Sequential,
 	)
 
-	defer cleanup(&configuration)
+	defer cleanup(jobConfiguration)
 
-	jobCoordinator := jobcoordinator.StartSequentialJob(&configuration)
-	jobCoordinator.Wait()
-	check(t, configuration.MapperInputFileNames)
+	jobCoordinator := jobcoordinator.StartJobCoordinator("coordinator")
+	jobCoordinator.StartJob(jobConfiguration)
+	jobCoordinator.WaitForJobCompletion("testJobName")
+
+	check(t, jobConfiguration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestSequentialMany(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration := types.NewJobConfiguration(
-		"test",
+	jobConfiguration := types.NewJobConfiguration(
+		"testJobName",
 		makeInputs(5),
 		3,
 		"WordSplittingMappingFunctionForTest",
 		"WordCountingReducingFunction",
+		types.Sequential,
 	)
 
-	defer cleanup(&configuration)
+	defer cleanup(jobConfiguration)
 
-	jobCoordinator := jobcoordinator.StartSequentialJob(&configuration)
-	jobCoordinator.Wait()
-	check(t, configuration.MapperInputFileNames)
+	jobCoordinator := jobcoordinator.StartJobCoordinator("coordinator")
+	jobCoordinator.StartJob(jobConfiguration)
+	jobCoordinator.WaitForJobCompletion("testJobName")
+
+	check(t, jobConfiguration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestParallelBasic(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, jobCoordinator := setup()
+	jobConfiguration, jobCoordinator := setup()
 	for i := 0; i < 2; i++ {
 		go worker.RunWorker(
 			jobCoordinator.Address(),
@@ -192,18 +201,24 @@ func TestParallelBasic(t *testing.T) {
 		)
 	}
 
-	defer cleanup(configuration)
+	defer cleanup(jobConfiguration)
 
-	jobCoordinator.Wait()
-	check(t, configuration.MapperInputFileNames)
+	mr_rpc.SubmitJob(
+		jobCoordinator.Address(), jobConfiguration,
+	)
+	mr_rpc.WaitForJobCompletion(
+		jobCoordinator.Address(), jobConfiguration.JobName,
+	)
+
+	check(t, jobConfiguration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestParallelCheck(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, jobCoordinator := setup()
-	defer cleanup(configuration)
+	jobConfiguration, jobCoordinator := setup()
+	defer cleanup(jobConfiguration)
 
 	parallelismTester := &worker.ParallelismTester{}
 	for i := 0; i < 2; i++ {
@@ -213,8 +228,15 @@ func TestParallelCheck(t *testing.T) {
 			[]worker.EventListener{worker.EventListener(parallelismTester)},
 		)
 	}
-	jobCoordinator.Wait()
-	check(t, configuration.MapperInputFileNames)
+
+	mr_rpc.SubmitJob(
+		jobCoordinator.Address(), jobConfiguration,
+	)
+	mr_rpc.WaitForJobCompletion(
+		jobCoordinator.Address(), jobConfiguration.JobName,
+	)
+
+	check(t, jobConfiguration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 
 	if parallelismTester.MaxLevelOfParallelism() < 2 {
@@ -225,8 +247,8 @@ func TestParallelCheck(t *testing.T) {
 func TestOneFailure(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, jobCoordinator := setup()
-	defer cleanup(configuration)
+	jobConfiguration, jobCoordinator := setup()
+	defer cleanup(jobConfiguration)
 
 	// Start 2 workers that fail after 10 tasks
 	go worker.RunWorker(
@@ -241,20 +263,34 @@ func TestOneFailure(t *testing.T) {
 		port("worker"+strconv.Itoa(1)),
 		nil,
 	)
-	jobCoordinator.Wait()
-	check(t, configuration.MapperInputFileNames)
+
+	mr_rpc.SubmitJob(
+		jobCoordinator.Address(), jobConfiguration,
+	)
+	mr_rpc.WaitForJobCompletion(
+		jobCoordinator.Address(), jobConfiguration.JobName,
+	)
+
+	check(t, jobConfiguration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 }
 
 func TestManyFailures(t *testing.T) {
 	util.SetPluginPath("../build/plugin.so")
 
-	configuration, jobCoordinator := setup()
-	defer cleanup(configuration)
+	jobConfiguration, jobCoordinator := setup()
+	defer cleanup(jobConfiguration)
+
+	mr_rpc.SubmitJob(
+		jobCoordinator.Address(), jobConfiguration,
+	)
 
 	doneChannel := make(chan struct{})
 	go func() {
-		jobCoordinator.Wait()
+		mr_rpc.WaitForJobCompletion(
+			jobCoordinator.Address(), jobConfiguration.JobName,
+		)
+
 		doneChannel <- struct{}{}
 	}()
 
@@ -263,7 +299,7 @@ func TestManyFailures(t *testing.T) {
 	for !done {
 		select {
 		case <-doneChannel:
-			check(t, configuration.MapperInputFileNames)
+			check(t, jobConfiguration.MapperInputFileNames)
 			break
 		default:
 			// Start 2 workers each sec. The workers fail after 10 tasks

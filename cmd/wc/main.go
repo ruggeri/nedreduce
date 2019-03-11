@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
+	"strconv"
 
+	"github.com/ruggeri/nedreduce/internal/types"
 	nedreduce "github.com/ruggeri/nedreduce/pkg"
 )
 
@@ -12,26 +14,64 @@ import (
 // 2) Master (e.g., go run wc.go coordinator localhost:7777 x1.txt .. xN.txt)
 // 3) Worker (e.g., go run wc.go worker localhost:7777 localhost:7778 &)
 func main() {
-	if len(os.Args) < 4 {
-		fmt.Printf("%s: see usage comments in file\n", os.Args[0])
-	} else if os.Args[1] == "coordinator" {
+	command := os.Args[1]
+
+	switch command {
+	case "run-coordinator":
+		if len(os.Args) != 3 {
+			log.Fatal("wc run-coordinator jobCoordinatorAddress")
+		}
+		jobCoordinatorAddress := os.Args[2]
+		nedreduce.RunJobCoordinator(jobCoordinatorAddress)
+	case "submit-job":
+		if len(os.Args) < 6 {
+			log.Fatal("wc submit-job jobCoordinatorAddress executionMode numReducers inputFiles...")
+		}
+
+		jobCoordinatorAddress := os.Args[2]
+		executionModeName := os.Args[3]
+		numReducers, err := strconv.Atoi(os.Args[4])
+		if err != nil {
+			log.Printf("invalid numReducers: %v\n", os.Args[4])
+			log.Fatal("wc submit-job jobCoordinatorAddress executionMode numReducers inputFiles...")
+		}
+		inputFiles := os.Args[5:]
+
+		var executionMode types.ExecutionMode
+		switch executionModeName {
+		case "sequential":
+			executionMode = types.Sequential
+		case "distributed":
+			executionMode = types.Distributed
+		default:
+			log.Panicf("Unexpected execution mode: %v\n", executionModeName)
+		}
+
+		jobName := "wcseq"
+		mappingFunctionName := "WordSplittingMappingFunction"
+		reducingFunctionName := "WordCountingReducingFunction"
+
 		jobConfiguration := nedreduce.NewJobConfiguration(
-			"wcseq",
-			os.Args[3:],
-			3,
-			"WordSplittingMappingFunction",
-			"WordCountingReducingFunction",
+			jobName,
+			inputFiles,
+			numReducers,
+			mappingFunctionName,
+			reducingFunctionName,
+			executionMode,
 		)
 
-		if os.Args[2] == "sequential" {
-			nedreduce.RunSequentialJob(&jobConfiguration)
-		} else {
-			nedreduce.RunDistributedJob(&jobConfiguration, os.Args[2])
+		nedreduce.SubmitJob(jobCoordinatorAddress, jobConfiguration)
+		nedreduce.WaitForJobCompletion(jobCoordinatorAddress, jobName)
+	case "run-worker":
+		if len(os.Args) < 4 {
+			log.Fatal("wc run-worker jobCoordinatorAddress workerAddress")
 		}
-	} else {
-		nedreduce.RunWorker(
-			os.Args[2],
-			os.Args[3],
-		)
+
+		jobCoordinatorAddress := os.Args[2]
+		workerAddress := os.Args[3]
+
+		nedreduce.RunWorker(jobCoordinatorAddress, workerAddress)
+	default:
+		log.Fatalf("Unrecognized command: %v\n", command)
 	}
 }

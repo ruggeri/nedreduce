@@ -10,8 +10,9 @@ import (
 // each map task one-at-a-time.
 func runSequentialMapPhase(
 	jobCoordinator *JobCoordinator,
+	jobConfiguration *types.JobConfiguration,
 ) {
-	for _, mapTask := range mapper.AllMapTasks(jobCoordinator.jobConfiguration) {
+	for _, mapTask := range mapper.AllMapTasks(jobConfiguration) {
 		mapper.ExecuteMapping(&mapTask)
 	}
 }
@@ -20,25 +21,9 @@ func runSequentialMapPhase(
 // running each reduce task one-at-a-time.
 func runSequentialReducePhase(
 	jobCoordinator *JobCoordinator,
+	jobConfiguration *types.JobConfiguration,
 ) {
-	for _, reduceTask := range reducer.AllReduceTasks(jobCoordinator.jobConfiguration) {
+	for _, reduceTask := range reducer.AllReduceTasks(jobConfiguration) {
 		reducer.ExecuteReducing(&reduceTask)
 	}
-}
-
-// StartSequentialJob runs map and reduce tasks sequentially, waiting
-// for each task to complete before running the next.
-func StartSequentialJob(
-	jobConfiguration *types.JobConfiguration,
-) *JobCoordinator {
-	jobCoordinator := StartJobCoordinator("jobCoordinator", jobConfiguration)
-
-	// Even though work is done sequentially, it is performed in a
-	// background goroutine.
-	go jobCoordinator.executeJob(
-		runSequentialMapPhase,
-		runSequentialReducePhase,
-	)
-
-	return jobCoordinator
 }

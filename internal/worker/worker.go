@@ -77,7 +77,7 @@ func RunWorker(
 		eventListeners,
 	)
 
-	worker.Wait()
+	worker.WaitForShutdown()
 }
 
 // Shutdown can be called by the JobCoordinator to shutdown this worker.
@@ -115,7 +115,7 @@ func (worker *Worker) Shutdown() {
 }
 
 // Wait blocks until the Worker is shutdown.
-func (worker *Worker) Wait() {
+func (worker *Worker) WaitForShutdown() {
 	worker.mutex.Lock()
 	defer worker.mutex.Unlock()
 

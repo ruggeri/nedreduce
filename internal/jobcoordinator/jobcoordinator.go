@@ -1,6 +1,7 @@
 package jobcoordinator
 
 import (
+	"errors"
 	"sync"
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
@@ -8,42 +9,43 @@ import (
 	"github.com/ruggeri/nedreduce/internal/workerpool"
 )
 
-// jobCoordinatorState can be either "running" or "jobCompleted"
-type jobCoordinatorState string
+// runState can be either "running" or "shutDown"
+type runState string
 
 const (
-	runningJob   = jobCoordinatorState("Running")
-	jobCompleted = jobCoordinatorState("jobCompleted")
+	readyForNewJob = runState("readyForNewJob")
+	runningAJob    = runState("runningAJob")
+	shutDown       = runState("shutDown")
 )
 
 // JobCoordinator holds all the state that the jobCoordinator needs to
 // keep track of.
 type JobCoordinator struct {
-	mutex             sync.Mutex
-	conditionVariable *sync.Cond
+	mutex        sync.Mutex
+	runStateCond *sync.Cond
 
-	address          string
-	jobConfiguration *types.JobConfiguration
-	rpcServer        *mr_rpc.Server
-	workerPool       *workerpool.WorkerPool
-	state            jobCoordinatorState
+	address        string
+	currentJobName *string
+	jobStatuses    map[string]bool
+	rpcServer      *mr_rpc.Server
+	workerPool     *workerpool.WorkerPool
+	runState       runState
 }
 
 // StartJobCoordinator creates a new JobCoordinator and starts it
 // running an RPC Server and a WorkerPool.
 func StartJobCoordinator(
 	jobCoordinatorAddress string,
-	jobConfiguration *types.JobConfiguration,
 ) *JobCoordinator {
 	jobCoordinator := &JobCoordinator{
-		address:          jobCoordinatorAddress,
-		jobConfiguration: jobConfiguration,
-		rpcServer:        nil,
-		workerPool:       workerpool.Start(),
-		state:            runningJob,
+		address:     jobCoordinatorAddress,
+		jobStatuses: make(map[string]bool),
+		rpcServer:   nil,
+		workerPool:  workerpool.Start(),
+		runState:    readyForNewJob,
 	}
 
-	jobCoordinator.conditionVariable = sync.NewCond(&jobCoordinator.mutex)
+	jobCoordinator.runStateCond = sync.NewCond(&jobCoordinator.mutex)
 	jobCoordinator.rpcServer = startJobCoordinatorRPCServer(jobCoordinator)
 
 	return jobCoordinator
@@ -55,15 +57,53 @@ func (jobCoordinator *JobCoordinator) Address() string {
 	return jobCoordinator.address
 }
 
-// MarkJobAsCompleted tells the jobCoordinator that the job is complete.
-// The JobCoordinator should now shut itself down.
-func (jobCoordinator *JobCoordinator) MarkJobAsCompleted() {
+// markJobAsCompleted tells the jobCoordinator that a job is complete.
+func (jobCoordinator *JobCoordinator) markJobAsCompleted() {
 	jobCoordinator.mutex.Lock()
 	defer jobCoordinator.mutex.Unlock()
 
-	if jobCoordinator.state == jobCompleted {
-		// Ignore redundant requests to shutdown.
+	currentJobName := *jobCoordinator.currentJobName
+	jobCoordinator.jobStatuses[currentJobName] = true
+	jobCoordinator.currentJobName = nil
+	jobCoordinator.runState = readyForNewJob
+
+	// And last, let waiters know that a job is complete.
+	jobCoordinator.runStateCond.Broadcast()
+}
+
+func (jobCoordinator *JobCoordinator) StartJob(
+	jobConfiguration *types.JobConfiguration,
+) error {
+	jobCoordinator.mutex.Lock()
+	defer jobCoordinator.mutex.Unlock()
+
+	if jobCoordinator.currentJobName != nil {
+		return errors.New("CoordinatorIsAlreadyWorkingOnAJob")
+	}
+
+	jobCoordinator.currentJobName = &jobConfiguration.JobName
+	jobCoordinator.runState = runningAJob
+	go jobCoordinator.executeJob(jobConfiguration)
+
+	jobCoordinator.runStateCond.Broadcast()
+
+	return nil
+}
+
+func (jobCoordinator *JobCoordinator) Shutdown() {
+	jobCoordinator.mutex.Lock()
+	defer jobCoordinator.mutex.Unlock()
+
+	if jobCoordinator.runState == shutDown {
 		return
+	}
+
+	for {
+		if jobCoordinator.runState == readyForNewJob {
+			break
+		}
+
+		jobCoordinator.runStateCond.Wait()
 	}
 
 	// Tell the RPC server and the workerRegistrationManager to both shut
@@ -71,25 +111,44 @@ func (jobCoordinator *JobCoordinator) MarkJobAsCompleted() {
 	jobCoordinator.rpcServer.Shutdown()
 	jobCoordinator.workerPool.Shutdown()
 
-	// Update our state.
-	jobCoordinator.state = jobCompleted
+	jobCoordinator.runState = shutDown
 
-	// And last, let waiters know the job is complete.
-	jobCoordinator.conditionVariable.Broadcast()
+	jobCoordinator.runStateCond.Broadcast()
 }
 
-// Wait blocks until the job has completed. This happens when all tasks
-// have been scheduled and completed, the final output have been
-// computed, and all workers have been shut down.
-func (jobCoordinator *JobCoordinator) Wait() {
+// WaitForJobCompletion blocks until the specified job has completed.
+func (jobCoordinator *JobCoordinator) WaitForJobCompletion(jobName string) error {
 	jobCoordinator.mutex.Lock()
 	defer jobCoordinator.mutex.Unlock()
 
 	for {
-		if jobCoordinator.state == jobCompleted {
+		if jobCoordinator.runState == runningAJob && *jobCoordinator.currentJobName == jobName {
+			// Job is currently running, we'll have to wait.
+		} else if _, ok := jobCoordinator.jobStatuses[jobName]; ok {
+			// Job is completed!
+			return nil
+		} else {
+			// They're trying to wait for a job that was never submitted.
+			return errors.New("JobWasNeverSubmitted")
+		}
+
+		jobCoordinator.runStateCond.Wait()
+	}
+}
+
+func (jobCoordinator *JobCoordinator) WaitForShutdown() {
+	jobCoordinator.mutex.Lock()
+	defer jobCoordinator.mutex.Unlock()
+
+	if jobCoordinator.runState == shutDown {
+		return
+	}
+
+	for {
+		if jobCoordinator.runState == shutDown {
 			return
 		}
 
-		jobCoordinator.conditionVariable.Wait()
+		jobCoordinator.runStateCond.Wait()
 	}
 }

@@ -1,10 +1,15 @@
 package pkg
 
-import "github.com/ruggeri/nedreduce/internal/types"
+import (
+	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
+	"github.com/ruggeri/nedreduce/internal/types"
+)
 
 // An EmitterFunction is used by a MappingFunction or ReducingFunctino
 // to emit KeyValues one at a time.
 type EmitterFunction = types.EmitterFunction
+
+type ExecutionMode = types.ExecutionMode
 
 // A GroupIteratorFunction is how a ReducingFunction is one-by-one
 // passed the KeyValues that comprise a reduce group.
@@ -12,6 +17,8 @@ type GroupIteratorFunction = types.GroupIteratorFunction
 
 // A JobConfiguration describes the settings for this job.
 type JobConfiguration = types.JobConfiguration
+
+type JobCoordinator = jobcoordinator.JobCoordinator
 
 // KeyValue is a type used to hold the key/value pairs passed to the map
 // and reduce functions.
@@ -40,12 +47,14 @@ func NewJobConfiguration(
 	numReducers int,
 	mappingFunctionName string,
 	reducingFunctionName string,
-) JobConfiguration {
+	executionMode ExecutionMode,
+) *JobConfiguration {
 	return types.NewJobConfiguration(
 		jobName,
 		mapperInputFileNames,
 		numReducers,
 		mappingFunctionName,
 		reducingFunctionName,
+		executionMode,
 	)
 }

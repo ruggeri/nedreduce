@@ -2,35 +2,50 @@ package jobcoordinator
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
-// executeJob executes the various phases of a MapReduce job. You can
-// specify how to run the map/reduce phases, which lets you pick whether
-// the tasks of a phase should be done sequentially or in parallel.
+// executeJob executes the various phases of a MapReduce job. It will
+// run either in sequential or distributed mode (depending on what the
+// JobConfiguration asks for).
 func (jobCoordinator *JobCoordinator) executeJob(
-	runMapPhase func(*JobCoordinator),
-	runReducePhase func(*JobCoordinator),
+	jobConfiguration *types.JobConfiguration,
 ) {
-	jobConfiguration := jobCoordinator.jobConfiguration
+	var runMapPhase, runReducePhase func(*JobCoordinator, *types.JobConfiguration)
 
-	// Tryu to clean up all the intermediate files even if something goes
+	switch jobConfiguration.ExecutionMode {
+	case types.Sequential:
+		runMapPhase = runSequentialMapPhase
+		runReducePhase = runSequentialReducePhase
+	case types.Distributed:
+		runMapPhase = runDistributedMapPhase
+		runReducePhase = runDistributedReducePhase
+	default:
+		log.Panicf(
+			"Unexpected execution mode: %v\n",
+			jobConfiguration.ExecutionMode,
+		)
+	}
+
+	// Try to clean up all the intermediate files even if something goes
 	// wrong in one of the phases.
 	defer util.CleanupFiles(jobConfiguration)
 
 	fmt.Printf(
-		"%s: Starting Map/Reduce task %s\n",
+		"%s: Starting Nedreduce Job %s\n",
 		jobCoordinator.address,
 		jobConfiguration.JobName,
 	)
 
 	fmt.Printf("%s: Beginning map phase\n", jobCoordinator.address)
-	runMapPhase(jobCoordinator)
+	runMapPhase(jobCoordinator, jobConfiguration)
 	fmt.Printf("%s: Map phase completed\n", jobCoordinator.address)
 
 	fmt.Printf("%s: Beginning reduce phase\n", jobCoordinator.address)
-	runReducePhase(jobCoordinator)
+	runReducePhase(jobCoordinator, jobConfiguration)
 	fmt.Printf("%s: Reduce phase completed\n", jobCoordinator.address)
 
 	fmt.Printf("%s: Beginning final merging\n", jobCoordinator.address)
@@ -44,5 +59,5 @@ func (jobCoordinator *JobCoordinator) executeJob(
 
 	// Mark the job as completed so that resources can be cleaned up and
 	// anyone waiting can be notified.
-	jobCoordinator.MarkJobAsCompleted()
+	jobCoordinator.markJobAsCompleted()
 }

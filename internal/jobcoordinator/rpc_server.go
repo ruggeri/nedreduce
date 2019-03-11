@@ -2,6 +2,7 @@ package jobcoordinator
 
 import (
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
@@ -30,6 +31,26 @@ func (rpcServerTarget *jobCoordinatorRPCTarget) RegisterWorker(
 	)
 
 	return nil
+}
+
+func (rpcServerTarget *jobCoordinatorRPCTarget) StartJob(
+	jobConfiguration *types.JobConfiguration,
+	_ *struct{},
+) error {
+	util.Debug(
+		"jobCoordinator running at %s received job submission: %v\n",
+		rpcServerTarget.jobCoordinator.address,
+		jobConfiguration.JobName,
+	)
+
+	return rpcServerTarget.jobCoordinator.StartJob(jobConfiguration)
+}
+
+func (rpcServerTarget *jobCoordinatorRPCTarget) WaitForJobCompletion(
+	jobName string,
+	_ *struct{},
+) error {
+	return rpcServerTarget.jobCoordinator.WaitForJobCompletion(jobName)
 }
 
 // Shutdown is called to shut down the jobCoordinator.
