@@ -14,72 +14,92 @@ const (
 	shutDown = workerRunState("shutDown")
 )
 
-// Worker holds the state for a server waiting for DoTask or Shutdown RPCs
+// A Worker executes tasks that are assigned by a JobCoordinator.
 type Worker struct {
 	mutex                sync.Mutex
 	workerIsShutDownCond *sync.Cond
 
-	rpcAddress  string
-	nRPC        int // quit after this many RPCs; protected by mutex
-	nTasks      int // total tasks executed; protected by mutex
-	concurrent  int // number of parallel DoTasks in this worker; mutex
-	parallelism *Parallelism
-	runState    workerRunState
+	numTasksProcessed int
+	rpcAddress        string
+	rpcServer         *mr_rpc.Server
+	runState          workerRunState
 
-	rpcServer *mr_rpc.Server
+	// TODO: Junk instance variables.
+	numRPCsUntilSuicide int // quit after this many RPCs; protected by mutex
+	concurrent          int // number of parallel DoTasks in this worker; mutex
+	parallelism         *Parallelism
 }
 
+// StartWorker starts up a Worker instance. It will begin listening for
+// RPCs (e.g., to execute tasks). It will register with a JobCoordinator
+// so the coordinator knows we're in business.
 func StartWorker(
 	jobCoordinatorRPCAddress string,
 	workerRPCAddress string,
-	nRPC int,
+	numRPCsUntilSuicide int,
 	parallelism *Parallelism,
 ) *Worker {
 	worker := &Worker{
-		rpcAddress:  workerRPCAddress,
-		nRPC:        nRPC,
-		nTasks:      0,
-		concurrent:  0,
-		parallelism: parallelism,
-		runState:    running,
+		mutex: sync.Mutex{},
+		// See below. Can't setup until we have the mutex.
+		workerIsShutDownCond: nil,
+
+		numTasksProcessed: 0,
+		rpcAddress:        workerRPCAddress,
+		// See below. Can't start until we have a Worker.
+		rpcServer: nil,
+		runState:  running,
+
+		// TODO: Junk instance variables.
+		numRPCsUntilSuicide: numRPCsUntilSuicide,
+		concurrent:          0,
+		parallelism:         parallelism,
 	}
 
+	// Finish initialization of Cond variable.
 	worker.workerIsShutDownCond = sync.NewCond(&worker.mutex)
 
+	// Start the RPC server so we can listen for tasks from
+	// JobCoordinator.
 	worker.rpcServer = startWorkerRPCServer(worker)
+
+	// Oh yeah, let's register ourselves with the JobCoordinator so it
+	// knows to give us tasks.
 	mr_rpc.RegisterWorkerWithJobCoordinator(
 		jobCoordinatorRPCAddress,
 		workerRPCAddress,
 	)
 
-	// TODO: need to, whenever RPC is performed, decrement the number of
-	// RPCs left until we just shut down the server.
-
 	return worker
 }
 
+// RunWorker simply starts a worker, then waits for it to be shutdown.
 func RunWorker(
 	jobCoordinatorAddress string,
 	workerAddress string,
-	nRPC int,
+	numRPCsUntilSuicide int,
 	parallelism *Parallelism,
 ) {
-	// TODO(MEDIUM): what is nRPC?
 	worker := StartWorker(
 		jobCoordinatorAddress,
 		workerAddress,
-		nRPC,
+		numRPCsUntilSuicide,
 		parallelism,
 	)
 
 	worker.Wait()
 }
 
-// Shutdown is called by the JobCoordinator when all work has been
-// completed. We should respond with the number of tasks we have
-// processed.
+// Shutdown can be called by the JobCoordinator to shutdown this worker.
+// We should respond with the number of tasks we have processed.
 func (worker *Worker) Shutdown() {
-	if worker.isShutdown() {
+	isShutdown := func() bool {
+		worker.mutex.Lock()
+		defer worker.mutex.Unlock()
+		return worker.runState == shutDown
+	}()
+
+	if isShutdown {
 		// Ignore redundant requests to shut down.
 		return
 	}
@@ -89,36 +109,37 @@ func (worker *Worker) Shutdown() {
 		worker.rpcAddress,
 	)
 
+	// First shut down the RPC server.
 	worker.rpcServer.Shutdown()
 
-	worker.updateRunState(shutDown)
+	// Next, mark ourselves as having been shut down.
+	func() {
+		worker.mutex.Lock()
+		defer worker.mutex.Unlock()
 
+		worker.runState = shutDown
+	}()
+
+	// Last, inform anyone waiting for us to shutdown.
 	worker.workerIsShutDownCond.Broadcast()
 }
 
+// Wait blocks until the Worker is shutdown.
 func (worker *Worker) Wait() {
 	worker.mutex.Lock()
 	defer worker.mutex.Unlock()
 
 	for {
-		// FML: can't call isShutdown when you have a lock. :-(
+		// FML. I was calling a method `isShutdown` that tried to acquire
+		// the mutex. I was deadlocking myself.
+		//
+		// Idea: try not to have any methods that lock call any other
+		// methods that lock (duh). In particular: inline simple methods
+		// that need locks.
 		if worker.runState == shutDown {
 			return
 		}
 
 		worker.workerIsShutDownCond.Wait()
 	}
-}
-
-func (worker *Worker) isShutdown() bool {
-	worker.mutex.Lock()
-	defer worker.mutex.Unlock()
-	return worker.runState == shutDown
-}
-
-func (worker *Worker) updateRunState(newRunState workerRunState) {
-	worker.mutex.Lock()
-	defer worker.mutex.Unlock()
-
-	worker.runState = newRunState
 }

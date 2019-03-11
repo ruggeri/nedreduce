@@ -13,6 +13,7 @@ type workerRPCTarget struct {
 	worker *Worker
 }
 
+// ExecuteMapTask does what it says.
 func (workerRPCTarget *workerRPCTarget) ExecuteMapTask(
 	mapTask *mr_rpc.MapTask,
 	_ *struct{},
@@ -30,6 +31,7 @@ func (workerRPCTarget *workerRPCTarget) ExecuteMapTask(
 	})
 }
 
+// ExecuteReduceTask does what it says.
 func (workerRPCTarget *workerRPCTarget) ExecuteReduceTask(
 	reduceTask *mr_rpc.ReduceTask,
 	_ *struct{},
@@ -61,14 +63,23 @@ func (workerRPCTarget *workerRPCTarget) Shutdown(
 		worker.rpcAddress,
 	)
 
+	// Perform the actual shutdown of the worker.
 	worker.Shutdown()
 
-	worker.mutex.Lock()
-	defer worker.mutex.Unlock()
-	// TODO: Why reset this?
-	worker.nRPC = 1
+	// TODO: Can I please get rid of this? Prolly garbage?
+	func() {
+		worker.mutex.Lock()
+		defer worker.mutex.Unlock()
+		worker.numRPCsUntilSuicide = 1
+	}()
 
-	*numTasksProcessed = worker.nTasks
+	// Get the number of tasks processed by Worker over its lifespan.
+	func() {
+		worker.mutex.Lock()
+		defer worker.mutex.Unlock()
+		*numTasksProcessed = worker.numTasksProcessed
+	}()
+
 	return nil
 }
 

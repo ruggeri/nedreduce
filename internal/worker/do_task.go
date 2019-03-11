@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+// TODO: need to, whenever RPC is performed, decrement the number of
+// RPCs left until we just shut down the server.
+
 // TODO: this code is unreviewed.
 
 // DoTask is called by the master when a new task is being scheduled on this
@@ -14,7 +17,7 @@ func (wk *Worker) DoTask(f func()) error {
 	// 	wk.name, arg.JobPhase, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase)
 
 	wk.mutex.Lock()
-	wk.nTasks += 1
+	wk.numTasksProcessed += 1
 	wk.concurrent += 1
 	nc := wk.concurrent
 	wk.mutex.Unlock()
