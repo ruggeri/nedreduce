@@ -20,6 +20,7 @@ type Worker struct {
 	mutex                sync.Mutex
 	workerIsShutDownCond *sync.Cond
 
+	eventListeners    []EventListener
 	numTasksProcessed int
 	rpcAddress        string
 	rpcServer         *mr_rpc.Server
@@ -27,7 +28,6 @@ type Worker struct {
 
 	// TODO: Junk instance variables.
 	numRPCsUntilSuicide int // quit after this many RPCs; protected by mutex
-	parallelismTester   *ParallelismTester
 }
 
 // StartWorker starts up a Worker instance. It will begin listening for
@@ -37,7 +37,7 @@ func StartWorker(
 	jobCoordinatorRPCAddress string,
 	workerRPCAddress string,
 	numRPCsUntilSuicide int,
-	parallelismTester *ParallelismTester,
+	eventListeners []EventListener,
 ) *Worker {
 	worker := &Worker{
 		mutex: sync.Mutex{},
@@ -52,7 +52,7 @@ func StartWorker(
 
 		// TODO: Junk instance variables.
 		numRPCsUntilSuicide: numRPCsUntilSuicide,
-		parallelismTester:   parallelismTester,
+		eventListeners:      eventListeners,
 	}
 
 	// Finish initialization of Cond variable.
@@ -77,13 +77,13 @@ func RunWorker(
 	jobCoordinatorAddress string,
 	workerAddress string,
 	numRPCsUntilSuicide int,
-	parallelismTester *ParallelismTester,
+	eventListeners []EventListener,
 ) {
 	worker := StartWorker(
 		jobCoordinatorAddress,
 		workerAddress,
 		numRPCsUntilSuicide,
-		parallelismTester,
+		eventListeners,
 	)
 
 	worker.Wait()

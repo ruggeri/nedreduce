@@ -13,6 +13,22 @@ type ParallelismTester struct {
 	maxLevelOfParallelism     int
 }
 
+func (parallelismTester *ParallelismTester) OnWorkerEvent(
+	worker *Worker,
+	workerEvent WorkerEvent,
+) WorkerAction {
+	switch workerEvent {
+	case taskStart:
+		parallelismTester.OnTaskStart(worker)
+	case taskEnd:
+		parallelismTester.OnTaskEnd(worker)
+	default:
+		// do nothing
+	}
+
+	return doNothing
+}
+
 // OnTaskStart is called when a Worker starts a new task. It updates the
 // current level of parallelism, and maybe even sleeps the task (so it
 // can create more possibility to observe parallelism).

@@ -14,8 +14,8 @@ func (worker *Worker) DoTask(taskFunc func()) {
 	// record that we are currently running a job.
 	worker.checkAndUpdateRunStateBeforeNextTask()
 
-	if worker.parallelismTester != nil {
-		worker.parallelismTester.OnTaskStart(worker)
+	for _, eventListener := range worker.eventListeners {
+		eventListener.OnWorkerEvent(worker, taskStart)
 	}
 
 	// Perform the task.
@@ -24,8 +24,8 @@ func (worker *Worker) DoTask(taskFunc func()) {
 	// Restore the runState so that new jobs can be accepted.
 	worker.restoreRunStateAfterTaskCompletion()
 
-	if worker.parallelismTester != nil {
-		worker.parallelismTester.OnTaskEnd(worker)
+	for _, eventListener := range worker.eventListeners {
+		eventListener.OnWorkerEvent(worker, taskEnd)
 	}
 }
 
