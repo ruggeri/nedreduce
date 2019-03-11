@@ -71,14 +71,21 @@ func (jobCoordinator *JobCoordinator) markJobAsCompleted() {
 	jobCoordinator.runStateCond.Broadcast()
 }
 
+// StartJob asks the JobCoordinator to start the specified job. It will
+// refuse execution if currently executing another job.
 func (jobCoordinator *JobCoordinator) StartJob(
 	jobConfiguration *types.JobConfiguration,
 ) error {
 	jobCoordinator.mutex.Lock()
 	defer jobCoordinator.mutex.Unlock()
 
-	if jobCoordinator.currentJobName != nil {
+	switch jobCoordinator.runState {
+	case readyForNewJob:
+		// Good to go!
+	case runningAJob:
 		return errors.New("CoordinatorIsAlreadyWorkingOnAJob")
+	case shutDown:
+		return errors.New("CoordinatorIsShutDown")
 	}
 
 	jobCoordinator.currentJobName = &jobConfiguration.JobName
@@ -90,16 +97,18 @@ func (jobCoordinator *JobCoordinator) StartJob(
 	return nil
 }
 
+// Shutdown tells the JobCoordinator to shut down. The JobCoordinator
+// will wait until any currently running jobs are completed.
 func (jobCoordinator *JobCoordinator) Shutdown() {
 	jobCoordinator.mutex.Lock()
 	defer jobCoordinator.mutex.Unlock()
 
-	if jobCoordinator.runState == shutDown {
-		return
-	}
-
 	for {
-		if jobCoordinator.runState == readyForNewJob {
+		if jobCoordinator.runState == shutDown {
+			// Someone else has shut us down.
+			return
+		} else if jobCoordinator.runState == readyForNewJob {
+			// No one is running; we can now shut down!
 			break
 		}
 
@@ -136,6 +145,7 @@ func (jobCoordinator *JobCoordinator) WaitForJobCompletion(jobName string) error
 	}
 }
 
+// WaitForShutdown blocks until the JobCoordinator is shut down.
 func (jobCoordinator *JobCoordinator) WaitForShutdown() {
 	jobCoordinator.mutex.Lock()
 	defer jobCoordinator.mutex.Unlock()
