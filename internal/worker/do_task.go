@@ -12,22 +12,22 @@ import (
 
 // DoTask performs the taskFunc is provided. This is how the Worker
 // executes the JobCoordinator's task.
-func (wk *Worker) DoTask(taskFunc func()) {
+func (worker *Worker) DoTask(taskFunc func()) {
 	// First check that we are allowed to run this new task. If so, then
 	// record that we are currently running a job.
-	wk.checkAndUpdateRunStateBeforeNextTask()
+	worker.checkAndUpdateRunStateBeforeNextTask()
 
 	pause := false
-	if wk.parallelism != nil {
-		wk.parallelism.Mu.Lock()
-		wk.parallelism.now += 1
-		if wk.parallelism.now > wk.parallelism.Max {
-			wk.parallelism.Max = wk.parallelism.now
+	if worker.parallelism != nil {
+		worker.parallelism.Mu.Lock()
+		worker.parallelism.now += 1
+		if worker.parallelism.now > worker.parallelism.Max {
+			worker.parallelism.Max = worker.parallelism.now
 		}
-		if wk.parallelism.Max < 2 {
+		if worker.parallelism.Max < 2 {
 			pause = true
 		}
-		wk.parallelism.Mu.Unlock()
+		worker.parallelism.Mu.Unlock()
 	}
 
 	if pause {
@@ -40,12 +40,12 @@ func (wk *Worker) DoTask(taskFunc func()) {
 	taskFunc()
 
 	// Restore the runState so that new jobs can be accepted.
-	wk.restoreRunStateAfterTaskCompletion()
+	worker.restoreRunStateAfterTaskCompletion()
 
-	if wk.parallelism != nil {
-		wk.parallelism.Mu.Lock()
-		wk.parallelism.now -= 1
-		wk.parallelism.Mu.Unlock()
+	if worker.parallelism != nil {
+		worker.parallelism.Mu.Lock()
+		worker.parallelism.now -= 1
+		worker.parallelism.Mu.Unlock()
 	}
 }
 
