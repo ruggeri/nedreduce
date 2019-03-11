@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
+	"github.com/ruggeri/nedreduce/internal/job_coordinator"
 	"github.com/ruggeri/nedreduce/internal/types"
 )
 
@@ -18,7 +18,7 @@ type GroupIteratorFunction = types.GroupIteratorFunction
 // A JobConfiguration describes the settings for this job.
 type JobConfiguration = types.JobConfiguration
 
-type JobCoordinator = jobcoordinator.JobCoordinator
+type JobCoordinator = job_coordinator.JobCoordinator
 
 // KeyValue is a type used to hold the key/value pairs passed to the map
 // and reduce functions.

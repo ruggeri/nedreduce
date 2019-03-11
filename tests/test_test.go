@@ -1,15 +1,14 @@
 package nedreduce
 
 // So that people can look at goroutines.
-import _ "net/http/pprof"
-
 import (
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"testing"
 	"time"
 
-	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
+	"github.com/ruggeri/nedreduce/internal/job_coordinator"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/util"
@@ -119,7 +118,7 @@ func port(suffix string) string {
 	return s
 }
 
-func setup() (*types.JobConfiguration, *jobcoordinator.JobCoordinator) {
+func setup() (*types.JobConfiguration, *job_coordinator.JobCoordinator) {
 	files := makeInputs(nMap)
 	jobCoordinatorPort := port("jobCoordinator")
 
@@ -132,7 +131,7 @@ func setup() (*types.JobConfiguration, *jobcoordinator.JobCoordinator) {
 		types.Distributed,
 	)
 
-	jobCoordinator := jobcoordinator.StartJobCoordinator(jobCoordinatorPort)
+	jobCoordinator := job_coordinator.StartJobCoordinator(jobCoordinatorPort)
 
 	return jobConfiguration, jobCoordinator
 }
@@ -159,7 +158,7 @@ func TestSequentialSingle(t *testing.T) {
 
 	defer cleanup(jobConfiguration)
 
-	jobCoordinator := jobcoordinator.StartJobCoordinator("coordinator")
+	jobCoordinator := job_coordinator.StartJobCoordinator("coordinator")
 	jobCoordinator.StartJob(jobConfiguration)
 	jobCoordinator.WaitForJobCompletion("testJobName")
 
@@ -181,7 +180,7 @@ func TestSequentialMany(t *testing.T) {
 
 	defer cleanup(jobConfiguration)
 
-	jobCoordinator := jobcoordinator.StartJobCoordinator("coordinator")
+	jobCoordinator := job_coordinator.StartJobCoordinator("coordinator")
 	jobCoordinator.StartJob(jobConfiguration)
 	jobCoordinator.WaitForJobCompletion("testJobName")
 

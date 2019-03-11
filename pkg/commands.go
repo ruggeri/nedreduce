@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/ruggeri/nedreduce/internal/jobcoordinator"
+	job_coordinator "github.com/ruggeri/nedreduce/internal/job_coordinator"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/types"
 	"github.com/ruggeri/nedreduce/internal/worker"
@@ -24,7 +24,7 @@ func RunWorker(
 func RunJobCoordinator(
 	jobCoordinatorAddress string,
 ) {
-	jobCoordinator := jobcoordinator.StartJobCoordinator(jobCoordinatorAddress)
+	jobCoordinator := job_coordinator.StartJobCoordinator(jobCoordinatorAddress)
 	jobCoordinator.WaitForShutdown()
 }
 
