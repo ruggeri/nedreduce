@@ -219,11 +219,9 @@ func TestParallelCheck(t *testing.T) {
 	check(t, configuration.MapperInputFileNames)
 	// checkWorker(t, jobCoordinator.Stats)
 
-	parallelism.Mu.Lock()
-	if parallelism.Max < 2 {
+	if parallelism.MaxLevelOfParallelism() < 2 {
 		t.Fatalf("workers did not execute in parallel")
 	}
-	parallelism.Mu.Unlock()
 }
 
 func TestOneFailure(t *testing.T) {

@@ -2,7 +2,6 @@ package worker
 
 import (
 	"log"
-	"time"
 )
 
 // TODO: need to, whenever RPC is performed, decrement the number of
@@ -17,23 +16,8 @@ func (worker *Worker) DoTask(taskFunc func()) {
 	// record that we are currently running a job.
 	worker.checkAndUpdateRunStateBeforeNextTask()
 
-	pause := false
 	if worker.parallelism != nil {
-		worker.parallelism.Mu.Lock()
-		worker.parallelism.now += 1
-		if worker.parallelism.now > worker.parallelism.Max {
-			worker.parallelism.Max = worker.parallelism.now
-		}
-		if worker.parallelism.Max < 2 {
-			pause = true
-		}
-		worker.parallelism.Mu.Unlock()
-	}
-
-	if pause {
-		// give other workers a chance to prove that
-		// they are executing in parallel.
-		time.Sleep(time.Second)
+		worker.parallelism.OnTaskStart(worker)
 	}
 
 	// Perform the task.
@@ -43,9 +27,7 @@ func (worker *Worker) DoTask(taskFunc func()) {
 	worker.restoreRunStateAfterTaskCompletion()
 
 	if worker.parallelism != nil {
-		worker.parallelism.Mu.Lock()
-		worker.parallelism.now -= 1
-		worker.parallelism.Mu.Unlock()
+		worker.parallelism.OnTaskEnd(worker)
 	}
 }
 
