@@ -4,6 +4,7 @@ import (
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+	"github.com/ruggeri/nedreduce/internal/util"
 )
 
 // workerRPCTarget is a dummy type that exposes only those methods of
@@ -17,6 +18,13 @@ func (workerRPCTarget *workerRPCTarget) ExecuteMapTask(
 	_ *struct{},
 ) error {
 	worker := workerRPCTarget.worker
+
+	util.Debug(
+		"worker running at %v received mapTask %v\n",
+		worker.rpcAddress,
+		mapTask.MapTaskIdx,
+	)
+
 	return worker.DoTask(func() {
 		mapper.ExecuteMapping((*mapper.MapTask)(mapTask))
 	})
@@ -27,6 +35,13 @@ func (workerRPCTarget *workerRPCTarget) ExecuteReduceTask(
 	_ *struct{},
 ) error {
 	worker := workerRPCTarget.worker
+
+	util.Debug(
+		"worker running at %v received reduceTask %v\n",
+		worker.rpcAddress,
+		reduceTask.ReduceTaskIdx,
+	)
+
 	return worker.DoTask(func() {
 		reducer.ExecuteReducing((*reducer.ReduceTask)(reduceTask))
 	})
@@ -40,6 +55,12 @@ func (workerRPCTarget *workerRPCTarget) Shutdown(
 	numTasksProcessed *int,
 ) error {
 	worker := workerRPCTarget.worker
+
+	util.Debug(
+		"worker running at %v received shutodwn RPC\n",
+		worker.rpcAddress,
+	)
+
 	worker.Shutdown()
 
 	worker.mutex.Lock()
