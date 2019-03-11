@@ -28,6 +28,12 @@ func RunJobCoordinator(
 	jobCoordinator.WaitForShutdown()
 }
 
+func ShutdownJobCoordinator(
+	jobCoordinatorAddress string,
+) {
+	mr_rpc.ShutdownJobCoordinator(jobCoordinatorAddress)
+}
+
 func SubmitJob(
 	jobCoordinatorAddress string,
 	jobConfiguration *types.JobConfiguration,

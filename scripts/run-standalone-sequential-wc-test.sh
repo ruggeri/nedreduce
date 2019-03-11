@@ -15,8 +15,9 @@ sleep 1
 # Submit the sequential job to the coordinator. Wait for completion.
 ./build/bin/wc submit-job coordinator sequential 3 assets/pg-*.txt
 
-# TODO: I should kill the coordinator via RPC.
-kill $COORDINATOR_PID
+# Having waited for the coordinator to finish the job, now tell it to
+# shut down.
+./build/bin/wc shutdown-coordinator coordinator
 
 sort -n -k2 mrtmp.wcseq | tail -10
 

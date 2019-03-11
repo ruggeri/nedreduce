@@ -23,6 +23,12 @@ func main() {
 		}
 		jobCoordinatorAddress := os.Args[2]
 		nedreduce.RunJobCoordinator(jobCoordinatorAddress)
+	case "shutdown-coordinator":
+		if len(os.Args) != 3 {
+			log.Fatal("wc shutdown-coordinator jobCoordinatorAddress")
+		}
+		jobCoordinatorAddress := os.Args[2]
+		nedreduce.ShutdownJobCoordinator(jobCoordinatorAddress)
 	case "submit-job":
 		if len(os.Args) < 6 {
 			log.Fatal("wc submit-job jobCoordinatorAddress executionMode numReducers inputFiles...")

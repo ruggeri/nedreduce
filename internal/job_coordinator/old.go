@@ -1,10 +1,7 @@
 package job_coordinator
 
-// TODO(HIGH): what's the plan with killWorkers?
-
-// //
-// // Please do not modify this file.
-// //
+// TODO(HIGH): should shutting down the coordinator kill all the workers
+// too?
 
 // import (
 // 	"fmt"
