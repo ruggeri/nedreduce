@@ -37,12 +37,10 @@ func (workerPool *WorkerPool) handleMessage(message message) {
 func (workerPool *WorkerPool) handleStartingNewWorkSet() {
 	util.Debug("WorkerPool is starting new work set\n")
 
+	workerPool.currentWorkSet.isStarted = true
+
 	for workerRPCAddress := range workerPool.workerRPCAddresses {
-		if !workerPool.assignTaskToWorker(workerRPCAddress) {
-			// We may run out of work to hand out before we run out of
-			// workers. In that case we can break early.
-			break
-		}
+		workerPool.assignTaskToWorker(workerRPCAddress)
 	}
 }
 
@@ -84,11 +82,15 @@ func (workerPool *WorkerPool) handleWorkerRegistration(newWorkerRPCAddress strin
 
 // assignTaskToWorker does like it says. If the work set has no more
 // work, then return false.
-func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) bool {
+func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) {
+	if !workerPool.currentWorkSet.isStarted {
+		return
+	}
+
 	nextTask, err := workerPool.currentWorkSet.getNextTask()
 
 	if err == io.EOF {
-		return false
+		return
 	} else if err != nil {
 		log.Panicf("Unexpcted error getting task from workSet: %v\n", err)
 	}
@@ -98,5 +100,5 @@ func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) bool {
 		workerPool.SendWorkerCompletedTaskMessage(workerRPCAddress)
 	})
 
-	return true
+	return
 }

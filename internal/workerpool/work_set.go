@@ -2,6 +2,7 @@ package workerpool
 
 import (
 	"io"
+	"log"
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 )
@@ -17,6 +18,10 @@ const (
 // A workSet represents a set of tasks that the WorkerPool should crunch
 // through.
 type workSet struct {
+	// isStarted tells you whether the workSet has been "started." The
+	// idea is that no work should be assigned until it has been started.
+	isStarted bool
+
 	// numTasksAssigned is the number of tasks that are currently assigned
 	// to a worker.
 	numTasksAssigned int
@@ -34,7 +39,12 @@ type workSet struct {
 
 // newWorkSet creates a new workSet.
 func newWorkSet(tasks []mr_rpc.Task) *workSet {
+	if len(tasks) == 0 {
+		log.Panic("workSet cannot be created with no tasks to perform.")
+	}
+
 	return &workSet{
+		isStarted:            false,
 		numTasksAssigned:     0,
 		numTasksCompleted:    0,
 		tasks:                tasks,
@@ -44,6 +54,10 @@ func newWorkSet(tasks []mr_rpc.Task) *workSet {
 
 // newWorkSet gets a new task that should be assigned.
 func (workSet *workSet) getNextTask() (mr_rpc.Task, error) {
+	if !workSet.isStarted {
+		log.Panic("workSet can't give out tasks before being explicitly started")
+	}
+
 	currentTaskIdx := workSet.numTasksCompleted + workSet.numTasksAssigned
 
 	if currentTaskIdx == len(workSet.tasks) {

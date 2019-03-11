@@ -85,6 +85,10 @@ func (workerPool *WorkerPool) AssignNewWorkSet(
 	// new work set.
 	workerPool.noMoreMessagesWaitGroup.Add(1)
 	go func() {
+		// Note that it is important that the workSet hasn't been started
+		// yet. Else there would be a race condition: worker registrations
+		// between setting currentWorkSet and receipt of the
+		// startNewWorkSetMessage would result in double assignment of work.
 		workerPool.messageChannel <- message{
 			Kind: startNewWorkSetMessage,
 		}
