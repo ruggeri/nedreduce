@@ -7,8 +7,6 @@ import (
 // TODO: need to, whenever RPC is performed, decrement the number of
 // RPCs left until we just shut down the server.
 
-// TODO: this code is unreviewed.
-
 // DoTask performs the taskFunc is provided. This is how the Worker
 // executes the JobCoordinator's task.
 func (worker *Worker) DoTask(taskFunc func()) {
