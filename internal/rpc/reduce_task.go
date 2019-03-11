@@ -17,15 +17,18 @@ func (reduceTask *ReduceTask) StartOnWorker(
 	rpcCompletionCallback CompletionCallback,
 ) {
 	go func() {
-		ok := Call(
+		err := Call(
 			workerAddress,
 			"Worker.ExecuteReduceTask",
 			reduceTask,
 			nil,
 		)
 
-		if !ok {
-			log.Panic("Something went wrong with RPC call to worker.")
+		if err != nil {
+			log.Panicf(
+				"Something went wrong with RPC call to worker: %v\n",
+				err,
+			)
 		} else {
 			rpcCompletionCallback()
 		}

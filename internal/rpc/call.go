@@ -22,21 +22,16 @@ func Call(
 	serviceMethod string,
 	args interface{},
 	reply interface{},
-) bool {
+) error {
 	// TODO(MEDIUM): Make this more expressive about what kind of errors
 	// can occur. For instance, we'll need to restart tasks if there are
 	// network errors. But we also want to know about errors we can't
 	// recover from.
 	conn, err := rpc.Dial("unix", rpcServerAddress)
 	if err != nil {
-		return false
+		return err
 	}
 	defer conn.Close()
 
-	err = conn.Call(serviceMethod, args, reply)
-	if err == nil {
-		return true
-	}
-
-	return false
+	return conn.Call(serviceMethod, args, reply)
 }

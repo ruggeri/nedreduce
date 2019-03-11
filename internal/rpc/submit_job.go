@@ -10,17 +10,18 @@ func SubmitJob(
 	jobCoordinatorRPCAddress string,
 	jobConfiguration *types.JobConfiguration,
 ) {
-	ok := Call(
+	err := Call(
 		jobCoordinatorRPCAddress,
 		"JobCoordinator.StartJob",
 		jobConfiguration,
 		nil,
 	)
 
-	if !ok {
+	if err != nil {
 		log.Panicf(
-			"encountered RPC error while submitting job to JobCoordinator @ %s",
+			"encountered RPC error while submitting job to JobCoordinator @ %s: %v\n",
 			jobCoordinatorRPCAddress,
+			err,
 		)
 	}
 }

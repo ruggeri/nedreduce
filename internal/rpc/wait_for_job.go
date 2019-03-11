@@ -8,17 +8,18 @@ func WaitForJobCompletion(
 	jobCoordinatorRPCAddress string,
 	jobName string,
 ) {
-	ok := Call(
+	err := Call(
 		jobCoordinatorRPCAddress,
 		"JobCoordinator.WaitForJobCompletion",
 		jobName,
 		nil,
 	)
 
-	if !ok {
+	if err != nil {
 		log.Panicf(
-			"encountered RPC error while submitting job to JobCoordinator @ %s",
+			"encountered RPC error while submitting job to JobCoordinator @ %s: %v\n",
 			jobCoordinatorRPCAddress,
+			err,
 		)
 	}
 }

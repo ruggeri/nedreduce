@@ -9,17 +9,18 @@ import "log"
 // tasks this worker has processed since it was started.
 func ShutdownWorker(workerRPCAddress string) int {
 	numTasksProcessed := 0
-	ok := Call(
+	err := Call(
 		workerRPCAddress,
 		"Worker.Shutdown",
 		nil,
 		&numTasksProcessed,
 	)
 
-	if !ok {
+	if err != nil {
 		log.Panicf(
-			"JobCoordinator encountered RPC error while shutting down Worker @ %s",
+			"JobCoordinator encountered RPC error while shutting down Worker @ %s: %v\n",
 			workerRPCAddress,
+			err,
 		)
 	}
 

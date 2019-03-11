@@ -6,18 +6,19 @@ func RegisterWorkerWithJobCoordinator(
 	jobCoordinatorRPCAddress string,
 	workerRPCAddress string,
 ) {
-	ok := Call(
+	err := Call(
 		jobCoordinatorRPCAddress,
 		"JobCoordinator.RegisterWorker",
 		workerRPCAddress,
 		nil,
 	)
 
-	if !ok {
-		log.Panic(
-			"worker @ %s encountered RPC error while registering with JobCoordinator @ %s",
+	if err != nil {
+		log.Panicf(
+			"worker @ %s encountered RPC error while registering with JobCoordinator @ %s: %v\n",
 			workerRPCAddress,
 			jobCoordinatorRPCAddress,
+			err,
 		)
 	}
 }
