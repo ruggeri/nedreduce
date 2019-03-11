@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/ruggeri/nedreduce/internal/types"
 	nedreduce "github.com/ruggeri/nedreduce/pkg"
 )
 
@@ -43,12 +42,12 @@ func main() {
 		}
 		inputFiles := os.Args[5:]
 
-		var executionMode types.ExecutionMode
+		var executionMode nedreduce.ExecutionMode
 		switch executionModeName {
 		case "sequential":
-			executionMode = types.Sequential
+			executionMode = nedreduce.Sequential
 		case "distributed":
-			executionMode = types.Distributed
+			executionMode = nedreduce.Distributed
 		default:
 			log.Panicf("Unexpected execution mode: %v\n", executionModeName)
 		}

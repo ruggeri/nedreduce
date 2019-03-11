@@ -21,6 +21,8 @@ func RunWorker(
 	)
 }
 
+// RunJobCoordinator starts a new JobCoordinator and then blocks and
+// waits for the coordinator to be shut down.
 func RunJobCoordinator(
 	jobCoordinatorAddress string,
 ) {
@@ -28,12 +30,16 @@ func RunJobCoordinator(
 	jobCoordinator.WaitForShutdown()
 }
 
+// ShutdownJobCoordinator performs an RPC which tells the JobCoordinator
+// to shut down.
 func ShutdownJobCoordinator(
 	jobCoordinatorAddress string,
 ) {
 	mr_rpc.ShutdownJobCoordinator(jobCoordinatorAddress)
 }
 
+// SubmitJob performs an RPC that tells the JobCoordinator to start
+// running the specified job.
 func SubmitJob(
 	jobCoordinatorAddress string,
 	jobConfiguration *types.JobConfiguration,
@@ -41,6 +47,8 @@ func SubmitJob(
 	mr_rpc.SubmitJob(jobCoordinatorAddress, jobConfiguration)
 }
 
+// WaitForJobCompletion blocks until the JobCoordinator has completed
+// the specified job. Useful because job submission can be async.
 func WaitForJobCompletion(
 	jobCoordinatorAddress string,
 	jobName string,

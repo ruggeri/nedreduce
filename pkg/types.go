@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"github.com/ruggeri/nedreduce/internal/job_coordinator"
 	"github.com/ruggeri/nedreduce/internal/types"
 )
 
@@ -9,7 +8,18 @@ import (
 // to emit KeyValues one at a time.
 type EmitterFunction = types.EmitterFunction
 
+// ExecutionMode specifies how a JobCoordinator should execute a job.
 type ExecutionMode = types.ExecutionMode
+
+const (
+	// Sequential means execute the job right at the JobCoordinator, using
+	// no Workers.
+	Sequential = types.Sequential
+
+	// Distributed means that the JobCoordinator should hand out tasks to
+	// individual Workers to achieve parallelism and distribution.
+	Distributed = types.Distributed
+)
 
 // A GroupIteratorFunction is how a ReducingFunction is one-by-one
 // passed the KeyValues that comprise a reduce group.
@@ -17,8 +27,6 @@ type GroupIteratorFunction = types.GroupIteratorFunction
 
 // A JobConfiguration describes the settings for this job.
 type JobConfiguration = types.JobConfiguration
-
-type JobCoordinator = job_coordinator.JobCoordinator
 
 // KeyValue is a type used to hold the key/value pairs passed to the map
 // and reduce functions.
