@@ -14,19 +14,19 @@ type jobCoordinatorRPCTarget struct {
 // RegisterWorker is called by workers after they have started up so
 // they can report that they are ready to receive tasks.
 func (rpcServerTarget *jobCoordinatorRPCTarget) RegisterWorker(
-	registrationMessage *mr_rpc.WorkerRegistrationMessage,
+	WorkerRPCAdress string,
 	_ *struct{},
 ) error {
 	util.Debug(
 		"jobCoordinator running at %s received RegisterWorker RPC from worker @ %s\n",
 		rpcServerTarget.jobCoordinator.address,
-		registrationMessage.WorkerRPCAdress,
+		WorkerRPCAdress,
 	)
 
 	// The jobCoordinator's workerRegistrationManager is responsible for
 	// notifying folks about this new worker.
 	rpcServerTarget.jobCoordinator.workerPool.RegisterNewWorker(
-		registrationMessage.WorkerRPCAdress,
+		WorkerRPCAdress,
 	)
 
 	return nil

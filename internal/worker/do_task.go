@@ -5,17 +5,19 @@ import (
 	"time"
 )
 
+// TODO: this code is unreviewed.
+
 // DoTask is called by the master when a new task is being scheduled on this
 // worker.
 func (wk *Worker) DoTask(f func()) error {
 	// fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
 	// 	wk.name, arg.JobPhase, arg.TaskIdx, arg.MapInputFileName, arg.NumTasksInOtherPhase)
 
-	wk.Lock()
+	wk.mutex.Lock()
 	wk.nTasks += 1
 	wk.concurrent += 1
 	nc := wk.concurrent
-	wk.Unlock()
+	wk.mutex.Unlock()
 
 	if nc > 1 {
 		// schedule() should never issue more than one RPC at a
@@ -44,9 +46,9 @@ func (wk *Worker) DoTask(f func()) error {
 
 	f()
 
-	wk.Lock()
+	wk.mutex.Lock()
 	wk.concurrent -= 1
-	wk.Unlock()
+	wk.mutex.Unlock()
 
 	if wk.parallelism != nil {
 		wk.parallelism.Mu.Lock()
