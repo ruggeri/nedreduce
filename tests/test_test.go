@@ -33,7 +33,7 @@ const (
 // Checks input file agaist output file: each input number should show up
 // in the output file in string sorted order
 func check(t *testing.T, files []string) {
-	output, err := os.Open("mrtmp.test")
+	output, err := os.Open("mrtmp.testJobName")
 	if err != nil {
 		log.Fatal("check: ", err)
 	}
@@ -123,7 +123,7 @@ func setup() (*types.JobConfiguration, *job_coordinator.JobCoordinator) {
 	jobCoordinatorPort := port("jobCoordinator")
 
 	jobConfiguration := types.NewJobConfiguration(
-		"test",
+		"testJobName",
 		files,
 		nReduce,
 		"WordSplittingMappingFunctionForTest",
@@ -142,6 +142,8 @@ func cleanup(jobConfiguration *types.JobConfiguration) {
 	for _, f := range jobConfiguration.MapperInputFileNames {
 		os.Remove(f)
 	}
+
+	os.Remove("mrtmp." + jobConfiguration.JobName)
 }
 
 func TestSequentialSingle(t *testing.T) {
