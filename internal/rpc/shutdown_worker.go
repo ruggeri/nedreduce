@@ -9,7 +9,7 @@ func ShutdownWorker(workerRPCAddress string) int {
 	err := Call(
 		workerRPCAddress,
 		"Worker.Shutdown",
-		nil,
+		&struct{}{},
 		&numTasksProcessed,
 	)
 
