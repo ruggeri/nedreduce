@@ -14,32 +14,32 @@ function wait_for_fname() {
 }
 
 # Start the coordinator
-./build/bin/wc run-coordinator coordinator &
+./build/bin/nedreduce run-coordinator coordinator &
 wait_for_fname coordinator
 
 # Starting workers.
-./build/bin/wc run-worker coordinator worker1 &
+./build/bin/nedreduce run-worker coordinator worker1 &
 wait_for_fname worker1
-./build/bin/wc run-worker coordinator worker2 &
+./build/bin/nedreduce run-worker coordinator worker2 &
 wait_for_fname worker2
-./build/bin/wc run-worker coordinator worker3 &
+./build/bin/nedreduce run-worker coordinator worker3 &
 wait_for_fname worker3
-./build/bin/wc run-worker coordinator worker4 &
+./build/bin/nedreduce run-worker coordinator worker4 &
 wait_for_fname worker4
 
 # Submit the job to the coordinator. Wait for completion.
-./build/bin/wc submit-job coordinator assets/wc_distributed_job_config.json
+./build/bin/nedreduce submit-job coordinator assets/wc_distributed_job_config.json
 
 # Start telling the workers to shut down.
-./build/bin/wc shutdown-worker worker1
-./build/bin/wc shutdown-worker worker2
-./build/bin/wc shutdown-worker worker3
-./build/bin/wc shutdown-worker worker4
+./build/bin/nedreduce shutdown-worker worker1
+./build/bin/nedreduce shutdown-worker worker2
+./build/bin/nedreduce shutdown-worker worker3
+./build/bin/nedreduce shutdown-worker worker4
 
 # When all the workers have shut down, now shut down the coordinator.
-./build/bin/wc shutdown-coordinator coordinator
+./build/bin/nedreduce shutdown-coordinator coordinator
 
-sort -n -k2 mrtmp.wcseq | tail -10
+sort -n -k2 mrtmp.wc | tail -10
 
 # TODO(LOW): Restore test so that it does a comparison to correct
 # counts.

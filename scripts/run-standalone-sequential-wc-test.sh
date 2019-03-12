@@ -14,17 +14,17 @@ function wait_for_fname() {
 }
 
 # Start the coordinator.
-./build/bin/wc run-coordinator coordinator &
+./build/bin/nedreduce run-coordinator coordinator &
 wait_for_fname coordinator
 
 # Submit the sequential job to the coordinator. Wait for completion.
-./build/bin/wc submit-job coordinator assets/wc_sequential_job_config.json
+./build/bin/nedreduce submit-job coordinator assets/wc_sequential_job_config.json
 
 # Having waited for the coordinator to finish the job, now tell it to
 # shut down.
-./build/bin/wc shutdown-coordinator coordinator
+./build/bin/nedreduce shutdown-coordinator coordinator
 
-sort -n -k2 mrtmp.wcseq | tail -10
+sort -n -k2 mrtmp.wc | tail -10
 
 # TODO(LOW): Restore test so that it does a comparison to correct
 # counts.
