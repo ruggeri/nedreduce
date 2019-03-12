@@ -7,6 +7,15 @@ import (
 	"github.com/ruggeri/nedreduce/internal/worker"
 )
 
+// RunJobCoordinator starts a new JobCoordinator and then blocks and
+// waits for the coordinator to be shut down.
+func RunJobCoordinator(
+	jobCoordinatorAddress string,
+) {
+	jobCoordinator := job_coordinator.StartJobCoordinator(jobCoordinatorAddress)
+	jobCoordinator.WaitForShutdown()
+}
+
 // RunWorker will run a worker, connecting to the specified
 // jobCoordinator, and listening for RPC instructions at the specified
 // worker address.
@@ -19,15 +28,6 @@ func RunWorker(
 		workerAddress,
 		nil,
 	)
-}
-
-// RunJobCoordinator starts a new JobCoordinator and then blocks and
-// waits for the coordinator to be shut down.
-func RunJobCoordinator(
-	jobCoordinatorAddress string,
-) {
-	jobCoordinator := job_coordinator.StartJobCoordinator(jobCoordinatorAddress)
-	jobCoordinator.WaitForShutdown()
 }
 
 // ShutdownJobCoordinator performs an RPC which tells the JobCoordinator
