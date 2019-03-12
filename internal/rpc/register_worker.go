@@ -2,6 +2,8 @@ package rpc
 
 import "log"
 
+// RegisterWorkerWithJobCoordinator performs an RPC to the
+// JobCoordinator so that a Worker can let them know they exist.
 func RegisterWorkerWithJobCoordinator(
 	jobCoordinatorRPCAddress string,
 	workerRPCAddress string,

@@ -4,6 +4,8 @@ import (
 	"log"
 )
 
+// WaitForJobCompletion performs an RPC which blocks until the
+// JobCoordinator has finished executing the job.
 func WaitForJobCompletion(
 	jobCoordinatorRPCAddress string,
 	jobName string,

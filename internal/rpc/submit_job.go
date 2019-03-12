@@ -6,6 +6,8 @@ import (
 	"github.com/ruggeri/nedreduce/internal/types"
 )
 
+// SubmitJob performs an RPC which tells the JobCoordinator to start
+// processing the job.
 func SubmitJob(
 	jobCoordinatorRPCAddress string,
 	jobConfiguration *types.JobConfiguration,

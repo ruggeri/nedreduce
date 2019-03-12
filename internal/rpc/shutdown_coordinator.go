@@ -4,6 +4,8 @@ import (
 	"log"
 )
 
+// ShutdownJobCoordinator performs an RPC to tell the Coordinator to
+// shut itself down.
 func ShutdownJobCoordinator(
 	jobCoordinatorRPCAddress string,
 ) {
