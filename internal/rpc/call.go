@@ -4,19 +4,8 @@ import (
 	"net/rpc"
 )
 
-// Call sends an RPC to the the server running at `rpcServerAddress` and
-// invokes the `serviceMethod` method. It passes arguments `args`, waits
-// for the reply, and places this in `reply`. The `reply` argument
-// should be the address of an appropriate reply structure.
-//
-// Call returns true if the server responded, and false if Call received
-// no reply from the server. `reply`'s contents are valid if and only if
-// Call returned true.
-//
-// You should assume that Call will time out and return false after a
-// while if it doesn't get a reply from the server.
-//
-// Please use Call to send all RPCs. Please don't change this function.
+// Call invokes an RPC at the server. It synchronously waits for the
+// reply. This is a simple wrapper around rpc.Dial and rpc.Client#Call.
 func Call(
 	rpcServerAddress string,
 	serviceMethod string,
