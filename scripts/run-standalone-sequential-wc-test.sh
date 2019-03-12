@@ -1,15 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
+# Used to wait until a server launched in the background is running.
+# When a server is truly running, it will have opened a unix domain
+# socket so that RPCs can be performed.
+function wait_for_fname() {
+  local fname=$1
+
+  while [ ! -e $fname ]; do
+    sleep 0.01
+  done
+}
+
 # Start the coordinator.
 ./build/bin/wc run-coordinator coordinator &
-
-# TODO: This is very lame. Basically, the coordinator is started above,
-# but we need to wait until it is actually listening for RPCs. The
-# correct way is that run-coordinator should spawn a process for running
-# the coordinator, and *return* when the process has started listening.
-sleep 0.01
+wait_for_fname coordinator
 
 # Submit the sequential job to the coordinator. Wait for completion.
 ./build/bin/wc submit-job coordinator sequential 3 assets/pg-*.txt

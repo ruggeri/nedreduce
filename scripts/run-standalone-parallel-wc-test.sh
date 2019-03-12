@@ -2,35 +2,42 @@
 
 set -e
 
+# Used to wait until a server launched in the background is running.
+# When a server is truly running, it will have opened a unix domain
+# socket so that RPCs can be performed.
+function wait_for_fname() {
+  local fname=$1
+
+  while [ ! -e $fname ]; do
+    sleep 0.01
+  done
+}
+
 # Start the coordinator
 ./build/bin/wc run-coordinator coordinator &
-
-# TODO: This is very lame. Basically, the coordinator is started above,
-# but we need to wait until it is actually listening for RPCs. The
-# correct way is that run-coordinator should spawn a process for running
-# the coordinator, and *return* when the process has started listening.
-sleep 0.01
+wait_for_fname coordinator
 
 # Starting workers.
 ./build/bin/wc run-worker coordinator worker1 &
+wait_for_fname worker1
 ./build/bin/wc run-worker coordinator worker2 &
+wait_for_fname worker2
 ./build/bin/wc run-worker coordinator worker3 &
+wait_for_fname worker3
 ./build/bin/wc run-worker coordinator worker4 &
-# TODO: Again, also lame.
-sleep 0.01
+wait_for_fname worker4
 
 # Submit the job to the coordinator. Wait for completion.
 ./build/bin/wc submit-job coordinator distributed 3 assets/pg-*.txt
 
-# Having waited for the cluster to finish the job, now tell the
-# coordinator to shut down.
-./build/bin/wc shutdown-coordinator coordinator
+# Start telling the workers to shut down.
+./build/bin/wc shutdown-worker worker1
+./build/bin/wc shutdown-worker worker2
+./build/bin/wc shutdown-worker worker3
+./build/bin/wc shutdown-worker worker4
 
-# Tell the workers to shutdown, too.
-./build/bin/wc run-worker coordinator worker1
-./build/bin/wc run-worker coordinator worker2
-./build/bin/wc run-worker coordinator worker3
-./build/bin/wc run-worker coordinator worker4
+# When all the workers have shut down, now shut down the coordinator.
+./build/bin/wc shutdown-coordinator coordinator
 
 sort -n -k2 mrtmp.wcseq | tail -10
 
