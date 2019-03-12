@@ -18,7 +18,7 @@ function wait_for_fname() {
 wait_for_fname coordinator
 
 # Submit the sequential job to the coordinator. Wait for completion.
-./build/bin/wc submit-job coordinator sequential 3 assets/pg-*.txt
+./build/bin/wc submit-job coordinator assets/wc_sequential_job_config.json
 
 # Having waited for the coordinator to finish the job, now tell it to
 # shut down.

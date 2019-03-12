@@ -1,9 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 
 	nedreduce "github.com/ruggeri/nedreduce/pkg"
 )
@@ -29,7 +30,7 @@ func main() {
 
 func runCoordinator() {
 	if len(os.Args) != 3 {
-		log.Fatal("wc run-coordinator jobCoordinatorAddress")
+		log.Fatal("nedreduce run-coordinator jobCoordinatorAddress")
 	}
 	jobCoordinatorAddress := os.Args[2]
 	nedreduce.RunJobCoordinator(jobCoordinatorAddress)
@@ -37,7 +38,7 @@ func runCoordinator() {
 
 func runWorker() {
 	if len(os.Args) != 4 {
-		log.Fatal("wc run-worker jobCoordinatorAddress workerAddress")
+		log.Fatal("nedreduce run-worker jobCoordinatorAddress workerAddress")
 	}
 
 	jobCoordinatorAddress := os.Args[2]
@@ -48,7 +49,7 @@ func runWorker() {
 
 func shutdownCoordinator() {
 	if len(os.Args) != 3 {
-		log.Fatal("wc shutdown-coordinator jobCoordinatorAddress")
+		log.Fatal("nedreduce shutdown-coordinator jobCoordinatorAddress")
 	}
 	jobCoordinatorAddress := os.Args[2]
 	nedreduce.ShutdownJobCoordinator(jobCoordinatorAddress)
@@ -56,7 +57,7 @@ func shutdownCoordinator() {
 
 func shutdownWorker() {
 	if len(os.Args) != 3 {
-		log.Fatal("wc shutdown-worker workerRPCAddress")
+		log.Fatal("nedreduce shutdown-worker workerRPCAddress")
 	}
 
 	workerRPCAddress := os.Args[2]
@@ -65,44 +66,26 @@ func shutdownWorker() {
 }
 
 func submitJob() {
-	if len(os.Args) < 6 {
-		log.Fatal("wc submit-job jobCoordinatorAddress executionMode numReducers inputFiles...")
+	if len(os.Args) != 4 {
+		log.Fatal("nedreduce submit-job jobCoordinatorAddress jobConfigurationJson")
 	}
 
 	jobCoordinatorAddress := os.Args[2]
-	executionModeName := os.Args[3]
-	numReducers, err := strconv.Atoi(os.Args[4])
-	if err != nil {
-		log.Printf("invalid numReducers: %v\n", os.Args[4])
-		log.Fatal("wc submit-job jobCoordinatorAddress executionMode numReducers inputFiles...")
-	}
-	inputFiles := os.Args[5:]
 
-	var executionMode nedreduce.ExecutionMode
-	switch executionModeName {
-	case "sequential":
-		executionMode = nedreduce.Sequential
-	case "distributed":
-		executionMode = nedreduce.Distributed
-	default:
-		log.Panicf("Unexpected execution mode: %v\n", executionModeName)
-	}
+	jobConfiguration := func() *nedreduce.JobConfiguration {
+		configFname := os.Args[3]
+		var jobConfiguration nedreduce.JobConfiguration
+		configContents, _ := ioutil.ReadFile(configFname)
+		json.Unmarshal(configContents, &jobConfiguration)
 
-	jobName := "wcseq"
-	mappingFunctionName := "WordSplittingMappingFunction"
-	reducingFunctionName := "WordCountingReducingFunction"
-
-	jobConfiguration := nedreduce.NewJobConfiguration(
-		jobName,
-		inputFiles,
-		numReducers,
-		mappingFunctionName,
-		reducingFunctionName,
-		executionMode,
-	)
+		return &jobConfiguration
+	}()
 
 	nedreduce.SubmitJob(jobCoordinatorAddress, jobConfiguration)
-	nedreduce.WaitForJobCompletion(jobCoordinatorAddress, jobName)
+	nedreduce.WaitForJobCompletion(
+		jobCoordinatorAddress,
+		jobConfiguration.JobName,
+	)
 }
 
 func waitUntilFileExists() {

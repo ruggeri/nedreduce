@@ -6,9 +6,9 @@ type ExecutionMode string
 const (
 	// Sequential means execute the job right at the JobCoordinator, using
 	// no Workers.
-	Sequential = ExecutionMode("sequential")
+	Sequential = ExecutionMode("Sequential")
 
 	// Distributed means that the JobCoordinator should hand out tasks to
 	// individual Workers to achieve parallelism and distribution.
-	Distributed = ExecutionMode("distributed")
+	Distributed = ExecutionMode("Distributed")
 )

@@ -1,0 +1,21 @@
+{
+  "JobName": "wc",
+  "MapperInputFileNames": [
+    "assets/mr-challenge.txt",
+    "assets/mr-testout.txt",
+    "assets/pg-being_ernest.txt",
+    "assets/pg-dorian_gray.txt",
+    "assets/pg-frankenstein.txt",
+    "assets/pg-grimm.txt",
+    "assets/pg-huckleberry_finn.txt",
+    "assets/pg-metamorphosis.txt",
+    "assets/pg-sherlock_holmes.txt",
+    "assets/pg-tom_sawyer.txt"
+  ],
+  "NumReducers": 3,
+
+  "MappingFunctionName": "WordSplittingMappingFunction",
+  "ReducingFunctionName": "WordCountingReducingFunction",
+
+  "ExecutionMode": "Sequential"
+}

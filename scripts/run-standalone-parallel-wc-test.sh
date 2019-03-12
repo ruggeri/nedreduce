@@ -28,7 +28,7 @@ wait_for_fname worker3
 wait_for_fname worker4
 
 # Submit the job to the coordinator. Wait for completion.
-./build/bin/wc submit-job coordinator distributed 3 assets/pg-*.txt
+./build/bin/wc submit-job coordinator assets/wc_distributed_job_config.json
 
 # Start telling the workers to shut down.
 ./build/bin/wc shutdown-worker worker1
