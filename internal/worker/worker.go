@@ -10,15 +10,15 @@ import (
 type workerRunState string
 
 const (
-	availableForNextJob = workerRunState("availableForNextJob")
-	runningJob          = workerRunState("runningJob")
-	shutDown            = workerRunState("shutDown")
+	availableForNextTask = workerRunState("availableForNextTask")
+	runningATask         = workerRunState("runningATask")
+	shutDown             = workerRunState("shutDown")
 )
 
 // A Worker executes tasks that are assigned by a JobCoordinator.
 type Worker struct {
-	mutex                sync.Mutex
-	workerIsShutDownCond *sync.Cond
+	mutex        sync.Mutex
+	runStateCond *sync.Cond
 
 	eventListeners    []EventListener
 	numTasksProcessed int
@@ -38,18 +38,18 @@ func StartWorker(
 	worker := &Worker{
 		mutex: sync.Mutex{},
 		// See below. Can't setup until we have the mutex.
-		workerIsShutDownCond: nil,
+		runStateCond: nil,
 
 		eventListeners:    eventListeners,
 		numTasksProcessed: 0,
 		rpcAddress:        workerRPCAddress,
 		// See below. Can't start until we have a Worker.
 		rpcServer: nil,
-		runState:  availableForNextJob,
+		runState:  availableForNextTask,
 	}
 
 	// Finish initialization of Cond variable.
-	worker.workerIsShutDownCond = sync.NewCond(&worker.mutex)
+	worker.runStateCond = sync.NewCond(&worker.mutex)
 
 	// Start the RPC server so we can listen for tasks from
 	// JobCoordinator.
@@ -83,15 +83,19 @@ func RunWorker(
 // Shutdown can be called by the JobCoordinator to shutdown this worker.
 // We should respond with the number of tasks we have processed.
 func (worker *Worker) Shutdown() {
-	isShutdown := func() bool {
-		worker.mutex.Lock()
-		defer worker.mutex.Unlock()
-		return worker.runState == shutDown
-	}()
+	worker.mutex.Lock()
+	defer worker.mutex.Unlock()
 
-	if isShutdown {
-		// Ignore redundant requests to shut down.
-		return
+	for {
+		if worker.runState == shutDown {
+			// Someone else has shut us down.
+			return
+		} else if worker.runState == availableForNextTask {
+			// No task is running; we can now shut down!
+			break
+		}
+
+		worker.runStateCond.Wait()
 	}
 
 	util.Debug(
@@ -102,16 +106,11 @@ func (worker *Worker) Shutdown() {
 	// First shut down the RPC server.
 	worker.rpcServer.Shutdown()
 
-	// Next, mark ourselves as having been shut down.
-	func() {
-		worker.mutex.Lock()
-		defer worker.mutex.Unlock()
-
-		worker.runState = shutDown
-	}()
+	// Mark ourself as shut down.
+	worker.runState = shutDown
 
 	// Last, inform anyone waiting for us to shut down.
-	worker.workerIsShutDownCond.Broadcast()
+	worker.runStateCond.Broadcast()
 }
 
 // WaitForShutdown blocks until the Worker is shut down.
@@ -130,6 +129,6 @@ func (worker *Worker) WaitForShutdown() {
 			return
 		}
 
-		worker.workerIsShutDownCond.Wait()
+		worker.runStateCond.Wait()
 	}
 }

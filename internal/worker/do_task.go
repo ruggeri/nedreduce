@@ -26,23 +26,25 @@ func (worker *Worker) DoTask(taskFunc func()) {
 	}
 }
 
-// checkAndUpdateRunStateBeforeNextTask checks that we aren't already
-// running a job, and updates our runState to reflect that we are.
+// checkAndUpdateRunStateBeforeNextTask checks that we are properly
+// ready to run a job.
 func (worker *Worker) checkAndUpdateRunStateBeforeNextTask() {
 	worker.mutex.Lock()
 	defer worker.mutex.Unlock()
 
 	switch worker.runState {
-	case availableForNextJob:
+	case availableForNextTask:
 		worker.numTasksProcessed++
-		worker.runState = runningJob
+		worker.runState = runningATask
 		return
-	case runningJob:
+	case runningATask:
+		// TODO(MEDIUM): don't panic. Just refuse the job.
 		log.Panicf(
 			"worker @ %v assigned more than one task at a time.\n",
 			worker.rpcAddress,
 		)
 	case shutDown:
+		// TODO(MEDIUM): don't panic. Just refuse the job.
 		log.Panicf(
 			"worker @ %v assigned a task after shut down.\n",
 			worker.rpcAddress,
@@ -62,9 +64,11 @@ func (worker *Worker) restoreRunStateAfterTaskCompletion() {
 	defer worker.mutex.Unlock()
 
 	switch worker.runState {
-	case runningJob:
-		worker.runState = availableForNextJob
+	case runningATask:
+		worker.runState = availableForNextTask
 	default:
 		log.Panicf("worker state changed while running job??")
 	}
+
+	worker.runStateCond.Broadcast()
 }
