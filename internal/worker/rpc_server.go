@@ -34,11 +34,11 @@ func (workerRPCTarget *workerRPCTarget) ExecuteMapTask(
 		}
 	}
 
-	worker.DoTask(func() {
+	err := worker.DoTask(func() {
 		mapper.ExecuteMapping((*mapper.MapTask)(mapTask))
 	})
 
-	return nil
+	return err
 }
 
 // ExecuteReduceTask does what it says.
@@ -60,11 +60,11 @@ func (workerRPCTarget *workerRPCTarget) ExecuteReduceTask(
 		}
 	}
 
-	worker.DoTask(func() {
+	err := worker.DoTask(func() {
 		reducer.ExecuteReducing((*reducer.ReduceTask)(reduceTask))
 	})
 
-	return nil
+	return err
 }
 
 // Shutdown is called by the JobCoordinator when all work has been

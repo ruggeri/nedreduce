@@ -1,15 +1,20 @@
 package worker
 
 import (
+	"errors"
 	"log"
 )
 
 // DoTask performs the taskFunc is provided. This is how the Worker
 // executes the JobCoordinator's task.
-func (worker *Worker) DoTask(taskFunc func()) {
+func (worker *Worker) DoTask(taskFunc func()) error {
 	// First check that we are allowed to run this new task. If so, then
 	// record that we are currently running a job.
-	worker.checkAndUpdateRunStateBeforeNextTask()
+	err := worker.checkAndUpdateRunStateBeforeNextTask()
+
+	if err != nil {
+		return err
+	}
 
 	for _, eventListener := range worker.eventListeners {
 		eventListener.OnWorkerEvent(worker, taskStart)
@@ -24,37 +29,35 @@ func (worker *Worker) DoTask(taskFunc func()) {
 	for _, eventListener := range worker.eventListeners {
 		eventListener.OnWorkerEvent(worker, taskEnd)
 	}
+
+	return nil
 }
 
 // checkAndUpdateRunStateBeforeNextTask checks that we are properly
 // ready to run a job.
-func (worker *Worker) checkAndUpdateRunStateBeforeNextTask() {
+func (worker *Worker) checkAndUpdateRunStateBeforeNextTask() error {
 	worker.mutex.Lock()
 	defer worker.mutex.Unlock()
 
 	switch worker.runState {
 	case availableForNextTask:
-		worker.numTasksProcessed++
-		worker.runState = runningATask
-		return
+		// Good to go!
 	case runningATask:
-		// TODO(MEDIUM): don't panic. Just refuse the job.
-		log.Panicf(
-			"worker @ %v assigned more than one task at a time.\n",
-			worker.rpcAddress,
-		)
+		// Worker rejects work if it is already working.
+		return errors.New("WorkerIsAlreadyWorkingOnATask")
 	case shutDown:
-		// TODO(MEDIUM): don't panic. Just refuse the job.
-		log.Panicf(
-			"worker @ %v assigned a task after shut down.\n",
-			worker.rpcAddress,
-		)
+		// Worker rejects work if it is shut down (duh).
+		return errors.New("WorkerIsShutDown")
 	default:
 		log.Panicf(
 			"non-exhaustive worker runState switch: %v\n",
 			worker.runState,
 		)
 	}
+
+	worker.numTasksProcessed++
+	worker.runState = runningATask
+	return nil
 }
 
 // restoreRunStateAfterTaskCompletion restores the Worker's runState so
