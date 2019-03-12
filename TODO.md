@@ -7,8 +7,8 @@
 
 **MEDIUM**
 
-* Don't panic if worker receives a duplicate job or if a shut down
-  worker receives a job.
+* Clean up util merging code.
+* Fix how we choose the final name of the output file.
 
 **Low**
 

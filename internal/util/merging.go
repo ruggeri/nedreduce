@@ -26,6 +26,7 @@ import (
 // Anyway, I leave this here as a concession to the way the tests are
 // currently run.
 func MergeReducerOutputFiles(jobName string, numReducers int) {
+	// TODO(MEDIUM): Clean me.
 	Debug("Reducer output merge phase beginning...\n")
 
 	kvs := make(map[string]string)
@@ -61,6 +62,10 @@ func MergeReducerOutputFiles(jobName string, numReducers int) {
 	sort.Strings(keys)
 
 	// Open merged output file.
+	//
+	// TODO: there's test code that relies on where the file is output, so
+	// we should extract a method that specifies that, so we can safely
+	// change this logic in a single place.
 	mergedOutputFile, err := os.Create("mrtmp." + jobName)
 	if err != nil {
 		log.Panic("Merge: create ", err)
