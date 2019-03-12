@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"strings"
 
 	"github.com/ruggeri/nedreduce/internal/util"
 )
@@ -81,9 +82,17 @@ func (server *Server) listenForConnections() {
 			// clients so that they can make more requests.
 			go server.handleRPCConnection(connection)
 		} else {
-			// TODO(HIGH): I really dislike this. How do we know that Accept
-			// failed because of a clean Shutdown? There shouldn't be an error
-			// message then.
+			// Gross. Closing the connectionListener in Shutdown gives the
+			// listener goroutine an opaque error that we can't easily
+			// interpret. What if the Accept error had some other (bad) cause?
+			//
+			// The situation is explained here:
+			//   https://github.com/golang/go/issues/4373
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				return
+			}
+
+			// Else, something actually did go wrong!
 			util.Debug(
 				"server running at %v encountered RPC connection accept error: %v\n",
 				server.address,

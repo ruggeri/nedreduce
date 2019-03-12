@@ -3,7 +3,6 @@
 **High**
 
 * Get parallel failure tests working by adding RPC error handling.
-* `rpc.Server` doesn't try to figure out why `conn.Accept` fails.
 * Rework the README.
 
 **Low**
