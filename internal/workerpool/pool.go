@@ -126,6 +126,7 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 // manager that a worker has completed their task.
 func (workerPool *WorkerPool) SendWorkerCompletedTaskMessage(
 	workerAddress string,
+	taskIdentifier string,
 ) bool {
 	// If the worker pool is either shutting down or shut down, don't
 	// bother marking the task as completed or trying to give the worker
@@ -138,12 +139,38 @@ func (workerPool *WorkerPool) SendWorkerCompletedTaskMessage(
 	workerPool.noMoreMessagesWaitGroup.Add(1)
 	go func() {
 		workerPool.messageChannel <- message{
-			Kind:    workerCompletedTaskMessage,
-			Address: workerAddress,
+			Kind:           workerCompletedTaskMessage,
+			Address:        workerAddress,
+			TaskIdentifier: taskIdentifier,
 		}
 	}()
 
 	return true
+}
+
+func (workerPool *WorkerPool) SendWorkerFailedTaskMessage(
+	workerAddress string,
+	taskIdentifier string,
+	err error,
+) {
+	// If the worker pool is either shutting down or shut down, don't
+	// bother telling the pool about the worker failure.
+	if !workerPool.isRunning() {
+		return
+	}
+
+	// Queue up another message for the background worker.
+	workerPool.noMoreMessagesWaitGroup.Add(1)
+	go func() {
+		workerPool.messageChannel <- message{
+			Kind:           workerFailedTaskMessage,
+			Address:        workerAddress,
+			TaskIdentifier: taskIdentifier,
+			Err:            err,
+		}
+	}()
+
+	return
 }
 
 // Shutdown tells the WorkerPool to stop processing new messages. It

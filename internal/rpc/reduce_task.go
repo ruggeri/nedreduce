@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"log"
+	"strconv"
 
 	"github.com/ruggeri/nedreduce/internal/reducer"
 )
@@ -24,13 +24,10 @@ func (reduceTask *ReduceTask) StartOnWorker(
 			nil,
 		)
 
-		if err != nil {
-			log.Panicf(
-				"Something went wrong with RPC call to worker: %v\n",
-				err,
-			)
-		} else {
-			rpcCompletionCallback()
-		}
+		rpcCompletionCallback(err)
 	}()
+}
+
+func (reduceTask *ReduceTask) Identifier() string {
+	return "reduce-task-" + strconv.Itoa(reduceTask.ReduceTaskIdx)
 }

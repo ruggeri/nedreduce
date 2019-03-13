@@ -1,7 +1,6 @@
 package workerpool
 
 import (
-	"io"
 	"log"
 
 	"github.com/ruggeri/nedreduce/internal/util"
@@ -21,9 +20,15 @@ func (workerPool *WorkerPool) handleMessage(message message) {
 	case startNewWorkSetMessage:
 		workerPool.handleStartingNewWorkSet()
 	case workerCompletedTaskMessage:
-		workerPool.handleTaskCompletion(message.Address)
+		workerPool.handleTaskCompletion(
+			message.Address, message.TaskIdentifier,
+		)
 	case workerRegistrationMessage:
 		workerPool.handleWorkerRegistration(message.Address)
+	case workerFailedTaskMessage:
+		workerPool.handleWorkerFailure(
+			message.Address, message.TaskIdentifier, message.Err,
+		)
 	default:
 		log.Panicf("Unexpected message type: %v\n", message.Kind)
 	}
@@ -46,9 +51,12 @@ func (workerPool *WorkerPool) handleStartingNewWorkSet() {
 
 // handleTaskCompletion handles notification by a worker that a task has
 // been completed.
-func (workerPool *WorkerPool) handleTaskCompletion(workerRPCAddress string) {
+func (workerPool *WorkerPool) handleTaskCompletion(
+	workerRPCAddress string,
+	taskIdentifier string,
+) {
 	util.Debug("worker running at %v finished work assignment\n", workerRPCAddress)
-	workerPool.currentWorkSet.handleTaskCompletion()
+	workerPool.currentWorkSet.handleTaskCompletion(taskIdentifier)
 
 	if !workerPool.currentWorkSet.isCompleted() {
 		// If the work set is not yet completed, try to assign more work to
@@ -61,6 +69,23 @@ func (workerPool *WorkerPool) handleTaskCompletion(workerRPCAddress string) {
 		// Let someone else know they can schedule work on the WorkerPool.
 		workerPool.workerPoolIsFreeForNewWorkSetCond.Signal()
 	}
+}
+
+// handleWorkerFailure handles notification by a worker that it has
+// failed.
+func (workerPool *WorkerPool) handleWorkerFailure(
+	workerRPCAddress string,
+	taskIdentifier string,
+	err error,
+) {
+	util.Debug(
+		"worker running at %v encountered error %v\n",
+		workerRPCAddress,
+		err,
+	)
+	workerPool.currentWorkSet.handleTaskFailure(taskIdentifier)
+
+	// TODO: should try to assign the task to someone else.
 }
 
 // handleWorkerRegistration handles registration by a worker.
@@ -87,17 +112,27 @@ func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) {
 		return
 	}
 
-	nextTask, err := workerPool.currentWorkSet.getNextTask()
+	nextTask := workerPool.currentWorkSet.getNextTask()
 
-	if err == io.EOF {
+	if nextTask == nil {
+		// We are completed!
 		return
-	} else if err != nil {
-		log.Panicf("Unexpcted error getting task from workSet: %v\n", err)
 	}
 
 	util.Debug("WorkSet: assigning new work to worker running at %v\n", workerRPCAddress)
-	nextTask.StartOnWorker(workerRPCAddress, func() {
-		workerPool.SendWorkerCompletedTaskMessage(workerRPCAddress)
+	nextTask.StartOnWorker(workerRPCAddress, func(err error) {
+		if err == nil {
+			workerPool.SendWorkerCompletedTaskMessage(
+				workerRPCAddress,
+				nextTask.Identifier(),
+			)
+		} else {
+			workerPool.SendWorkerFailedTaskMessage(
+				workerRPCAddress,
+				nextTask.Identifier(),
+				err,
+			)
+		}
 	})
 
 	return

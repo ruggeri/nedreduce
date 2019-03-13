@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"log"
+	"strconv"
 
 	"github.com/ruggeri/nedreduce/internal/mapper"
 )
@@ -18,13 +18,10 @@ func (mapTask *MapTask) StartOnWorker(
 	go func() {
 		err := Call(workerAddress, "Worker.ExecuteMapTask", mapTask, nil)
 
-		if err != nil {
-			log.Panicf(
-				"Something went wrong with RPC call to worker: %v\n",
-				err,
-			)
-		} else {
-			rpcCompletionCallback()
-		}
+		rpcCompletionCallback(err)
 	}()
+}
+
+func (mapTask *MapTask) Identifier() string {
+	return "map-task-" + strconv.Itoa(mapTask.MapTaskIdx)
 }

@@ -6,11 +6,14 @@ const (
 	startNewWorkSetMessage     = messageKind("startNewWorkSetMessage")
 	workerRegistrationMessage  = messageKind("workerRegistrationMessage")
 	workerCompletedTaskMessage = messageKind("workerCompletedTaskMessage")
+	workerFailedTaskMessage    = messageKind("workerFailedTaskMessage")
 )
 
 type message struct {
-	Kind    messageKind
-	Address string
+	Kind           messageKind
+	Address        string
+	TaskIdentifier string
+	Err            error
 }
 
 // A messageChannel is a channel we can push internal messages over.

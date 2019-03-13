@@ -1,10 +1,17 @@
 package workerpool
 
 import (
-	"io"
 	"log"
 
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
+)
+
+type taskStatus string
+
+const (
+	taskNotStarted = taskStatus("taskNotStarted")
+	taskInProgress = taskStatus("taskInProgress")
+	taskComplete   = taskStatus("taskComplete")
 )
 
 // WorkSetResult represents the result of trying to execute the WorkSet.
@@ -22,15 +29,10 @@ type workSet struct {
 	// idea is that no work should be assigned until it has been started.
 	isStarted bool
 
-	// numTasksAssigned is the number of tasks that are currently assigned
-	// to a worker.
-	numTasksAssigned int
-
-	// numTasksCompleted is the number of tasks that have been completed
-	numTasksCompleted int
-
 	// tasks are units of work to assign
-	tasks []mr_rpc.Task
+	tasks map[string]mr_rpc.Task
+
+	taskStatuses map[string]taskStatus
 
 	// workSetResultChannel is used to signal someone when the work is
 	// done.
@@ -43,36 +45,51 @@ func newWorkSet(tasks []mr_rpc.Task) *workSet {
 		log.Panic("workSet cannot be created with no tasks to perform.")
 	}
 
-	return &workSet{
+	workSet := &workSet{
 		isStarted:            false,
-		numTasksAssigned:     0,
-		numTasksCompleted:    0,
-		tasks:                tasks,
+		tasks:                make(map[string]mr_rpc.Task),
+		taskStatuses:         make(map[string]taskStatus),
 		workSetResultChannel: make(chan WorkSetResult),
 	}
+
+	for _, task := range tasks {
+		workSet.tasks[task.Identifier()] = task
+		workSet.taskStatuses[task.Identifier()] = taskNotStarted
+	}
+
+	return workSet
+}
+
+func (workSet *workSet) nextUnassignedTask() mr_rpc.Task {
+	for taskIdentifier, taskStatus := range workSet.taskStatuses {
+		if taskStatus == taskNotStarted {
+			return workSet.tasks[taskIdentifier]
+		}
+	}
+
+	return nil
 }
 
 // newWorkSet gets a new task that should be assigned.
-func (workSet *workSet) getNextTask() (mr_rpc.Task, error) {
+func (workSet *workSet) getNextTask() mr_rpc.Task {
 	if !workSet.isStarted {
 		log.Panic("workSet can't give out tasks before being explicitly started")
 	}
 
-	currentTaskIdx := workSet.numTasksCompleted + workSet.numTasksAssigned
-
-	if currentTaskIdx == len(workSet.tasks) {
-		return nil, io.EOF
+	nextTask := workSet.nextUnassignedTask()
+	if nextTask == nil {
+		return nil
 	}
 
-	nextTask := workSet.tasks[currentTaskIdx]
-	workSet.numTasksAssigned++
-	return nextTask, nil
+	taskIdentifier := nextTask.Identifier()
+
+	workSet.taskStatuses[taskIdentifier] = taskInProgress
+	return nextTask
 }
 
 // handleTaskCompletion records that a task has been completed.
-func (workSet *workSet) handleTaskCompletion() {
-	workSet.numTasksCompleted++
-	workSet.numTasksAssigned--
+func (workSet *workSet) handleTaskCompletion(taskIdentifier string) {
+	workSet.taskStatuses[taskIdentifier] = taskComplete
 
 	// If workSet is entirely completed, asynchronously notify whoever is
 	// listening.
@@ -83,7 +100,18 @@ func (workSet *workSet) handleTaskCompletion() {
 	}
 }
 
+// handleTaskFailure records that a task has been failed.
+func (workSet *workSet) handleTaskFailure(taskIdentifier string) {
+	workSet.taskStatuses[taskIdentifier] = taskNotStarted
+}
+
 // isCompleted tells you if all the work in the workSet is completed.
 func (workSet *workSet) isCompleted() bool {
-	return workSet.numTasksCompleted == len(workSet.tasks)
+	for _, taskStatus := range workSet.taskStatuses {
+		if taskStatus != taskComplete {
+			return false
+		}
+	}
+
+	return true
 }
