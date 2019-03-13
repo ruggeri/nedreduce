@@ -2,13 +2,14 @@
 
 **High**
 
-* Get parallel failure tests working by adding RPC error handling.
+* One last review of code. Especially add documentation to workerpool.
 * Rework the README.
 
 **MEDIUM**
 
-* Clean up util merging code.
-* Fix how we choose the final name of the output file.
+* Clean up the `util` merging code.
+* Fix how we choose the final name of the output file. (also in `util`
+  merging code).
 
 **Low**
 
