@@ -1,6 +1,8 @@
 package workerpool
 
-import "log"
+import (
+	"log"
+)
 
 type beginShutdownMessage struct {
 	Ch chan WorkerPoolEvent
@@ -16,29 +18,7 @@ func newBeginShutdownMessage(
 
 func (message *beginShutdownMessage) Handle(workerPool *WorkerPool) {
 	workerPool.beginShuttingDown()
-
-	// Wait for all queued messages to clear out.
-	workerPool.noMoreMessagesWaitGroup.Wait()
-
-	func() {
-		workerPool.mutex.Lock()
-		defer workerPool.mutex.Unlock()
-
-		if workerPool.runState == shutDown {
-			// how nice, someone has shut down for us already.
-			return
-		} else if workerPool.runState != shuttingDown {
-			log.Panicf("Unexpected run state at shut down: %v\n", workerPool.runState)
-		}
-
-		// Okay, let's shut it down!
-		close(workerPool.messageChannel)
-
-		workerPool.runState = shutDown
-		workerPool.runStateChangedCond.Broadcast()
-	}()
-
-	message.Ch <- WorkerPoolIsShutDown
+	go func() { workerPool.completeShutdown(message.Ch) }()
 }
 
 func (workerPool *WorkerPool) beginShuttingDown() {
@@ -71,4 +51,29 @@ func (workerPool *WorkerPool) beginShuttingDown() {
 	workerPool.runStateChangedCond.Broadcast()
 
 	return
+}
+
+func (workerPool *WorkerPool) completeShutdown(ch chan WorkerPoolEvent) {
+	// Wait for all queued messages to clear out.
+	workerPool.noMoreMessagesWaitGroup.Wait()
+
+	func() {
+		workerPool.mutex.Lock()
+		defer workerPool.mutex.Unlock()
+
+		if workerPool.runState == shutDown {
+			// how nice, someone has shut down for us already.
+			return
+		} else if workerPool.runState != shuttingDown {
+			log.Panicf("Unexpected run state at shut down: %v\n", workerPool.runState)
+		}
+
+		// Okay, let's shut it down!
+		close(workerPool.messageChannel)
+
+		workerPool.runState = shutDown
+		workerPool.runStateChangedCond.Broadcast()
+	}()
+
+	ch <- WorkerPoolIsShutDown
 }
