@@ -3,6 +3,7 @@ package workerpool
 import (
 	"log"
 
+	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
@@ -44,8 +45,10 @@ func (workerPool *WorkerPool) handleStartingNewWorkSet() {
 
 	workerPool.currentWorkSet.isStarted = true
 
-	for workerRPCAddress := range workerPool.workerRPCAddresses {
-		workerPool.assignTaskToWorker(workerRPCAddress)
+	for workerRPCAddress, workerState := range workerPool.workerStates {
+		if workerState == freeForTask {
+			workerPool.assignAnyTaskToWorker(workerRPCAddress)
+		}
 	}
 }
 
@@ -58,10 +61,15 @@ func (workerPool *WorkerPool) handleTaskCompletion(
 	util.Debug("worker running at %v finished work assignment\n", workerRPCAddress)
 	workerPool.currentWorkSet.handleTaskCompletion(taskIdentifier)
 
+	workerPool.workerStates[workerRPCAddress] = freeForTask
+
 	if !workerPool.currentWorkSet.isCompleted() {
 		// If the work set is not yet completed, try to assign more work to
 		// the free worker.
-		workerPool.assignTaskToWorker(workerRPCAddress)
+		//
+		// Note, this may not assign work if all work is presently handed
+		// out.
+		workerPool.assignAnyTaskToWorker(workerRPCAddress)
 	} else {
 		// Else, the work set is entirely completed!
 		util.Debug("WorkerPool: work set has been completed\n")
@@ -83,9 +91,23 @@ func (workerPool *WorkerPool) handleWorkerFailure(
 		workerRPCAddress,
 		err,
 	)
-	workerPool.currentWorkSet.handleTaskFailure(taskIdentifier)
 
-	// TODO: should try to assign the task to someone else.
+	// First, mark the worker as failed.
+	workerPool.workerStates[workerRPCAddress] = failed
+
+	// Next, try to give the task to someone else.
+	task := workerPool.currentWorkSet.getTaskByIdentifier(taskIdentifier)
+	for workerRPCAddress, workerState := range workerPool.workerStates {
+		if workerState == freeForTask {
+			workerPool.assignTaskToWorker(
+				workerRPCAddress,
+				task,
+			)
+		}
+	}
+
+	// If everyone is busy, that's fine. Someone will take the task later.
+	workerPool.currentWorkSet.handleTaskFailure(taskIdentifier)
 }
 
 // handleWorkerRegistration handles registration by a worker.
@@ -93,21 +115,20 @@ func (workerPool *WorkerPool) handleWorkerRegistration(newWorkerRPCAddress strin
 	util.Debug("worker running at %v entered WorkerPool\n", newWorkerRPCAddress)
 
 	// Record it in the list of workers.
-	if _, ok := workerPool.workerRPCAddresses[newWorkerRPCAddress]; ok {
+	if _, ok := workerPool.workerStates[newWorkerRPCAddress]; ok {
 		// Worker is trying to re-register. Ignore.
 		return
 	}
-	workerPool.workerRPCAddresses[newWorkerRPCAddress] = true
+	workerPool.workerStates[newWorkerRPCAddress] = freeForTask
 
 	// And try to assign it work, if there is a currently running workSet.
 	if workerPool.currentWorkSet != nil {
-		workerPool.assignTaskToWorker(newWorkerRPCAddress)
+		workerPool.assignAnyTaskToWorker(newWorkerRPCAddress)
 	}
 }
 
-// assignTaskToWorker does like it says. If the work set has no more
-// work, then return false.
-func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) {
+// assignAnyTaskToWorker does like it says.
+func (workerPool *WorkerPool) assignAnyTaskToWorker(workerRPCAddress string) {
 	if !workerPool.currentWorkSet.isStarted {
 		return
 	}
@@ -119,21 +140,27 @@ func (workerPool *WorkerPool) assignTaskToWorker(workerRPCAddress string) {
 		return
 	}
 
+	workerPool.assignTaskToWorker(workerRPCAddress, nextTask)
+}
+
+// assignTaskToWorker does like it says.
+func (workerPool *WorkerPool) assignTaskToWorker(
+	workerRPCAddress string,
+	task mr_rpc.Task,
+) {
 	util.Debug("WorkSet: assigning new work to worker running at %v\n", workerRPCAddress)
-	nextTask.StartOnWorker(workerRPCAddress, func(err error) {
+	task.StartOnWorker(workerRPCAddress, func(err error) {
 		if err == nil {
 			workerPool.SendWorkerCompletedTaskMessage(
 				workerRPCAddress,
-				nextTask.Identifier(),
+				task.Identifier(),
 			)
 		} else {
 			workerPool.SendWorkerFailedTaskMessage(
 				workerRPCAddress,
-				nextTask.Identifier(),
+				task.Identifier(),
 				err,
 			)
 		}
 	})
-
-	return
 }

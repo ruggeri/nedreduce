@@ -87,6 +87,10 @@ func (workSet *workSet) getNextTask() mr_rpc.Task {
 	return nextTask
 }
 
+func (workSet *workSet) getTaskByIdentifier(taskIdentifier string) mr_rpc.Task {
+	return workSet.tasks[taskIdentifier]
+}
+
 // handleTaskCompletion records that a task has been completed.
 func (workSet *workSet) handleTaskCompletion(taskIdentifier string) {
 	workSet.taskStatuses[taskIdentifier] = taskComplete

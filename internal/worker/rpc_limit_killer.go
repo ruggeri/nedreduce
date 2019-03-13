@@ -33,7 +33,7 @@ func (rpcLimitKiller *RPCLimitKiller) OnWorkerEvent(
 
 	if rpcLimitKiller.numRPCsUntilFailure == 0 {
 		util.Debug(
-			"worker @ %v will fail RPC on purpose.", worker.rpcAddress,
+			"worker @ %v will fail RPC on purpose.\n", worker.rpcAddress,
 		)
 		return failRPC
 	}

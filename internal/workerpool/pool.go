@@ -15,6 +15,14 @@ const (
 	shutDown     = workerPoolRunState("shutDown")
 )
 
+type workerState string
+
+const (
+	failed        = workerState("failed")
+	freeForTask   = workerState("availableForTask")
+	workingOnTask = workerState("workingOnTask")
+)
+
 // A WorkerPool manages a bunch of workers. Workers can register
 // whenever they want to. The same WorkerPool can be assigned successive
 // collection tasks. Each collection must finish entirely before the
@@ -39,8 +47,8 @@ type WorkerPool struct {
 	// runState records whether the WorkerPool is running, trying to shut
 	// down, or shut down.
 	runState workerPoolRunState
-	// workerRPCAddresses records all connected workers.
-	workerRPCAddresses map[string]bool
+	// workerStates records all connected workers.
+	workerStates map[string]workerState
 }
 
 // Start starts an empty WorkerPool with no presently assigned task.
@@ -54,9 +62,9 @@ func Start() *WorkerPool {
 		// constructed.
 		workerPoolIsFreeForNewWorkSetCond: nil,
 
-		currentWorkSet:     nil,
-		runState:           running,
-		workerRPCAddresses: make(map[string]bool),
+		currentWorkSet: nil,
+		runState:       running,
+		workerStates:   make(map[string]workerState),
 	}
 
 	workerPool.workerPoolIsFreeForNewWorkSetCond = sync.NewCond(&workerPool.mutex)
