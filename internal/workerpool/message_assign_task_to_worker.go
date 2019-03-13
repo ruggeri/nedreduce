@@ -19,6 +19,12 @@ func newAssignTaskToWorkerMessage(
 func (message *assignTaskToWorkerMessage) Handle(
 	workerPool *WorkerPool,
 ) {
+	if workerPool.currentWorkSet == nil {
+		// We may have been asked to assign a task, but there may be no
+		// current work set anyway.
+		return
+	}
+
 	workerRPCAddress := message.WorkerRPCAddress
 
 	if workerRPCAddress == "" {
