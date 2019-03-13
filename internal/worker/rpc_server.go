@@ -30,6 +30,7 @@ func (workerRPCTarget *workerRPCTarget) ExecuteMapTask(
 
 	for _, eventListener := range worker.eventListeners {
 		if eventListener.OnWorkerEvent(worker, rpcReceived) == failRPC {
+			util.Debug("Sending back fake timeout")
 			return errors.New("FakeTimeoutError")
 		}
 	}

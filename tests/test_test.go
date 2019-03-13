@@ -301,6 +301,7 @@ func TestManyFailures(t *testing.T) {
 		select {
 		case <-doneChannel:
 			check(t, jobConfiguration.MapperInputFileNames)
+			done = true
 			break
 		default:
 			// Start 2 workers each sec. The workers fail after 10 tasks
