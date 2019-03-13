@@ -22,6 +22,7 @@ func (mapTask *MapTask) StartOnWorker(
 	}()
 }
 
+// Identifier is a unique identifier for this task.
 func (mapTask *MapTask) Identifier() string {
 	return "map-task-" + strconv.Itoa(mapTask.MapTaskIdx)
 }

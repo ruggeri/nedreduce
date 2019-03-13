@@ -11,6 +11,7 @@ type Task interface {
 		rpcCompletionCallback CompletionCallback,
 	)
 
+	// Identifier is a unique identifier for this task.
 	Identifier() string
 }
 

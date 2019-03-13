@@ -28,6 +28,7 @@ func (reduceTask *ReduceTask) StartOnWorker(
 	}()
 }
 
+// Identifier is a unique identifier for this task.
 func (reduceTask *ReduceTask) Identifier() string {
 	return "reduce-task-" + strconv.Itoa(reduceTask.ReduceTaskIdx)
 }
