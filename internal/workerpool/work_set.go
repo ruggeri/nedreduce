@@ -14,29 +14,13 @@ const (
 	taskComplete   = taskStatus("taskComplete")
 )
 
-// WorkSetResult represents the result of trying to execute the WorkSet.
-// At present, only success is envisioned!
-type WorkSetResult string
-
-const (
-	workSetCompleted = WorkSetResult("workSetCompleted")
-)
-
 // A workSet represents a set of tasks that the WorkerPool should crunch
 // through.
 type workSet struct {
-	// isStarted tells you whether the workSet has been "started." The
-	// idea is that no work should be assigned until it has been started.
-	isStarted bool
-
-	// tasks are units of work to assign
+	// Tasks are the units of work to assign.
 	tasks map[string]mr_rpc.Task
-
+	// Each task has a status.
 	taskStatuses map[string]taskStatus
-
-	// workSetResultChannel is used to signal someone when the work is
-	// done.
-	workSetResultChannel chan WorkSetResult
 }
 
 // newWorkSet creates a new workSet.
@@ -46,10 +30,8 @@ func newWorkSet(tasks []mr_rpc.Task) *workSet {
 	}
 
 	workSet := &workSet{
-		isStarted:            false,
-		tasks:                make(map[string]mr_rpc.Task),
-		taskStatuses:         make(map[string]taskStatus),
-		workSetResultChannel: make(chan WorkSetResult),
+		tasks:        make(map[string]mr_rpc.Task),
+		taskStatuses: make(map[string]taskStatus),
 	}
 
 	for _, task := range tasks {
@@ -60,51 +42,29 @@ func newWorkSet(tasks []mr_rpc.Task) *workSet {
 	return workSet
 }
 
-func (workSet *workSet) nextUnassignedTask() mr_rpc.Task {
+func (workSet *workSet) takeFirstUnassignedTask() mr_rpc.Task {
+	var nextTask mr_rpc.Task
 	for taskIdentifier, taskStatus := range workSet.taskStatuses {
 		if taskStatus == taskNotStarted {
-			return workSet.tasks[taskIdentifier]
+			nextTask = workSet.tasks[taskIdentifier]
 		}
 	}
 
-	return nil
-}
-
-// newWorkSet gets a new task that should be assigned.
-func (workSet *workSet) getNextTask() mr_rpc.Task {
-	if !workSet.isStarted {
-		log.Panic("workSet can't give out tasks before being explicitly started")
-	}
-
-	nextTask := workSet.nextUnassignedTask()
 	if nextTask == nil {
 		return nil
 	}
 
 	taskIdentifier := nextTask.Identifier()
-
 	workSet.taskStatuses[taskIdentifier] = taskInProgress
 	return nextTask
-}
-
-func (workSet *workSet) getTaskByIdentifier(taskIdentifier string) mr_rpc.Task {
-	return workSet.tasks[taskIdentifier]
 }
 
 // handleTaskCompletion records that a task has been completed.
 func (workSet *workSet) handleTaskCompletion(taskIdentifier string) {
 	workSet.taskStatuses[taskIdentifier] = taskComplete
-
-	// If workSet is entirely completed, asynchronously notify whoever is
-	// listening.
-	if workSet.isCompleted() {
-		go func() {
-			workSet.workSetResultChannel <- workSetCompleted
-		}()
-	}
 }
 
-// handleTaskFailure records that a task has been failed.
+// handleTaskFailure returns a task to the work set.
 func (workSet *workSet) handleTaskFailure(taskIdentifier string) {
 	workSet.taskStatuses[taskIdentifier] = taskNotStarted
 }

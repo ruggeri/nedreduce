@@ -3,6 +3,8 @@ package job_coordinator
 import (
 	"log"
 
+	"github.com/ruggeri/nedreduce/internal/workerpool"
+
 	"github.com/ruggeri/nedreduce/internal/mapper"
 	"github.com/ruggeri/nedreduce/internal/reducer"
 	"github.com/ruggeri/nedreduce/internal/types"
@@ -24,16 +26,21 @@ func runDistributedMapPhase(
 	}
 
 	// The worker pool will hand out the map tasks to the workers.
-	workSetResultChan, err := jobCoordinator.workerPool.AssignNewWorkSet(allTasks)
+	workSetResultChan, err := jobCoordinator.workerPool.BeginNewWorkSet(allTasks)
 
 	// In theory the WorkerPool could have been shut down before we could
 	// assign the work.
 	if err != nil {
-		log.Panic("WorkerPool wasn't able to start mapPhase?")
+		log.Panic("WorkerPool wasn't able to start mapPhase: %v\n", err)
 	}
 
 	// We wait until the WorkerPool has completed all the work.
-	<-workSetResultChan
+	switch res := <-workSetResultChan; res {
+	case workerpool.WorkerPoolHasCompletedWorkSet:
+		// Good
+	default:
+		log.Panicf("Unexpected work set result: %v\n", res)
+	}
 }
 
 // runDistributedReducePhase runs a distributed reduce phase on the
@@ -50,14 +57,19 @@ func runDistributedReducePhase(
 	}
 
 	// The worker pool will hand out the reduce tasks to the workers.
-	workSetResultChan, err := jobCoordinator.workerPool.AssignNewWorkSet(allTasks)
+	workSetResultChan, err := jobCoordinator.workerPool.BeginNewWorkSet(allTasks)
 
 	// In theory the WorkerPool could have been shut down before we could
 	// assign the work.
 	if err != nil {
-		log.Panic("WorkerPool wasn't able to start reducePhase?")
+		log.Panic("WorkerPool wasn't able to start reducePhase: %v\n", err)
 	}
 
 	// We wait until the WorkerPool has completed all the work.
-	<-workSetResultChan
+	switch res := <-workSetResultChan; res {
+	case workerpool.WorkerPoolHasCompletedWorkSet:
+		// Good
+	default:
+		log.Panicf("Unexpected work set result: %v\n", res)
+	}
 }
