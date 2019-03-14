@@ -87,6 +87,8 @@ func (workerRPCTarget *workerRPCTarget) Shutdown(
 
 	// Get the number of tasks processed by Worker over its lifespan.
 	func() {
+		// Locking here is presumably not needed because no tasks will be
+		// performed after shutdown is complete...
 		worker.mutex.Lock()
 		defer worker.mutex.Unlock()
 		*numTasksProcessed = worker.numTasksProcessed

@@ -79,6 +79,9 @@ func (jobCoordinator *JobCoordinator) StartJob(
 	jobCoordinator.mutex.Lock()
 	defer jobCoordinator.mutex.Unlock()
 
+	// TODO(LOW): it's reasonable that two users of the NedReduce cluster
+	// should be able to submit jobs at the same time. They should have
+	// the option of queueing their jobs.
 	switch jobCoordinator.runState {
 	case readyForNewJob:
 		// Good to go!

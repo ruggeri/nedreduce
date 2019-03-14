@@ -43,10 +43,14 @@ func (worker *Worker) checkAndUpdateRunStateBeforeNextTask() error {
 	case availableForNextTask:
 		// Good to go!
 	case runningATask:
-		// Worker rejects work if it is already working.
+		// Worker rejects work if it is already working. It's the
+		// JobCoordinator's responsibility not to give us two tasks at once.
+		// There shouldn't be two coordinators out there to give us two
+		// conflicting tasks. They have to figure that out.
 		return errors.New("WorkerIsAlreadyWorkingOnATask")
 	case shutDown:
-		// Worker rejects work if it is shut down (duh).
+		// Worker rejects work if it is shut down (duh). Again,
+		// JobCoordinator should figure out what to do with this error.
 		return errors.New("WorkerIsShutDown")
 	default:
 		log.Panicf(
@@ -66,6 +70,7 @@ func (worker *Worker) restoreRunStateAfterTaskCompletion() {
 	worker.mutex.Lock()
 	defer worker.mutex.Unlock()
 
+	// Switch here is a sanity check.
 	switch worker.runState {
 	case runningATask:
 		worker.runState = availableForNextTask

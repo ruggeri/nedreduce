@@ -28,7 +28,11 @@ type Server struct {
 // StartServer starts a Server for the provided target. Note that we are
 // flexible on the target's name. That lets us use dummy classes with
 // fewer RPC methods exposed.
-func StartServer(address string, serverTargetName string, serverTarget interface{}) *Server {
+func StartServer(
+	address string,
+	serverTargetName string,
+	serverTarget interface{},
+) *Server {
 	server := &Server{}
 
 	// Record the address to run the RPC server on.

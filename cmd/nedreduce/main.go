@@ -87,9 +87,3 @@ func submitJob() {
 		jobConfiguration.JobName,
 	)
 }
-
-func waitUntilFileExists() {
-	if _, err := os.Stat("/path/to/whatever"); os.IsNotExist(err) {
-		// path/to/whatever does not exist
-	}
-}
