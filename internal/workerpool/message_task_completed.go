@@ -2,24 +2,23 @@ package workerpool
 
 import "github.com/ruggeri/nedreduce/internal/util"
 
-type completedTaskMessage struct {
+// A taskCompletedMessage is sent when a worker finishes a task.
+type taskCompletedMessage struct {
 	WorkerRPCAddress string
 	TaskIdentifier   string
 }
 
-func newCompletedTaskMessage(
+func newTaskCompletedMessage(
 	workerRPCAddress string,
 	taskIdentifier string,
-) *completedTaskMessage {
-	return &completedTaskMessage{
+) *taskCompletedMessage {
+	return &taskCompletedMessage{
 		WorkerRPCAddress: workerRPCAddress,
 		TaskIdentifier:   taskIdentifier,
 	}
 }
 
-// handleTaskCompletion handles notification by a worker that a task has
-// been completed.
-func (message *completedTaskMessage) Handle(
+func (message *taskCompletedMessage) Handle(
 	workerPool *WorkerPool,
 ) {
 	workerRPCAddress := message.WorkerRPCAddress

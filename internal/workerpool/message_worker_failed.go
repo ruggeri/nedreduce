@@ -2,6 +2,8 @@ package workerpool
 
 import "github.com/ruggeri/nedreduce/internal/util"
 
+// A workerFailedMessage is sent if a worker does not complete the task
+// successfully.
 type workerFailedMessage struct {
 	WorkerRPCAddress string
 	TaskIdentifier   string

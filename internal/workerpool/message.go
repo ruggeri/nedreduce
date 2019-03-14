@@ -2,14 +2,14 @@ package workerpool
 
 import "log"
 
+// A message is a unit of work for the background thread to execute.
 type message interface {
 	Handle(workerPool *WorkerPool)
 }
 
-// A messageChannel is a channel we can push internal messages over.
-// This is used by the WorkerPool to notify us of newly registered
-// workers, and it is also used when a worker has completed some work
-// and wants to be assigned a new task.
+// The messageChannel is used by the background thread of the WorkerPool
+// to handle messages one at a time. The goal is (was?) to simplify the
+// WorkerPool, since most messages don't need to lock.
 type messageChannel chan message
 
 // handleMessages is run by a background goroutine to handle
@@ -24,9 +24,13 @@ func (workerPool *WorkerPool) handleMessages() {
 	}
 }
 
+// sendOffMessage asynchronously sends the given message.
 func (workerPool *WorkerPool) sendOffMessage(message message) {
 	switch workerPool.runState {
 	case workerPoolIsShuttingDown:
+		// TODO(MEDIUM): I don't think I need this? Test without? Feels
+		// dangerous anyway because uncoordinated read of the runState...
+		//
 		// After shut down begins, start dropping all messages.
 		return
 	case workerPoolIsShutDown:
@@ -36,8 +40,8 @@ func (workerPool *WorkerPool) sendOffMessage(message message) {
 		)
 	}
 
-	// Record that there is another message in flight. That makes it safe
-	// to send the message async.
+	// Record that there is another message in flight before starting the
+	// async send.
 	workerPool.noMoreMessagesWaitGroup.Add(1)
 	go func() { workerPool.messageChannel <- message }()
 }
