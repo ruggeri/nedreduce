@@ -1,5 +1,7 @@
 package nedreduce
 
+// TODO(MEDIUM): I could review and beautify these.
+
 // So that people can look at goroutines.
 import (
 	"fmt"

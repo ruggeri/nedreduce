@@ -163,8 +163,6 @@ the notifications could be delivered out of order.**
 A possibility is to use an "unbuffered channel." But I will investigate
 that later.
 
-TODO: Unbuffered channel?
-
 ## RaceCondition in assignTaskToWorker
 
 First, I entirely forgot the message `assignTaskToWorker`. What the

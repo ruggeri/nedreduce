@@ -26,7 +26,7 @@ func (message *registerWorkerMessage) Handle(workerPool *WorkerPool) {
 	if _, ok := workerPool.workerStates[workerRPCAddress]; ok {
 		// Worker is trying to re-register. Ignore.
 		//
-		// TODO(MEDIUM): this could be a place to allow recovery of a
+		// TODO(LOW): this could be a place to allow recovery of a
 		// worker?
 		util.Debug("worker %v tried to re-register?\n", workerRPCAddress)
 		return

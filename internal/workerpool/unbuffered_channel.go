@@ -1,6 +1,7 @@
 package workerpool
 
-// TODO: Investigate this code?
+// TODO(LOW): Right now if the user of the WorkerPool doesn't read the
+// events, they'll block the pool. Is that a big deal?
 
 // func pushEventsToClient(
 // 	internalChan chan WorkerPoolEvent,

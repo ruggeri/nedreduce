@@ -28,7 +28,7 @@ func (workerPool *WorkerPool) handleMessages() {
 func (workerPool *WorkerPool) sendOffMessage(message message) {
 	switch workerPool.runState {
 	case workerPoolIsShuttingDown:
-		// TODO(MEDIUM): I don't think I need this? Test without? Feels
+		// TODO(HIGH): I don't think I need this? Test without? Feels
 		// dangerous anyway because uncoordinated read of the runState...
 		//
 		// After shut down begins, start dropping all messages.
