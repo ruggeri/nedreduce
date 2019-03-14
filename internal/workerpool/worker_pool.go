@@ -97,8 +97,11 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 	defer workerPool.mutex.Unlock()
 
 	switch workerPool.runState {
-	case workerPoolIsRunning:
-		// A new worker could help out.
+	case workerPoolIsRunning, workerPoolShutDownIsRequested:
+		// A new worker could help out. Note that even if shut down is
+		// requested, we're still allowed to send registration messages.
+		// Anyone shutting down hasn't yet gotten to the point where they're
+		// waiting on the noMoreMessagesWaitGroup yet.
 		workerPool.sendOffMessage(newRegisterWorkerMessage(
 			workerRPCAddress,
 		))
@@ -111,8 +114,8 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 		// worker. It will never be used.
 		return
 	case workerPoolIsShutDown:
-		// Background thread is closed because we are shut down. There isn't
-		// even a background thread to notify.
+		// There won't be any more work sets, and the background thread is
+		// closed anyway. It would be fatal to send a message now.
 		return
 	default:
 		log.Panicf(
@@ -137,20 +140,17 @@ func (workerPool *WorkerPool) Shutdown() {
 			case workerPoolIsRunning:
 				if workerPool.currentWorkSet == nil {
 					// Change state so that (1) no new jobs start, (2) no more
-					// registrations are sent.
+					// registrations are sent. We can't have any new messages
+					// coming in, because below we're going to wait for messages
+					// to clear out. Message count must go one way: down.
 					workerPool.runState = workerPoolIsShuttingDown
 					return
 				}
-				// We have to wait until there is no work set running.
-				//
-				// TODO(MEDIUM): Could we at least stop other work sets from
-				// starting? Maybe a workerPoolShutdownIsRequested?
-				//
-				// If we just set workerPoolIsShuttingDown here, then no workers
-				// could register anymore. And it isn't safe to continue to
-				// register workers when in workerPoolIsShuttingDown, since as
-				// soon as there are noMoreMessages then the background thread
-				// can be stopped at any time.
+
+				// We don't want to block new worker registrations (which could
+				// help out the current work set). But we do want to block new
+				// work sets from starting.
+				workerPool.runState = workerPoolShutDownIsRequested
 			case workerPoolIsShuttingDown:
 				// Apparently someone else has started the shutdown. Cool. Let's
 				// break this loop.
@@ -165,7 +165,8 @@ func (workerPool *WorkerPool) Shutdown() {
 	}()
 
 	// There's no harm in going through this process of shutdown multiple
-	// times. We do it even if someone else has shut down the worker pool.
+	// times. We can do it even if someone else has already fully shut
+	// down the worker pool.
 	//
 	// Wait until all any in-flight worker registrations flush out.
 	workerPool.noMoreMessagesWaitGroup.Wait()

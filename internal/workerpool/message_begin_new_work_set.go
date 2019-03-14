@@ -85,14 +85,8 @@ func (workerPool *WorkerPool) tryToSendBeginNewWorkSetMessage(
 				return
 			}
 			// Someone else is running a job. We'll wait until they are done.
-		case workerPoolIsShuttingDown:
+		case workerPoolShutDownIsRequested, workerPoolIsShuttingDown, workerPoolIsShutDown:
 			// We won't start any new jobs after shut down begins.
-			message.Ch <- DidNotAcceptWorkSet
-			return
-		case workerPoolIsShutDown:
-			// Can't start work when the WorkerPool is shut down. In fact, it
-			// would be fatal anyway, because the internal message channel is
-			// closed.
 			message.Ch <- DidNotAcceptWorkSet
 			return
 		default:

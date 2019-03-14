@@ -1,3 +1,5 @@
+TODO(HIGH): Bring this fully up-to-date.
+
 There are three WorkerPool methods called externally:
 
 1. BeginNewWorkSet
@@ -208,3 +210,23 @@ set, and try again.
 
 Factoring out that common code is the point of
 `tryToSendBeginNewWorkSetMessage`.
+
+## Stopping further BeginNewWorkSet after Shutdown
+
+Of course BeginNewWorkSet cannot happen if we are shutting down. Workers
+aren't allowed to register either.
+
+But if Shutdown blocks for a currentWorkSet to finish, a BeginNewWorkSet
+can slip in. You could mark the WorkerPool as shutting down earlier, but
+the problem is that once you move into shuttingDown, you can't allow
+messages that might come in after the currentWorkSet ends. Specifically:
+you can't allow new worker registrations.
+
+Therefore, I propose a new runState: workerPoolShutDownIsRequested. This
+should mean (1) no new work sets can be scheduled, but (2) you can keep
+sending having new workers register.
+
+The beginNewWorkSetMessage shouldn't have to change (still can only
+start a new work set when workerPoolIsRunning). The RegisterWorker
+method would act the same under workerPoolIsRunning and
+workerPoolShutDownIsRequested.
