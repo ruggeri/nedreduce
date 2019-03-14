@@ -34,7 +34,7 @@ type WorkerPool struct {
 	// currenWorkSetCh is how we communicate events (like work set start,
 	// work set completion) to the user of the WorkerPool. It has the same
 	// synchronization story as currentWorkSet.
-	currentWorkSetCh chan WorkerPoolEvent
+	currentWorkSetCh chan Event
 	// runState records whether the WorkerPool is running, trying to shut
 	// down, or shut down. Since it is modified by external methods, we
 	// must synchronize when using this anywhere.
@@ -76,8 +76,8 @@ func Start() *WorkerPool {
 // the work set completes.
 func (workerPool *WorkerPool) BeginNewWorkSet(
 	tasks []mr_rpc.Task,
-) chan WorkerPoolEvent {
-	ch := make(chan WorkerPoolEvent)
+) chan Event {
+	ch := make(chan Event)
 
 	// We'll async start trying to ask the background thread to start the
 	// WorkSet.

@@ -19,7 +19,7 @@ func (message *workSetCompletedMessage) Handle(
 	util.Debug("WorkerPool: work set has been completed\n")
 
 	// Notify the user that we have completed their work.
-	workerPool.currentWorkSetCh <- WorkerPoolCompletedWorkSet
+	workerPool.currentWorkSetCh <- CompletedWorkSet
 
 	// We need to fire the condition variable because someone waiting to
 	// submit a new job (or waiting to shut us down) needs to know that

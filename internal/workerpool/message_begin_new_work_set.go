@@ -11,12 +11,12 @@ import (
 // work set.
 type beginNewWorkSetMessage struct {
 	Tasks []mr_rpc.Task
-	Ch    chan WorkerPoolEvent
+	Ch    chan Event
 }
 
 func newBeginNewWorkSetMessage(
 	tasks []mr_rpc.Task,
-	ch chan WorkerPoolEvent,
+	ch chan Event,
 ) *beginNewWorkSetMessage {
 	return &beginNewWorkSetMessage{
 		Tasks: tasks,
@@ -47,7 +47,7 @@ func (message *beginNewWorkSetMessage) Handle(workerPool *WorkerPool) {
 	workerPool.currentWorkSetCh = message.Ch
 
 	// Notify the user that we have started their job.
-	workerPool.currentWorkSetCh <- WorkerPoolCommencedWorkSet
+	workerPool.currentWorkSetCh <- CommencedWorkSet
 
 	// Hand out the initial tasks!
 	for workerRPCAddress, workerState := range workerPool.workerStates {
@@ -87,13 +87,13 @@ func (workerPool *WorkerPool) tryToSendBeginNewWorkSetMessage(
 			// Someone else is running a job. We'll wait until they are done.
 		case workerPoolIsShuttingDown:
 			// We won't start any new jobs after shut down begins.
-			message.Ch <- WorkerPoolDidNotAcceptWorkSet
+			message.Ch <- DidNotAcceptWorkSet
 			return
 		case workerPoolIsShutDown:
 			// Can't start work when the WorkerPool is shut down. In fact, it
 			// would be fatal anyway, because the internal message channel is
 			// closed.
-			message.Ch <- WorkerPoolDidNotAcceptWorkSet
+			message.Ch <- DidNotAcceptWorkSet
 			return
 		default:
 			log.Panicf(

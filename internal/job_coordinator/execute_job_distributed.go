@@ -30,7 +30,7 @@ func runDistributedMapPhase(
 
 	// Wait for commencement.
 	switch event := <-workSetEvents; event {
-	case workerpool.WorkerPoolCommencedWorkSet:
+	case workerpool.CommencedWorkSet:
 		// Good.
 	default:
 		log.Panicf("Expected WorkerPool to commence work. Got: %v\n", event)
@@ -38,7 +38,7 @@ func runDistributedMapPhase(
 
 	// Wait for completion.
 	switch event := <-workSetEvents; event {
-	case workerpool.WorkerPoolCompletedWorkSet:
+	case workerpool.CompletedWorkSet:
 		// Good.
 	default:
 		log.Panicf("Expected WorkerPool to complete work. Got: %v\n", event)
@@ -63,7 +63,7 @@ func runDistributedReducePhase(
 
 	// Wait for commencement.
 	switch event := <-workSetEvents; event {
-	case workerpool.WorkerPoolCommencedWorkSet:
+	case workerpool.CommencedWorkSet:
 		// Good.
 	default:
 		log.Panicf("Expected WorkerPool to commence work. Got: %v\n", event)
@@ -71,7 +71,7 @@ func runDistributedReducePhase(
 
 	// Wait for completion.
 	switch event := <-workSetEvents; event {
-	case workerpool.WorkerPoolCompletedWorkSet:
+	case workerpool.CompletedWorkSet:
 		// Good.
 	default:
 		log.Panicf("Expected WorkerPool to complete work. Got: %v\n", event)
