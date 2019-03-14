@@ -2,8 +2,6 @@
 
 **High**
 
-* WorkerPool sendOffMessage method does an uncoordinated read of the
-  runState??? WTF?
 * Rework the README.
 
 **MEDIUM**

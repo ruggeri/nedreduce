@@ -1,7 +1,5 @@
 package workerpool
 
-import "log"
-
 // A message is a unit of work for the background thread to execute.
 type message interface {
 	Handle(workerPool *WorkerPool)
@@ -24,22 +22,18 @@ func (workerPool *WorkerPool) handleMessages() {
 	}
 }
 
-// sendOffMessage asynchronously sends the given message.
+// sendOffMessage asynchronously sends the given message. This method
+// can be a little dangerous: you better not call it if there's a chance
+// the WorkerPool might get shut down (e.g., when we are in shutting
+// down mode).
+//
+// I suppose I could check the run state here. But the truth is that you
+// can't hold the mutex while you send the message, so you'd only be
+// checking the run state *before* message sending.
+//
+// Which isn't entirely safe. So you have to know what you're doing when
+// you sendOffMessage.
 func (workerPool *WorkerPool) sendOffMessage(message message) {
-	switch workerPool.runState {
-	case workerPoolIsShuttingDown:
-		// TODO(HIGH): I don't think I need this? Test without? Feels
-		// dangerous anyway because uncoordinated read of the runState...
-		//
-		// After shut down begins, start dropping all messages.
-		return
-	case workerPoolIsShutDown:
-		log.Panicf(
-			"message sould not be sent after WorkerPool shut down:%v\n",
-			message,
-		)
-	}
-
 	// Record that there is another message in flight before starting the
 	// async send.
 	workerPool.noMoreMessagesWaitGroup.Add(1)
