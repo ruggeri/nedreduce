@@ -26,10 +26,10 @@ func (workerPool *WorkerPool) handleMessages() {
 
 func (workerPool *WorkerPool) sendOffMessage(message message) {
 	switch workerPool.runState {
-	case shuttingDown:
+	case workerPoolIsShuttingDown:
 		// After shut down begins, start dropping all messages.
 		return
-	case shutDown:
+	case workerPoolIsShutDown:
 		log.Panicf(
 			"message sould not be sent after WorkerPool shut down:%v\n",
 			message,

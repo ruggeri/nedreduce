@@ -12,7 +12,6 @@ import (
 // collection tasks. Each collection must finish entirely before the
 // next can be started.
 type WorkerPool struct {
-
 	// Coordination
 	//
 	// messageChannel is an internal message channel.
@@ -49,13 +48,13 @@ func Start() *WorkerPool {
 
 		currentWorkSet:   nil,
 		currentWorkSetCh: nil,
-		runState:         freeForWorkSet,
-		runStateMutex:    sync.Mutex{},
-		runStateCond:     nil,
+		runState:         workerPoolIsRunning,
+		mutex:            sync.Mutex{},
+		cond:             nil,
 		workerStates:     make(map[string]workerState),
 	}
 
-	workerPool.runStateCond = sync.NewCond(&workerPool.mutex)
+	workerPool.cond = sync.NewCond(&workerPool.mutex)
 
 	go workerPool.handleMessages()
 
@@ -68,41 +67,50 @@ func Start() *WorkerPool {
 // whether/when they want to wait.
 func (workerPool *WorkerPool) BeginNewWorkSet(
 	tasks []mr_rpc.Task,
-) {
-	// TODO: make me async and return a channel?
+) chan WorkerPoolEvent {
+	ch := make(chan WorkerPoolEvent)
 
-	workerPool.runStateMutex.Lock()
-	defer workerPool.runStateMutex.Unlock()
+	// Async start the job.
+	go func() {
+		workerPool.mutex.Lock()
+		defer workerPool.mutex.Unlock()
 
-	for {
-		switch workerPool.runState {
-		case workerPoolIsRunning:
-			if workerPool.currentWorkSet == nil {
-				// We can schedule a new job!
-				break
+		for {
+			switch workerPool.runState {
+			case workerPoolIsRunning:
+				if workerPool.currentWorkSet == nil {
+					// We can schedule a new job!
+					break
+				}
+				// Someone else is running a job. We'll wait until they are done.
+			case workerPoolIsShuttingDown:
+				// We won't start any new jobs after shut down begins.
+				ch <- WorkerPoolDidNotAcceptWorkSet
+				return
+			case workerPoolIsShutDown:
+				// Background thread is closed because the WorkerPool is shut
+				// down. No background thread to even notify.
+				ch <- WorkerPoolDidNotAcceptWorkSet
+				return
+			default:
+				log.Panicf(
+					"Unexpected workerPoolRunState: %v\n",
+					workerPool.runState,
+				)
 			}
-			// Someone else is running a job. We'll wait until they are done.
-		case workerPoolIsShuttingDown:
-			// We won't start any new jobs after shut down begins.
-			return
-		case workerPoolIsShutDown:
-			// Background thread is closed because the WorkerPool is shut
-			// down. No background thread to even notify.
-			return
-		default:
-			log.Panicf(
-				"Unexpected workerPoolRunState: %v\n",
-				workerPool.runState,
-			)
+
+			workerPool.cond.Wait()
 		}
 
-		workerPool.runStateCond.Wait()
-	}
+		workerPool.currentWorkSet = newWorkSet(tasks)
+		workerPool.currentWorkSetCh = make(chan WorkerPoolEvent)
 
-	workerPool.currentWorkSet = newWorkSet(tasks)
-	workerPool.currentWorkSetCh = make(chan WorkerPoolEvent)
+		// We'll notify about commencement from the background thread
+		// handler.
+		workerPool.sendOffMessage(newCommenceNewWorkSetMessage())
+	}()
 
-	workerPool.sendOffMessage(newCommenceNewWorkSetMessage())
+	return ch
 }
 
 // RegisterNewWorker asynchronously notifies the pool manager that a new
@@ -110,36 +118,31 @@ func (workerPool *WorkerPool) BeginNewWorkSet(
 func (workerPool *WorkerPool) RegisterNewWorker(
 	workerRPCAddress string,
 ) {
-	// TODO: make me async and return a channel?
-	workerPool.runStateMutex.Lock()
-	defer workerPool.runStateMutex.Unlock()
+	workerPool.mutex.Lock()
+	defer workerPool.mutex.Unlock()
 
-	for {
-		switch workerPool.runState {
-		case workerPoolIsRunning:
-			// A new worker could help out.
-			workerPool.sendOffMessage(newRegisterWorkerMessage(
-				workerRPCAddress,
-			))
-			return
-		case workerPoolIsShuttingDown:
-			// workerPoolIsShuttingDown is set when there is no
-			// currentWorkSet. There never will be after it is set. Therefore
-			// it is pointless to send a message to the background thread to
-			// add the worker.
-			return
-		case workerPoolIsShutDown:
-			// Background thread is closed because we are shut down. No
-			// background thread to notify.
-			return
-		default:
-			log.Panicf(
-				"Unexpected workerPoolRunState: %v\n",
-				workerPool.runState,
-			)
-		}
-
-		workerPool.runStateCond.Wait()
+	switch workerPool.runState {
+	case workerPoolIsRunning:
+		// A new worker could help out.
+		workerPool.sendOffMessage(newRegisterWorkerMessage(
+			workerRPCAddress,
+		))
+		return
+	case workerPoolIsShuttingDown:
+		// workerPoolIsShuttingDown is set when there is no
+		// currentWorkSet. There never will be after it is set. Therefore
+		// it is pointless to send a message to the background thread to
+		// add the worker.
+		return
+	case workerPoolIsShutDown:
+		// Background thread is closed because we are shut down. No
+		// background thread to notify.
+		return
+	default:
+		log.Panicf(
+			"Unexpected workerPoolRunState: %v\n",
+			workerPool.runState,
+		)
 	}
 }
 
@@ -147,16 +150,14 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 // synchronously waits for all the pending messages to clear out. It
 // terminates the background goroutine.
 func (workerPool *WorkerPool) Shutdown() {
-	// TODO: make me async and return a channel?
-
 	func() {
-		workerPool.runStateMutex.Lock()
-		defer workerPool.runStateMutex.Unlock()
+		workerPool.mutex.Lock()
+		defer workerPool.mutex.Unlock()
 
 		for {
 			switch workerPool.runState {
 			case workerPoolIsRunning:
-				if currentWorkSet == nil {
+				if workerPool.currentWorkSet == nil {
 					// Change state so that (1) no new jobs start, (2) no more
 					// registrations are sent.
 					workerPool.runState = workerPoolIsShuttingDown
@@ -172,7 +173,7 @@ func (workerPool *WorkerPool) Shutdown() {
 				return
 			}
 
-			workerPool.runStateCond.Wait()
+			workerPool.cond.Wait()
 		}
 	}()
 
@@ -180,8 +181,8 @@ func (workerPool *WorkerPool) Shutdown() {
 	workerPool.noMoreMessagesWaitGroup.Wait()
 
 	func() {
-		workerPool.runStateMutex.Lock()
-		defer workerPool.runStateMutex.Unlock()
+		workerPool.mutex.Lock()
+		defer workerPool.mutex.Unlock()
 
 		if workerPool.runState == workerPoolIsShutDown {
 			// Someone else did the shutdown for us. Cool.
@@ -190,5 +191,5 @@ func (workerPool *WorkerPool) Shutdown() {
 
 		// Else we are the ones who are responsible for the shut down.
 		workerPool.runState = workerPoolIsShutDown
-	}
+	}()
 }

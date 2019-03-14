@@ -16,11 +16,9 @@ func newCommenceNewWorkSetMessage() *commenceNewWorkSetMessage {
 // handleStartingNewWorkSet starts working on a workSet by assigning
 // tasks to all currently registered workers.
 func (message *commenceNewWorkSetMessage) Handle(workerPool *WorkerPool) {
-
 	util.Debug("WorkerPool is commencing work on a new work set\n")
 
-	// TODO: must signal to the submitter of the job that we have started
-	// their job.
+	workerPool.currentWorkSetCh <- WorkerPoolCommencedWorkSet
 
 	// Hand out the initial tasks!
 	for workerRPCAddress, workerState := range workerPool.workerStates {

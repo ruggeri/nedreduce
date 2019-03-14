@@ -113,3 +113,54 @@ lock before changing the `runState` (just feels good). Only one of them
 actually needs to set the `runState` to `shutDown`.
 
 This gets us close to an original solution of mine. Yikes.
+
+## Events
+
+As discussed, there are three external methods:
+
+1. BeginNewWorkSet
+2. RegisterNewWorker
+3. Shutdown
+
+We might as well make `Shutdown` synchronous. `Shutdown` should not
+return until the `WorkerPool` truly is shut down.
+
+If someone wants to kick off shutdown but not wait, they can launch
+their own goroutine. If they later decide they want to wait for shutdown
+to be complete, they can call `Shutdown` on their main thread (since
+repeated calls to `Shutdown` are safe).
+
+Likewise, I don't think we need to do anything special for
+`RegisterWorker`. It will technically block as it checks the `runState`,
+but this is very briefly. It will then asynchronously send a message
+(`registerWorkerMessage`) to the background thread.
+
+Another reason that `Shutdown` and `RegisterWorker` need not return a
+channel is because no interesting events occur in between method start
+and method completion.
+
+That is *not* the case for `BeginNewWorkSet`. We don't want to block in
+this method, because it could take a while. However, if we don't block,
+we won't know whether we could start the work set. So we want to push
+down a message that says either `WorkerPoolCommencedWorkSet` or
+`WorkerPoolDidNotAcceptWorkSet`.
+
+There could be interesting notifications along the way. For instance, we
+might want to pipe down progress as tasks complete. I won't do this, but
+in theory it could be interesting to someone.
+
+Of course, we want to know when the `WorkerPoolCompletedWorkSet`.
+
+Sending events to the user over the channel could block the `WorkerPool`
+if the user does not promptly read the events. To begin with, I will
+rely on the user to consume the notifications promptly.
+
+One thing I will *not* do is try to send the events asynchronously. That
+is, I won't fire up a goroutine to push a notification into the channel
+each time the `WorkerPool` wants to send one. Why not? **Because then
+the notifications could be delivered out of order.**
+
+A possibility is to use an "unbuffered channel." But I will investigate
+that later.
+
+TODO: Unbuffered channel?

@@ -16,10 +16,13 @@ func (message *workSetCompletedMessage) Handle(
 ) {
 	util.Debug("WorkerPool: work set has been completed\n")
 
-	// TODO: Somehow we're supposed to notify the submitter of the job.
+	workerPool.currentWorkSetCh <- WorkerPoolCompletedWorkSet
 
+	// We need to fire the condition variable because someone waiting to
+	// submit a new job (or waiting to shut us down) needs to know that
+	// they can try now.
 	func() {
 		workerPool.currentWorkSet = nil
-		workerPool.runStateCond.Broadcast()
+		workerPool.cond.Broadcast()
 	}()
 }
