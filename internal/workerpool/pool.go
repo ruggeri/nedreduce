@@ -70,46 +70,10 @@ func (workerPool *WorkerPool) BeginNewWorkSet(
 ) chan WorkerPoolEvent {
 	ch := make(chan WorkerPoolEvent)
 
-	// Async start the job.
-	go func() {
-		workerPool.mutex.Lock()
-		defer workerPool.mutex.Unlock()
-
-	loop:
-		for {
-			switch workerPool.runState {
-			case workerPoolIsRunning:
-				if workerPool.currentWorkSet == nil {
-					// We can schedule a new job!
-					break loop
-				}
-				// Someone else is running a job. We'll wait until they are done.
-			case workerPoolIsShuttingDown:
-				// We won't start any new jobs after shut down begins.
-				ch <- WorkerPoolDidNotAcceptWorkSet
-				return
-			case workerPoolIsShutDown:
-				// Background thread is closed because the WorkerPool is shut
-				// down. No background thread to even notify.
-				ch <- WorkerPoolDidNotAcceptWorkSet
-				return
-			default:
-				log.Panicf(
-					"Unexpected workerPoolRunState: %v\n",
-					workerPool.runState,
-				)
-			}
-
-			workerPool.cond.Wait()
-		}
-
-		workerPool.currentWorkSet = newWorkSet(tasks)
-		workerPool.currentWorkSetCh = ch
-
-		// We'll notify about commencement from the background thread
-		// handler.
-		workerPool.sendOffMessage(newCommenceNewWorkSetMessage())
-	}()
+	// We'll async start trying to ask the background thread to start the
+	// WorkSet.
+	message := newBeginNewWorkSetMessage(tasks, ch)
+	go workerPool.tryToSendBeginNewWorkSetMessage(message)
 
 	return ch
 }

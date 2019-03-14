@@ -13,17 +13,17 @@ wait for the `runState` to change.
 
 There are five kinds of messages to the background thread:
 
-* commenceNewWorkSet
+* beginNewWorkSet
 * taskCompleted
 * workSetCompleted
 * registerWorker
 * workerFailed
 
-Technically, `commenceNewWorkSet` work can probably be done in the
+Technically, `beginNewWorkSet` work can probably be done in the
 `BeginNewWorkSet` method. But it is fine to do this work in the message
-thread anyway. `commenceNewWorkSet` does not need to change the
-`runState` or `currentWorkSet`, as these are done by `BeginNewWorkSet`
-before the message is sent.
+thread anyway. `beginNewWorkSet` does not need to change the `runState`
+or `currentWorkSet`, as these are done by `BeginNewWorkSet` before the
+message is sent.
 
 The `taskCompleted` and `workerFailed` messages by necessity **must** be
 processed before it is possible to fire `workSetCompleted`. Therefore,
@@ -43,8 +43,8 @@ That's to avoid (1) a new caller to `BeginNewWorkSet` sees
 `currentWorkSet != nil`, (2) the `workSetCompleted` handler sets
 `currentWorkSet = nil` AND fires the condition variable, (3) the caller
 to `BeginNewWorkSet` starts waiting for the condition variable. Luckily,
-taking the mutex in `workSetCompleted` handling can't cause any
-deadlock issues.
+taking the mutex in `workSetCompleted` handling can't cause any deadlock
+issues.
 
 The last kind of message is `registerWorker`. Of course, like
 `BeginNewWorkSet` and `Shutdown`, the `RegisterNewWorker` method must
@@ -54,9 +54,9 @@ background thread.
 A problem here is that `registerWorker` may be delivered at any time.
 This brings up an interesting point. We know that `BeginNewWorkSet` has
 to acquire a lock to set `currentWorkSet` before sending the
-`commenceNewWorkSet` method, but it may *drop* the lock before sending
-that `commenceNewWorkSet` message asynchronously. It is safe to do so
-because `ShutdownWorker` cannot sneak in and close the channel, since
+`beginNewWorkSet` method, but it may *drop* the lock before sending that
+`beginNewWorkSet` message asynchronously. It is safe to do so because
+`ShutdownWorker` cannot sneak in and close the channel, since
 `ShutdownWorker` will wait until `currentWorkSet` is nil.
 
 With `RegisterWorker`, how will we stop shutdown? One way is to hold the
@@ -165,7 +165,7 @@ that later.
 
 TODO: Unbuffered channel?
 
-## Mistake
+## RaceCondition in assignTaskToWorker
 
 First, I entirely forgot the message `assignTaskToWorker`. What the
 fuck?
@@ -175,15 +175,15 @@ this method *must* hold a lock, or we must only change `currentWorkSet`
 in the background thread. I didn't do that, so I have a data race.
 
 One way to fix is to not set `currentWorkSet` in the `BeginNewWork`
-method, but to handle it in the `commenceNewWork` message handler. If I
-do that I won't have to worry about anyone changing `currentWorkSet`
+method, but to handle it in the `beginNewWork` message handler. If I do
+that I won't have to worry about anyone changing `currentWorkSet`
 anywhere in the background code. I don't have to worry about it in any
 other message handlers than `assignTaskToWorker`, but the reason why was
 kind of complicated (because all task completion/worker failure messages
 must be handled before a work set can change).
 
 If we do this, we'll have to check the `runState` inside the
-`commenceNewWorkSet` handler. That's because we can't start a new job if
+`beginNewWorkSet` handler. That's because we can't start a new job if
 we're shutting down the `WorkerPool`. We were going to have to lock
 anyway, because `Shutdown` needs to look at `currentWorkSet`, so any
 changes to that variable need to be coordinated.
@@ -196,3 +196,17 @@ Luckily, I already use channels to communicate the result of
 `BeginNewWorkSet`. And the solution of doing the update of
 `currentWorkSet` in the background means I don't have to lock in
 `assignTaskToWorker` every time I want to hand out a new task.
+
+Okay, there's just one more problem here. What if two work sets are
+submitted at around the same time? Both think they can start, so they
+send messages to the background thread. But one of them can't, because
+in the meantime the other has started.
+
+`beginNewWorkSet` handling can't block on the background thread for the
+already commenced work set to finish. But what we can do is move the
+blocked `beginNewWorkSetMessage` back off the background thread. In a
+new goroutine, we can wait until it may be possible to start the work
+set, and try again.
+
+Factoring out that common code is the point of
+`tryToSendBeginNewWorkSetMessage`.
