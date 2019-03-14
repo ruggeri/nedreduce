@@ -22,6 +22,9 @@ func (message *workSetCompletedMessage) Handle(
 	// submit a new job (or waiting to shut us down) needs to know that
 	// they can try now.
 	func() {
+		workerPool.mutex.Lock()
+		defer workerPool.mutex.Unlock()
+
 		workerPool.currentWorkSet = nil
 		workerPool.cond.Broadcast()
 	}()
