@@ -6,6 +6,8 @@ import (
 	mr_rpc "github.com/ruggeri/nedreduce/internal/rpc"
 )
 
+// taskStatus represents whether a task has been started, and whether it
+// is complete.
 type taskStatus string
 
 const (
@@ -42,11 +44,13 @@ func newWorkSet(tasks []mr_rpc.Task) *workSet {
 	return workSet
 }
 
+// takeFirstUnassignedTask does what it sounds like.
 func (workSet *workSet) takeFirstUnassignedTask() mr_rpc.Task {
 	var nextTask mr_rpc.Task
 	for taskIdentifier, taskStatus := range workSet.taskStatuses {
 		if taskStatus == taskNotStarted {
 			nextTask = workSet.tasks[taskIdentifier]
+			break
 		}
 	}
 
@@ -54,8 +58,11 @@ func (workSet *workSet) takeFirstUnassignedTask() mr_rpc.Task {
 		return nil
 	}
 
+	// Record that this task was handed out and will but put into
+	// progress.
 	taskIdentifier := nextTask.Identifier()
 	workSet.taskStatuses[taskIdentifier] = taskInProgress
+
 	return nextTask
 }
 
