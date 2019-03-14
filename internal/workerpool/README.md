@@ -164,3 +164,35 @@ A possibility is to use an "unbuffered channel." But I will investigate
 that later.
 
 TODO: Unbuffered channel?
+
+## Mistake
+
+First, I entirely forgot the message `assignTaskToWorker`. What the
+fuck?
+
+`assignTaskToWorker` needs to look at the `currentWorkSet`. Therefore,
+this method *must* hold a lock, or we must only change `currentWorkSet`
+in the background thread. I didn't do that, so I have a data race.
+
+One way to fix is to not set `currentWorkSet` in the `BeginNewWork`
+method, but to handle it in the `commenceNewWork` message handler. If I
+do that I won't have to worry about anyone changing `currentWorkSet`
+anywhere in the background code. I don't have to worry about it in any
+other message handlers than `assignTaskToWorker`, but the reason why was
+kind of complicated (because all task completion/worker failure messages
+must be handled before a work set can change).
+
+If we do this, we'll have to check the `runState` inside the
+`commenceNewWorkSet` handler. That's because we can't start a new job if
+we're shutting down the `WorkerPool`. We were going to have to lock
+anyway, because `Shutdown` needs to look at `currentWorkSet`, so any
+changes to that variable need to be coordinated.
+
+Annoyingly, we'll still have to lock and check the `runState` in the
+`BeginNewWorkSet` method. We still have to be aware of shut down before
+trying to send messages to the background thread.
+
+Luckily, I already use channels to communicate the result of
+`BeginNewWorkSet`. And the solution of doing the update of
+`currentWorkSet` in the background means I don't have to lock in
+`assignTaskToWorker` every time I want to hand out a new task.
