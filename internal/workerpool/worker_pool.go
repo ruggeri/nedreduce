@@ -8,9 +8,8 @@ import (
 )
 
 // A WorkerPool manages a bunch of workers. Workers can register
-// whenever they want to. The same WorkerPool can be assigned successive
-// collection tasks. Each collection must finish entirely before the
-// next can be started.
+// whenever they want to. Work sets can be submitted anytime you want;
+// they'll be processed one-by-one though.
 type WorkerPool struct {
 	// Coordination
 	//
@@ -26,12 +25,14 @@ type WorkerPool struct {
 
 	// Foreground state
 	//
+	// currentWorkSet is the currently assigned set of work.
+	currentWorkSet *workSet
+	// currenWorkSetCh is how we communicate events (like work set start,
+	// work set completion) to the user of the WorkerPool.
+	currentWorkSetCh chan WorkerPoolEvent
 	// runState records whether the WorkerPool is running, trying to shut
 	// down, or shut down.
 	runState workerPoolRunState
-	// currentWorkSet is the currently assigned set of work.
-	currentWorkSet   *workSet
-	currentWorkSetCh chan WorkerPoolEvent
 
 	// Background state. Background state changes happens only in the
 	// singled-threaded background so no coordination is needed.
@@ -45,13 +46,14 @@ func Start() *WorkerPool {
 	workerPool := &WorkerPool{
 		messageChannel:          make(messageChannel),
 		noMoreMessagesWaitGroup: sync.WaitGroup{},
+		mutex:                   sync.Mutex{},
+		cond:                    nil,
 
 		currentWorkSet:   nil,
 		currentWorkSetCh: nil,
 		runState:         workerPoolIsRunning,
-		mutex:            sync.Mutex{},
-		cond:             nil,
-		workerStates:     make(map[string]workerState),
+
+		workerStates: make(map[string]workerState),
 	}
 
 	workerPool.cond = sync.NewCond(&workerPool.mutex)
@@ -61,10 +63,11 @@ func Start() *WorkerPool {
 	return workerPool
 }
 
-// BeginNewWorkSet synchronously waits until the pool is free. It then
-// kicks off the work set to be performed. It doesn't wait for the work
-// set to complete; it returns a channel so that the user can decide
-// whether/when they want to wait.
+// BeginNewWorkSet will asynchronously start the submitted tasks. The
+// submission may fail to start if the WorkerPool gets shut down. We'll
+// notify the caller of progress via the channel; they'll get messages
+// if the work set couldn't begin, when the work set begins, and when
+// the work set completes.
 func (workerPool *WorkerPool) BeginNewWorkSet(
 	tasks []mr_rpc.Task,
 ) chan WorkerPoolEvent {
@@ -78,8 +81,9 @@ func (workerPool *WorkerPool) BeginNewWorkSet(
 	return ch
 }
 
-// RegisterNewWorker asynchronously notifies the pool manager that a new
-// worker has connected.
+// RegisterNewWorker notifies the WorkerPool that a new worker is
+// available for tasks. This method briefly acquires a mutex, but is
+// effectively non-blocking.
 func (workerPool *WorkerPool) RegisterNewWorker(
 	workerRPCAddress string,
 ) {
@@ -94,14 +98,15 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 		))
 		return
 	case workerPoolIsShuttingDown:
-		// workerPoolIsShuttingDown is set when there is no
-		// currentWorkSet. There never will be after it is set. Therefore
-		// it is pointless to send a message to the background thread to
-		// add the worker.
+		// workerPoolIsShuttingDown is set when there is no currentWorkSet,
+		// so we can't help presently. Also, no new work sets are started
+		// after the WorkerPool starts shutting down. Therefore it is
+		// pointless to send a message to the background thread to add the
+		// worker. It will never be used.
 		return
 	case workerPoolIsShutDown:
-		// Background thread is closed because we are shut down. No
-		// background thread to notify.
+		// Background thread is closed because we are shut down. There isn't
+		// even a background thread to notify.
 		return
 	default:
 		log.Panicf(
@@ -111,10 +116,12 @@ func (workerPool *WorkerPool) RegisterNewWorker(
 	}
 }
 
-// Shutdown tells the WorkerPool to stop processing new messages. It
-// synchronously waits for all the pending messages to clear out. It
-// terminates the background goroutine.
+// Shutdown tells the WorkerPool to stop processing new work sets. It
+// will shut down the background goroutine. The method is synchronous:
+// when we return, the WorkerPool is fully shut down.
 func (workerPool *WorkerPool) Shutdown() {
+	// Step 1: wait until there is no current work, and then start
+	// shutting down the worker pool.
 	func() {
 		workerPool.mutex.Lock()
 		defer workerPool.mutex.Unlock()
@@ -129,6 +136,15 @@ func (workerPool *WorkerPool) Shutdown() {
 					return
 				}
 				// We have to wait until there is no work set running.
+				//
+				// TODO(MEDIUM): Could we at least stop other work sets from
+				// starting? Maybe a workerPoolShutdownIsRequested?
+				//
+				// If we just set workerPoolIsShuttingDown here, then no workers
+				// could register anymore. And it isn't safe to continue to
+				// register workers when in workerPoolIsShuttingDown, since as
+				// soon as there are noMoreMessages then the background thread
+				// can be stopped at any time.
 			case workerPoolIsShuttingDown:
 				// Apparently someone else has started the shutdown. Cool. Let's
 				// break this loop.
@@ -142,10 +158,15 @@ func (workerPool *WorkerPool) Shutdown() {
 		}
 	}()
 
+	// There's no harm in going through this process of shutdown multiple
+	// times. We do it even if someone else has shut down the worker pool.
+	//
 	// Wait until all any in-flight worker registrations flush out.
 	workerPool.noMoreMessagesWaitGroup.Wait()
 
 	func() {
+		// At this point, the runState can only change to
+		// workerPoolIsShutDown, so the locking is probably superfluous.
 		workerPool.mutex.Lock()
 		defer workerPool.mutex.Unlock()
 
