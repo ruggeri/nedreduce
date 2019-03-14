@@ -26,20 +26,22 @@ func runDistributedMapPhase(
 	}
 
 	// The worker pool will hand out the map tasks to the workers.
-	workSetResultChan, err := jobCoordinator.workerPool.BeginNewWorkSet(allTasks)
+	workSetEvents := jobCoordinator.workerPool.BeginNewWorkSet(allTasks)
 
-	// In theory the WorkerPool could have been shut down before we could
-	// assign the work.
-	if err != nil {
-		log.Panic("WorkerPool wasn't able to start mapPhase: %v\n", err)
+	// Wait for commencement.
+	switch event := <-workSetEvents; event {
+	case workerpool.WorkerPoolCommencedWorkSet:
+		// Good.
+	default:
+		log.Panicf("Expected WorkerPool to commence work. Got: %v\n", event)
 	}
 
-	// We wait until the WorkerPool has completed all the work.
-	switch res := <-workSetResultChan; res {
-	case workerpool.WorkerPoolHasCompletedWorkSet:
-		// Good
+	// Wait for completion.
+	switch event := <-workSetEvents; event {
+	case workerpool.WorkerPoolCompletedWorkSet:
+		// Good.
 	default:
-		log.Panicf("Unexpected work set result: %v\n", res)
+		log.Panicf("Expected WorkerPool to complete work. Got: %v\n", event)
 	}
 }
 
@@ -57,19 +59,21 @@ func runDistributedReducePhase(
 	}
 
 	// The worker pool will hand out the reduce tasks to the workers.
-	workSetResultChan, err := jobCoordinator.workerPool.BeginNewWorkSet(allTasks)
+	workSetEvents := jobCoordinator.workerPool.BeginNewWorkSet(allTasks)
 
-	// In theory the WorkerPool could have been shut down before we could
-	// assign the work.
-	if err != nil {
-		log.Panic("WorkerPool wasn't able to start reducePhase: %v\n", err)
+	// Wait for commencement.
+	switch event := <-workSetEvents; event {
+	case workerpool.WorkerPoolCommencedWorkSet:
+		// Good.
+	default:
+		log.Panicf("Expected WorkerPool to commence work. Got: %v\n", event)
 	}
 
-	// We wait until the WorkerPool has completed all the work.
-	switch res := <-workSetResultChan; res {
-	case workerpool.WorkerPoolHasCompletedWorkSet:
-		// Good
+	// Wait for completion.
+	switch event := <-workSetEvents; event {
+	case workerpool.WorkerPoolCompletedWorkSet:
+		// Good.
 	default:
-		log.Panicf("Unexpected work set result: %v\n", res)
+		log.Panicf("Expected WorkerPool to complete work. Got: %v\n", event)
 	}
 }
