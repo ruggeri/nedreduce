@@ -24,7 +24,7 @@ type workSet struct {
 }
 
 // newWorkSet creates a new workSet.
-func newWorkSet(tasks []mr_rpc.Task) *workSet {
+func newWorkSet(identifier string, tasks []mr_rpc.Task) *workSet {
 	if len(tasks) == 0 {
 		log.Panic("workSet cannot be created with no tasks to perform.")
 	}

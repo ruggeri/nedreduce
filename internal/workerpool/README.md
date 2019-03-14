@@ -13,17 +13,17 @@ wait for the `runState` to change.
 
 There are five kinds of messages to the background thread:
 
-* beginNewWorkSet
+* commenceNewWorkSet
 * taskCompleted
 * workSetCompleted
 * registerWorker
 * workerFailed
 
-Technically, `beginNewWorkSet` work can probably be done in the
+Technically, `commenceNewWorkSet` work can probably be done in the
 `BeginNewWorkSet` method. But it is fine to do this work in the message
-thread anyway. `beginNewWorkSet` does not need to change the `runState`
-or `currentWorkSet`, as these are done by `BeginNewWorkSet` before the
-message is sent.
+thread anyway. `commenceNewWorkSet` does not need to change the
+`runState` or `currentWorkSet`, as these are done by `BeginNewWorkSet`
+before the message is sent.
 
 The `taskCompleted` and `workerFailed` messages by necessity **must** be
 processed before it is possible to fire `workSetCompleted`. Therefore,
@@ -38,6 +38,14 @@ the `runState`. It **must** broadcast to everyone that the
 fired not just for `runState` changes; it must also fire for
 `currentWorkSet` changes.
 
+**Correction**. `workSetCompleted` handling **must** hold the mutex.
+That's to avoid (1) a new caller to `BeginNewWorkSet` sees
+`currentWorkSet != nil`, (2) the `workSetCompleted` handler sets
+`currentWorkSet = nil` AND fires the condition variable, (3) the caller
+to `BeginNewWorkSet` starts waiting for the condition variable. Luckily,
+taking the mutex in `workSetCompleted` handling can't cause any
+deadlock issues.
+
 The last kind of message is `registerWorker`. Of course, like
 `BeginNewWorkSet` and `Shutdown`, the `RegisterNewWorker` method must
 hold the lock to make sure that it is safe to send this message to the
@@ -46,9 +54,9 @@ background thread.
 A problem here is that `registerWorker` may be delivered at any time.
 This brings up an interesting point. We know that `BeginNewWorkSet` has
 to acquire a lock to set `currentWorkSet` before sending the
-`beginNewWorkSet` method, but it may *drop* the lock before sending that
-`beginNewWorkSet` message asynchronously. It is safe to do so because
-`ShutdownWorker` cannot sneak in and close the channel, since
+`commenceNewWorkSet` method, but it may *drop* the lock before sending
+that `commenceNewWorkSet` message asynchronously. It is safe to do so
+because `ShutdownWorker` cannot sneak in and close the channel, since
 `ShutdownWorker` will wait until `currentWorkSet` is nil.
 
 With `RegisterWorker`, how will we stop shutdown? One way is to hold the
@@ -81,9 +89,27 @@ a new job is started.
 
 Therefore, this suggests a `runState` of `shuttingDown`. In this mode,
 no new jobs can begin. `ShutdownWorker` waits for `currentWorkSet` to be
-nil, then changes to `shuttingDown`. It next waits for there to be no
-more messages in flight. Is does this via a `WaitGroup`: before a
-message send we increment the wait group, and when a message is
-delivered we remove from the wait group.
+nil, then changes to `shuttingDown`. In `shuttingDown` mode, there
+should be no more worker registrations sent to background thread.
+
+`ShutdownWorker` will now wait until there are no more messages in
+flight. This happens because neither `BeginNewWorkSet` nor
+`RegisterWorker` send messages anymore. `ShutdownWorker` waits via a
+`WaitGroup`: before a message send we increment the wait group, and when
+a message is delivered we remove from the wait group.
+
+We need to ask briefly about how to deal with multiple callers to
+`Shutdown`. Both will be start to be woken when `workSetCompleted` is
+handled and the `Cond` is fired. Only one will get the lock first and be
+able to break out of the loop, though.
+
+While waiting for the messages to clear out, we might as well drop the
+lock. That means that *both* `Shtudown` invocations will break out of
+the loop.
+
+That's probably fine: both invocations are going to do the same thing:
+set `runState` to `shutDown` and return. But we might as well acquire a
+lock before changing the `runState` (just feels good). Only one of them
+actually needs to set the `runState` to `shutDown`.
 
 This gets us close to an original solution of mine. Yikes.

@@ -38,8 +38,6 @@ func (message *completedTaskMessage) Handle(
 		workerPool.sendOffMessage(newWorkSetCompletedMessage())
 	} else {
 		// Else, we want to try to give this worker a new task.
-		workerPool.sendOffMessage(
-			newAssignTaskToWorkerMessage(workerRPCAddress),
-		)
+		workerPool.sendOffMessage(newAssignTaskToWorkerMessage(workerRPCAddress))
 	}
 }

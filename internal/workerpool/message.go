@@ -1,5 +1,7 @@
 package workerpool
 
+import "log"
+
 type message interface {
 	Handle(workerPool *WorkerPool)
 }
@@ -23,14 +25,19 @@ func (workerPool *WorkerPool) handleMessages() {
 }
 
 func (workerPool *WorkerPool) sendOffMessage(message message) {
-	workerPool.mutex.Lock()
-	defer workerPool.mutex.Unlock()
-
-	// After shut down begins, start dropping all messages.
-	if workerPool.runState == shuttingDown {
+	switch workerPool.runState {
+	case shuttingDown:
+		// After shut down begins, start dropping all messages.
 		return
+	case shutDown:
+		log.Panicf(
+			"message sould not be sent after WorkerPool shut down:%v\n",
+			message,
+		)
 	}
 
+	// Record that there is another message in flight. That makes it safe
+	// to send the message async.
 	workerPool.noMoreMessagesWaitGroup.Add(1)
 	go func() { workerPool.messageChannel <- message }()
 }

@@ -25,15 +25,15 @@ func (message *registerWorkerMessage) Handle(workerPool *WorkerPool) {
 
 	if _, ok := workerPool.workerStates[workerRPCAddress]; ok {
 		// Worker is trying to re-register. Ignore.
+		//
+		// TODO: this could be a place to allow recovery of a worker?
 		util.Debug("worker %v tried to re-register?\n", workerRPCAddress)
 		return
 	}
 
-	// Else record them as free for a task.
+	// Record them as free for a task.
 	workerPool.workerStates[workerRPCAddress] = freeForTask
 
 	// Assign this worker a task.
-	workerPool.sendOffMessage(
-		newAssignTaskToWorkerMessage(workerRPCAddress),
-	)
+	workerPool.sendOffMessage(newAssignTaskToWorkerMessage(workerRPCAddress))
 }
