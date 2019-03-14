@@ -25,13 +25,19 @@ type WorkerPool struct {
 
 	// Foreground state
 	//
-	// currentWorkSet is the currently assigned set of work.
+	// currentWorkSet is the currently assigned set of work. It is only
+	// set in the background (where it doesn't need synchronization when
+	// reading, because single-threaded), but it is *read* in the
+	// foreground (which needs synchronization when reading). We need to
+	// synchronize in the background when we write, of course.
 	currentWorkSet *workSet
 	// currenWorkSetCh is how we communicate events (like work set start,
-	// work set completion) to the user of the WorkerPool.
+	// work set completion) to the user of the WorkerPool. It has the same
+	// synchronization story as currentWorkSet.
 	currentWorkSetCh chan WorkerPoolEvent
 	// runState records whether the WorkerPool is running, trying to shut
-	// down, or shut down.
+	// down, or shut down. Since it is modified by external methods, we
+	// must synchronize when using this anywhere.
 	runState workerPoolRunState
 
 	// Background state. Background state changes happens only in the

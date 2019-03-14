@@ -7,6 +7,8 @@ import (
 	"github.com/ruggeri/nedreduce/internal/util"
 )
 
+// beginNewWorkSetMessage is sent when we want to try to start a new
+// work set.
 type beginNewWorkSetMessage struct {
 	Tasks []mr_rpc.Task
 	Ch    chan WorkerPoolEvent
@@ -22,24 +24,29 @@ func newBeginNewWorkSetMessage(
 	}
 }
 
-// handleStartingNewWorkSet starts working on a workSet by assigning
-// tasks to all currently registered workers.
 func (message *beginNewWorkSetMessage) Handle(workerPool *WorkerPool) {
+	// We have to lock because (1) we're reading runState (which can be
+	// changed in the foreground methods) and (2) we're writing
+	// currentWorkSet (which can be viewed in the foreground).
 	workerPool.mutex.Lock()
 	defer workerPool.mutex.Unlock()
 
+	// Is the WorkerPool capable of starting this new work set right now?
 	if workerPool.runState != workerPoolIsRunning || workerPool.currentWorkSet != nil {
-		// Move it off the background thread and we'll try again later
-		// maybe.
+		// If not, we need to block until something changes. We'll do that
+		// in a goroutine, because we can't block the background worker
+		// thread.
 		go workerPool.tryToSendBeginNewWorkSetMessage(message)
 		return
 	}
 
 	util.Debug("WorkerPool is commencing work on a new work set\n")
 
+	// Update the current work set.
 	workerPool.currentWorkSet = newWorkSet(message.Tasks)
 	workerPool.currentWorkSetCh = message.Ch
 
+	// Notify the user that we have started their job.
 	workerPool.currentWorkSetCh <- WorkerPoolCommencedWorkSet
 
 	// Hand out the initial tasks!
@@ -48,6 +55,7 @@ func (message *beginNewWorkSetMessage) Handle(workerPool *WorkerPool) {
 		case failed:
 			// Skip failed workers.
 		case workingOnTask:
+			// Sanity check.
 			log.Panic("How is worker already working on a task?\n")
 		case freeForTask:
 			workerPool.sendOffMessage(
@@ -59,6 +67,9 @@ func (message *beginNewWorkSetMessage) Handle(workerPool *WorkerPool) {
 	}
 }
 
+// tryToSendBeginNewWorkSetMessage will wait until it think it has a
+// chance of successfully beginning a new work set. When that happens,
+// it will send a message to the background thread.
 func (workerPool *WorkerPool) tryToSendBeginNewWorkSetMessage(
 	message *beginNewWorkSetMessage,
 ) {
@@ -69,7 +80,7 @@ func (workerPool *WorkerPool) tryToSendBeginNewWorkSetMessage(
 		switch workerPool.runState {
 		case workerPoolIsRunning:
 			if workerPool.currentWorkSet == nil {
-				// We can try to schedule a new job!
+				// We can try to schedule a new job! Maybe it will work!
 				workerPool.sendOffMessage(message)
 				return
 			}
@@ -79,8 +90,9 @@ func (workerPool *WorkerPool) tryToSendBeginNewWorkSetMessage(
 			message.Ch <- WorkerPoolDidNotAcceptWorkSet
 			return
 		case workerPoolIsShutDown:
-			// Background thread is closed because the WorkerPool is shut
-			// down. No background thread to even notify.
+			// Can't start work when the WorkerPool is shut down. In fact, it
+			// would be fatal anyway, because the internal message channel is
+			// closed.
 			message.Ch <- WorkerPoolDidNotAcceptWorkSet
 			return
 		default:
