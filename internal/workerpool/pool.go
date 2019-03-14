@@ -75,12 +75,13 @@ func (workerPool *WorkerPool) BeginNewWorkSet(
 		workerPool.mutex.Lock()
 		defer workerPool.mutex.Unlock()
 
+	loop:
 		for {
 			switch workerPool.runState {
 			case workerPoolIsRunning:
 				if workerPool.currentWorkSet == nil {
 					// We can schedule a new job!
-					break
+					break loop
 				}
 				// Someone else is running a job. We'll wait until they are done.
 			case workerPoolIsShuttingDown:
@@ -103,7 +104,7 @@ func (workerPool *WorkerPool) BeginNewWorkSet(
 		}
 
 		workerPool.currentWorkSet = newWorkSet(tasks)
-		workerPool.currentWorkSetCh = make(chan WorkerPoolEvent)
+		workerPool.currentWorkSetCh = ch
 
 		// We'll notify about commencement from the background thread
 		// handler.
